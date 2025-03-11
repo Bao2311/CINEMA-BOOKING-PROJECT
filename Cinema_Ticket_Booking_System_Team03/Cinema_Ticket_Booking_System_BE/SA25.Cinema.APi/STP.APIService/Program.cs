@@ -10,6 +10,7 @@ using STP.Repository.Data;
 using PMS.Repository.Base;
 using STP.Repository.Services;
 using STP.Repositories;
+using sa25.Repository.Data;
 
 namespace STP.APIService
 {
@@ -68,12 +69,14 @@ namespace STP.APIService
             builder.Services.AddScoped<UserRepository>();
             builder.Services.AddScoped<AuthService>();
             builder.Services.AddScoped<EmailService>();
+            builder.Services.AddScoped<UnitOfWork>();
             builder.Services.AddLogging(logging =>
             {
                 logging.ClearProviders();
                 logging.AddConsole();
                 logging.AddDebug();
             });
+
             // Cấu hình Swagger
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
