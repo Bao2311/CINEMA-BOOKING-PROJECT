@@ -163,8 +163,8 @@ namespace STP.Repository.Services
             if (!VerifyPassword(changePasswordDto.OldPassword, user.Password))
                 throw new Exception("Mật khẩu cũ không chính xác");
 
-            // Cập nhật mật khẩu mới - lưu trực tiếp không hash
-            user.Password = changePasswordDto.NewPassword;
+            // Bằng dòng này để mã hóa mật khẩu:
+            user.Password = HashPassword(changePasswordDto.NewPassword);
             await _userRepository.UpdateAsync(user);
         }
 
@@ -287,10 +287,11 @@ namespace STP.Repository.Services
             string newPassword = GenerateRandomPassword();
             _logger.LogInformation($"Generated new password for user: {user.User_ID}");
 
-            // Lưu mật khẩu mới
-            user.Password = newPassword;
+            // Lưu mật khẩu mới và mã hóa pass 
+            user.Password = HashPassword(newPassword);
             await _userRepository.UpdateAsync(user);
             _logger.LogInformation($"Updated password for user: {user.User_ID}");
+
 
             try
             {
@@ -343,4 +344,6 @@ namespace STP.Repository.Services
             return new string(result);
         }
     }
+
+
 }
