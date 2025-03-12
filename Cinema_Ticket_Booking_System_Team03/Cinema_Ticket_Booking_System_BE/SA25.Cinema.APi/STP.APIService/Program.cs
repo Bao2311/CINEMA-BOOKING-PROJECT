@@ -18,7 +18,7 @@ namespace STP.APIService
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-
+            
             // Cấu hình CORS
             builder.Services.AddCors(options =>
             {
