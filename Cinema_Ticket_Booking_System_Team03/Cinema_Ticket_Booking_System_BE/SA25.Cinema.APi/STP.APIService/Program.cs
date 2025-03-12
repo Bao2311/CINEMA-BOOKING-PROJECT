@@ -13,6 +13,8 @@ using System.Text.Json.Serialization;
 using System.Text;
 using STP.APIService.Controllers;
 using STP.Service.Services;
+using sa25.Repository.Data;
+
 
 
 
@@ -93,6 +95,8 @@ namespace STP.APIService
             builder.Services.AddScoped<EmailService>();
             builder.Services.AddScoped<ShowtimeRepository>();
             builder.Services.AddScoped<ShowtimeService>();
+            builder.Services.AddScoped<MovieController>();
+            builder.Services.AddScoped<UnitOfWork>();
             // Đăng ký MovieRepository và MovieService
             builder.Services.AddScoped<MovieRepository>();
 
