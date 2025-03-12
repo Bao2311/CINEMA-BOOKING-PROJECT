@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-
+using STP.Repository.Data;
 namespace STP.Repository.Repositories
 {
     public class ShowtimeRepository
@@ -49,24 +49,7 @@ namespace STP.Repository.Repositories
                 .Where(s => s.Status != "Hidden" && s.Status != "Deleted")
                 .ToListAsync();
         }
-
-        public async Task<Showtime> GetByIdAsync(int id)
-        {
-            return await _context.Showtimes
-                .Include(s => s.Movie)
-                .Include(s => s.CinemaRoom)
-                .FirstOrDefaultAsync(s => s.Showtime_ID == id);
-        }
-
-        public async Task<IEnumerable<Showtime>> GetAsync(Expression<Func<Showtime, bool>> filter)
-        {
-            return await _context.Showtimes
-                .Include(s => s.Movie)
-                .Include(s => s.CinemaRoom)
-                .Where(filter)
-                .ToListAsync();
-        }
-
+   
         public async Task<int> CreateAsync(Showtime showtime)
         {
             _context.Showtimes.Add(showtime);
@@ -80,13 +63,6 @@ namespace STP.Repository.Repositories
             return await _context.Showtimes
                 .Include(s => s.CinemaRoom)
                 .FirstOrDefaultAsync(s => s.Showtime_ID == id);
-        }
-
-        public async Task<List<Showtime>> GetAllAsync()
-        {
-            return await _context.Showtimes
-                .Include(s => s.CinemaRoom)
-                .ToListAsync();
         }
 
         // Get by condition
@@ -115,7 +91,7 @@ namespace STP.Repository.Repositories
 
             _context.Showtimes.Remove(showtime);
             await _context.SaveChangesAsync();
-            return showtime.Showtime_ID;
+            return true;
         }
 
         public async Task<bool> UpdateAsync(int id, Showtime showtime)

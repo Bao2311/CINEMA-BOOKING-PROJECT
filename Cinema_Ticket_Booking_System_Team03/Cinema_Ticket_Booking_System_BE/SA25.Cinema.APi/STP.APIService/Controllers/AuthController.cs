@@ -17,11 +17,13 @@ namespace STP.APIService.Controllers
         private readonly AuthService _authService;
         private readonly ILogger<AuthController> _logger;
         private readonly EmailService _emailService;
-        public AuthController(AuthService authService, ILogger<AuthController> logger, EmailService emailService)
+        private readonly AccountLockingService _accountLockingService;
+        public AuthController(AuthService authService, ILogger<AuthController> logger, EmailService emailService, AccountLockingService accountLockingService)
         {
             _authService = authService;
             _logger = logger;
             _emailService = emailService;
+            _accountLockingService = accountLockingService;
         }
 
         // Task 1.1: Implement Login Functionality
@@ -122,49 +124,7 @@ namespace STP.APIService.Controllers
                 return BadRequest(new { message = ex.Message, success = false });
             }
         }
-        [HttpGet("test-direct-email")]
-        [AllowAnonymous]
-        public async Task<IActionResult> TestDirectEmail()
-        {
-            try
-            {
-                var toEmail = "Phucnguyen5640@gmail.com"; // Email người nhận
-                var subject = "Test Email từ STP Cinema";
-                var body = "<h1>Test Email</h1><p>Đây là email kiểm tra từ ứng dụng STP Cinema.</p>";
-
-                // Cấu hình SMTP client trực tiếp
-                using (var client = new SmtpClient("smtp.gmail.com", 587))
-                {
-                    client.EnableSsl = true;
-                    client.UseDefaultCredentials = false;
-                    client.Credentials = new NetworkCredential(
-                        "phucnvse180213@fpt.edu.vn",
-                        "gbqqzmsygjjonygw");
-
-                    var mailMessage = new MailMessage
-                    {
-                        From = new MailAddress("phucnvse180213@fpt.edu.vn", "STP Cinema"),
-                        Subject = subject,
-                        Body = body,
-                        IsBodyHtml = true
-                    };
-
-                    mailMessage.To.Add(toEmail);
-
-                    _logger.LogInformation("Testing direct email send...");
-                    await client.SendMailAsync(mailMessage);
-                    _logger.LogInformation("Direct email sent successfully");
-                }
-
-                return Ok(new { message = "Direct test email sent successfully", success = true });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Failed to send direct test email: {ex.Message}");
-                return BadRequest(new { message = $"Lỗi gửi email trực tiếp: {ex.Message}", success = false });
-            }
-        }
-
+        
         // Task 2.4: Get Current User Profile
         [HttpGet("profile")]
         [Authorize]
@@ -183,6 +143,61 @@ namespace STP.APIService.Controllers
             }
             catch (Exception ex)
             {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+        [HttpGet("check-account-status")]
+        public async Task<IActionResult> CheckAccountStatus([FromQuery] string email)
+        {
+            try
+            {
+                bool isLocked = await _accountLockingService.IsAccountLockedAsync(email);
+                if (isLocked)
+                {
+                    int remainingMinutes = await _accountLockingService.GetRemainingLockTimeAsync(email);
+                    return Ok(new
+                    {
+                        isLocked = true,
+                        remainingMinutes = remainingMinutes,
+                        message = $"Tài khoản đang bị khóa. Còn {remainingMinutes} phút để mở khóa."
+                    });
+                }
+                else
+                {
+                    return Ok(new
+                    {
+                        isLocked = false,
+                        message = "Tài khoản đang hoạt động bình thường."
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Lỗi khi kiểm tra trạng thái tài khoản: {ex.Message}");
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        // Endpoint cho quản trị viên mở khóa tài khoản
+        [HttpPost("unlock-account")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UnlockAccount([FromBody] UnlockAccountDto unlockDto)
+        {
+            try
+            {
+                var result = await _authService.UnlockAccountAsync(unlockDto.Email);
+                if (result)
+                {
+                    return Ok(new { message = "Tài khoản đã được mở khóa thành công" });
+                }
+                else
+                {
+                    return NotFound(new { message = "Không tìm thấy tài khoản" });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Lỗi khi mở khóa tài khoản: {ex.Message}");
                 return BadRequest(new { message = ex.Message });
             }
         }
