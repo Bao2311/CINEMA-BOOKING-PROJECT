@@ -142,4 +142,13 @@ namespace STP.Repository.Dtos
 
         public string AccountStatus { get; set; } // "Active", "Inactive", "Locked"
     }
+    public class UnlockAccountDto
+    {
+        [Required(ErrorMessage = "Email là bắt buộc")]
+        [EmailAddress(ErrorMessage = "Địa chỉ email không hợp lệ")]
+        public string Email { get; set; }
+
+        // Tùy chọn: Bạn có thể thêm các thông tin khác nếu cần
+        // public string AdminComment { get; set; }
+    }
 }
