@@ -10,6 +10,8 @@ using STP.Repository.Data;
 using PMS.Repository.Base;
 using STP.Repository.Services;
 using STP.Repositories;
+using STP.Repository.Repositories;
+using STP.Service.Services;
 
 namespace STP.APIService
 {
@@ -62,12 +64,33 @@ namespace STP.APIService
                     ValidIssuer = builder.Configuration["Jwt:Issuer"],
                     ValidAudience = builder.Configuration["Jwt:Audience"]
                 };
+                // Thêm xử lý sự kiện tùy chỉnh để tự động thêm prefix "Bearer"
+                x.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        string authorization = context.Request.Headers["Authorization"];
+
+                        // Nếu header Authorization không bắt đầu với "Bearer ", tự động thêm vào
+                        if (!string.IsNullOrEmpty(authorization) && !authorization.StartsWith("Bearer "))
+                        {
+                            context.Request.Headers["Authorization"] = "Bearer " + authorization;
+                        }
+
+                        return Task.CompletedTask;
+                    }
+                };
             });
 
+
             // Đăng ký các Repository và Services
+            builder.Services.AddScoped<ShowtimeRepository>();
+            builder.Services.AddScoped<ShowtimeService>();
             builder.Services.AddScoped<UserRepository>();
             builder.Services.AddScoped<AuthService>();
             builder.Services.AddScoped<EmailService>();
+            builder.Services.AddMemoryCache();
+            
             builder.Services.AddLogging(logging =>
             {
                 logging.ClearProviders();

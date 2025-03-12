@@ -105,3 +105,5 @@ publish/
 *.sln.docstates 
 
  
+/Cinema_Ticket_Booking_System_Team03/Cinema_Ticket_Booking_System_BE/SA25.Cinema.APi/STP.APIService/appsettings.json
+/Cinema_Ticket_Booking_System_Team03/Cinema_Ticket_Booking_System_BE/SA25.Cinema.APi/STP.APIService/appsettings.json

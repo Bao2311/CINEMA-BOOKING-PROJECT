@@ -13,6 +13,7 @@ using STP.Repositories;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using STP.Repository.Repositories;
 
 namespace STP.Repository.Services
 {
@@ -22,13 +23,15 @@ namespace STP.Repository.Services
         private readonly IConfiguration _configuration;
         private readonly UserRepository _userRepository;
         private readonly EmailService _emailService; // Thêm EmailService
+        private readonly ShowtimeRepository _showtimeRepository;
         private readonly ILogger<AuthService> _logger;
-        public AuthService(CinemaDbContext context, IConfiguration configuration, UserRepository userRepository, EmailService emailService, ILogger<AuthService> logger)
+        public AuthService(CinemaDbContext context, IConfiguration configuration, UserRepository userRepository, EmailService emailService, ILogger<AuthService> logger, ShowtimeRepository showtimeRepository)
         {
             _context = context;
             _configuration = configuration;
             _userRepository = userRepository;
             _emailService = emailService; // Khởi tạo EmailService
+            _showtimeRepository = showtimeRepository;
             _logger = logger;
         }
 
@@ -326,9 +329,9 @@ namespace STP.Repository.Services
                 throw new Exception($"Đã đặt lại mật khẩu nhưng không thể gửi email: {ex.Message}");
             }
         }
-    
-    // Tạo mật khẩu ngẫu nhiên
-    private string GenerateRandomPassword(int length = 10)
+  
+        // Tạo mật khẩu ngẫu nhiên
+        private string GenerateRandomPassword(int length = 10)
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
             var random = new Random();
