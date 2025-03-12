@@ -28,6 +28,7 @@ namespace STP.Repository.Data
         public DbSet<PromotionUsage> PromotionUsages { get; set; }
         public DbSet<MovieRating> MovieRatings { get; set; }
         public DbSet<PointsRedemption> PointsRedemptions { get; set; }
+        public DbSet<FailedLogin> FailedLogins { get; set; }
 
         // Phương thức lấy chuỗi kết nối từ cấu hình (appsettings.json)
         public static string GetConnectionString(string connectionStringName)
@@ -262,6 +263,12 @@ namespace STP.Repository.Data
                 .WithMany(tb => tb.PromotionUsages)
                 .HasForeignKey(pu => pu.Booking_ID)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<FailedLogin>()
+        .HasIndex(fl => fl.User_ID);
+
+            modelBuilder.Entity<FailedLogin>()
+                .HasIndex(fl => fl.AttemptTime);
         }
     }
 }
