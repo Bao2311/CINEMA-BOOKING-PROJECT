@@ -2,6 +2,11 @@
 using PMS.Repository.Base;
 using STP.Repository.Data;
 using STP.Repository.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace STP.Repositories
 {
@@ -13,18 +18,32 @@ namespace STP.Repositories
         public async Task<int> CreateAsync(Showtime showtime)
         {
             _context.Showtimes.Add(showtime);
-            return await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
+            return showtime.Showtime_ID;
         }
 
         // Read
         public async Task<Showtime> GetByIdAsync(int id)
         {
-            return await _context.Showtimes.FindAsync(id);
+            return await _context.Showtimes
+                .Include(s => s.CinemaRoom)
+                .FirstOrDefaultAsync(s => s.Showtime_ID == id);
         }
 
         public async Task<List<Showtime>> GetAllAsync()
         {
-            return await _context.Showtimes.ToListAsync();
+            return await _context.Showtimes
+                .Include(s => s.CinemaRoom)
+                .ToListAsync();
+        }
+
+        // Get by condition
+        public async Task<List<Showtime>> GetAsync(Expression<Func<Showtime, bool>> predicate)
+        {
+            return await _context.Showtimes
+                .Include(s => s.CinemaRoom)
+                .Where(predicate)
+                .ToListAsync();
         }
 
         // Update
