@@ -114,6 +114,5 @@ namespace STP.Repositories
                 .Take(count)
                 .ToListAsync();
         }
-        
     }
 }

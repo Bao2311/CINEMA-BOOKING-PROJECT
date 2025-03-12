@@ -1,15 +1,21 @@
-﻿using System.Text;
-using System.Text.Json.Serialization;
+﻿// Đây là phần code cần thêm vào Program.cs của bạn
+// Thêm vào phần đăng ký dịch vụ (trước dòng "var app = builder.Build();")
+
+// Đăng ký MovieRepository và MovieService
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using STP.Repository;
-using STP.Repository.Models;
-using STP.Repository.Data;
-using PMS.Repository.Base;
-using STP.Repository.Services;
+using Microsoft.OpenApi.Models;
 using STP.Repositories;
+using STP.Repository.Data;
+using STP.Repository.Services;
+using System.Text.Json.Serialization;
+using System.Text;
+using STP.APIService.Controllers;
+using STP.Service.Services;
+
+
+
 
 namespace STP.APIService
 {
@@ -62,18 +68,35 @@ namespace STP.APIService
                     ValidIssuer = builder.Configuration["Jwt:Issuer"],
                     ValidAudience = builder.Configuration["Jwt:Audience"]
                 };
+                // Thêm xử lý sự kiện tùy chỉnh để tự động thêm prefix "Bearer"
+                x.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        string authorization = context.Request.Headers["Authorization"];
+
+                        // Nếu header Authorization không bắt đầu với "Bearer ", tự động thêm vào
+                        if (!string.IsNullOrEmpty(authorization) && !authorization.StartsWith("Bearer "))
+                        {
+                            context.Request.Headers["Authorization"] = "Bearer " + authorization;
+                        }
+
+                        return Task.CompletedTask;
+                    }
+                };
             });
 
             // Đăng ký các Repository và Services
+            // Trong phần đăng ký các Repository và Services
             builder.Services.AddScoped<UserRepository>();
             builder.Services.AddScoped<AuthService>();
             builder.Services.AddScoped<EmailService>();
-            builder.Services.AddLogging(logging =>
-            {
-                logging.ClearProviders();
-                logging.AddConsole();
-                logging.AddDebug();
-            });
+            builder.Services.AddScoped<ShowtimeRepository>();
+            builder.Services.AddScoped<ShowtimeService>();
+            // Đăng ký MovieRepository và MovieService
+            builder.Services.AddScoped<MovieRepository>();
+
+
             // Cấu hình Swagger
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
@@ -83,7 +106,7 @@ namespace STP.APIService
                 // Cấu hình Swagger để hỗ trợ JWT Authentication
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
-                    Description = "JWT Authorization header using the Bearer scheme",
+                    Description = "JWT Authorization header using the Bearer scheme. Just paste your token without using the 'Bearer' prefix.",
                     Name = "Authorization",
                     In = ParameterLocation.Header,
                     Type = SecuritySchemeType.ApiKey,
