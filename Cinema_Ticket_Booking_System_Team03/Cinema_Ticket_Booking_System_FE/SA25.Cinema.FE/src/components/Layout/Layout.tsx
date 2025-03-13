@@ -1,24 +1,28 @@
-import React, { useEffect, useState } from 'react';
-import Navbar from './Navbar';
+import React, { useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import NavbarLoginAdmin from './Navbar-Login-Admin';
 import NavbarLogin from './Navbar-Login';
 import Footer from './Footer';
-
 
 interface LayoutProps {
   children?: React.ReactNode; // Đảm bảo rằng bạn định nghĩa 'children' nếu có
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    setIsAuthenticated(!!token); // Nếu có token, set isAuthenticated là true
+    // Token check logic can be implemented here if needed
   }, []);
+
+  const isAdmin = user?.role === 'admin';
+
+  // Add console log to verify current user role
+  console.log('Current user role:', user?.role);
 
   return (
     <div className="flex flex-col min-h-screen">
-      {isAuthenticated ? <NavbarLogin /> : <Navbar />}
+      {isAdmin ? <NavbarLoginAdmin /> : <NavbarLogin />}
       <main className="flex-grow">
         {children} {/* Render các phần tử con tại đây */}
       </main>
@@ -26,6 +30,5 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     </div>
   );
 };
-
 
 export default Layout;
