@@ -67,7 +67,24 @@ namespace STP.APIService
                     ValidIssuer = builder.Configuration["Jwt:Issuer"],
                     ValidAudience = builder.Configuration["Jwt:Audience"]
                 };
+                // Thêm xử lý sự kiện tùy chỉnh để tự động thêm prefix "Bearer"
+                x.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        string authorization = context.Request.Headers["Authorization"];
+
+                        // Nếu header Authorization không bắt đầu với "Bearer ", tự động thêm vào
+                        if (!string.IsNullOrEmpty(authorization) && !authorization.StartsWith("Bearer "))
+                        {
+                            context.Request.Headers["Authorization"] = "Bearer " + authorization;
+                        }
+
+                        return Task.CompletedTask;
+                    }
+                };
             });
+
 
             // Đăng ký các Repository và Services
             // Trong phần đăng ký các Repository và Services

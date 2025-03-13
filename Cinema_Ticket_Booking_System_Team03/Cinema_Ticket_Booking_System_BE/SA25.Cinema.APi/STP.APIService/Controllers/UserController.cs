@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using STP.Repository.Dtos;
@@ -21,14 +21,13 @@ namespace STP.APIService.Controllers
         private readonly UserRepository _userRepository;
         private readonly AuthService _authService;
         private readonly IUserProfileService _userProfileService;
+        private readonly EmailService _emailService;
 
-        public UserController(
-            UserRepository userRepository,
-            AuthService authService,
-            IUserProfileService userProfileService)
+        public UserController(UserRepository userRepository, AuthService authService, EmailService emailService,IUserProfileService userProfileService)
         {
             _userRepository = userRepository;
             _authService = authService;
+            _emailService = emailService;
             _userProfileService = userProfileService;
         }
 
@@ -97,48 +96,41 @@ namespace STP.APIService.Controllers
             }
         }
 
-        // Task 2.5: Implement Admin User Management (Add)
-        [HttpPost("register")]
-        public async Task<IActionResult> CreateUser(AdminRegisterDto registerDto)
+        // Thêm endpoint mới để admin đăng ký người dùng với mật khẩu tự động
+        [HttpPost("register-user")]
+        public async Task<IActionResult> RegisterUserWithAutoPassword(AdminRegisterUserDto model)
         {
             try
             {
-                // Tạo RegisterDto từ AdminRegisterDto
-                RegisterDto standardRegisterDto = new RegisterDto
+                if (!ModelState.IsValid)
                 {
-                    Email = registerDto.Email,
-                    Password = registerDto.Password,
-                    ConfirmPassword = registerDto.ConfirmPassword,
-                    FullName = registerDto.FullName,
-                    DateOfBirth = registerDto.DateOfBirth,
-                    Sex = registerDto.Sex,
-                    PhoneNumber = registerDto.PhoneNumber,
-                    Address = registerDto.Address
-                };
-
-                // Đăng ký user mới
-                var result = await _authService.RegisterAsync(standardRegisterDto);
-
-                // Cập nhật vai trò nếu cần
-                var user = await _userRepository.GetByIdAsync(result.UserId);
-
-                // Sử dụng role từ AdminRegisterDto thay vì hardcode "Admin"
-                if (User.IsInRole("Admin"))
-                {
-                    user.Role = registerDto.Role;
-                    await _userRepository.UpdateAsync(user);
-
-                    // Cập nhật kết quả trả về
-                    result.Role = registerDto.Role;
+                    return BadRequest(ModelState);
                 }
 
-                return Ok(result);
+                // Lấy ID của admin đang thực hiện hành động
+                var adminIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(adminIdClaim) || !int.TryParse(adminIdClaim, out int adminId))
+                {
+                    return Unauthorized("Không thể xác định thông tin admin.");
+                }
+
+                var result = await _authService.RegisterUserByAdminAsync(model, adminId);
+
+                if (result.Success)
+                {
+                    return Ok(result);
+                }
+                else
+                {
+                    return BadRequest(result);
+                }
             }
             catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
         }
+         
 
         // Task 2.5: Implement Admin User Management (Edit)
         [HttpPut("{id}")]
