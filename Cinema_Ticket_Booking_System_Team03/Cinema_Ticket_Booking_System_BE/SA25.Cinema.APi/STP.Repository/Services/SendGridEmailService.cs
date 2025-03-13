@@ -121,5 +121,128 @@ namespace STP.Repository.Services
             }
         }
 
+        // Thêm vào EmailService.cs
+        /// <summary>
+        /// Gửi email thông báo mật khẩu cho người dùng mới
+        /// </summary>
+        /// <param name="email">Email người nhận</param>
+        /// <param name="fullName">Họ tên người nhận</param>
+        /// <param name="password">Mật khẩu tạm thời</param>
+        /// <returns>Task</returns>
+        public async Task SendPasswordNotificationEmailAsync(string email, string fullName, string password)
+        {
+            try
+            {
+                _logger.LogInformation($"Preparing to send password notification to {email}");
+
+                string subject = "Thông tin tài khoản mới của bạn";
+                string body = $@"
+            <html>
+            <head>
+                <style>
+                    body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
+                    .container {{ max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }}
+                    .header {{ background-color: #f8f9fa; padding: 10px; text-align: center; border-radius: 5px 5px 0 0; }}
+                    .content {{ padding: 20px; }}
+                    .password {{ font-family: monospace; background-color: #f5f5f5; padding: 10px; border-radius: 3px; border: 1px solid #ddd; }}
+                    .footer {{ background-color: #f8f9fa; padding: 10px; text-align: center; font-size: 12px; color: #6c757d; border-radius: 0 0 5px 5px; }}
+                </style>
+            </head>
+            <body>
+                <div class='container'>
+                    <div class='header'>
+                        <h2>Thông Tin Tài Khoản Mới</h2>
+                    </div>
+                    <div class='content'>
+                        <p>Xin chào <strong>{fullName}</strong>,</p>
+                        <p>Tài khoản của bạn đã được tạo thành công trong hệ thống của chúng tôi.</p>
+                        <p>Dưới đây là thông tin đăng nhập của bạn:</p>
+                        <ul>
+                            <li><strong>Email:</strong> {email}</li>
+                            <li><strong>Mật khẩu:</strong> <span class='password'>{password}</span></li>
+                        </ul>
+                        <p>Vui lòng đăng nhập và đổi mật khẩu ngay sau khi nhận được email này để đảm bảo an toàn cho tài khoản của bạn.</p>
+                        <p>Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ với chúng tôi.</p>
+                        <p>Trân trọng,<br>Đội ngũ hỗ trợ</p>
+                    </div>
+                    <div class='footer'>
+                        <p>Đây là email tự động, vui lòng không trả lời email này.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        ";
+
+                await SendEmailAsync(email, subject, body);
+                _logger.LogInformation($"Password notification email sent to {email}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error sending password notification email: {ex.Message}");
+                throw new Exception($"Không thể gửi email thông báo mật khẩu: {ex.Message}", ex);
+            }
+        }
+        /// <summary>
+        /// Gửi email chào mừng cho khách hàng mới đăng ký
+        /// </summary>
+        /// <param name="email">Email người nhận</param>
+        /// <param name="fullName">Họ tên người nhận</param>
+        /// <returns>Task</returns>
+        public async Task SendWelcomeEmailAsync(string email, string fullName)
+        {
+            try
+            {
+                _logger.LogInformation($"Preparing to send welcome email to {email}");
+
+                string subject = "Chào mừng bạn đến với dịch vụ của chúng tôi";
+                string body = $@"
+            <html>
+            <head>
+                <style>
+                    body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
+                    .container {{ max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }}
+                    .header {{ background-color: #f8f9fa; padding: 10px; text-align: center; border-radius: 5px 5px 0 0; }}
+                    .content {{ padding: 20px; }}
+                    .button {{ display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; }}
+                    .footer {{ background-color: #f8f9fa; padding: 10px; text-align: center; font-size: 12px; color: #6c757d; border-radius: 0 0 5px 5px; }}
+                </style>
+            </head>
+            <body>
+                <div class='container'>
+                    <div class='header'>
+                        <h2>Chào mừng bạn!</h2>
+                    </div>
+                    <div class='content'>
+                        <p>Xin chào <strong>{fullName}</strong>,</p>
+                        <p>Chúng tôi rất vui mừng chào đón bạn đã đăng ký tài khoản thành công trên hệ thống của chúng tôi.</p>
+                        <p>Với tài khoản này, bạn có thể:</p>
+                        <ul>
+                            <li>Đặt vé xem phim một cách nhanh chóng</li>
+                            <li>Theo dõi lịch sử giao dịch</li>
+                            <li>Nhận thông báo về các ưu đãi đặc biệt</li>
+                            <li>Và nhiều tiện ích khác</li>
+                        </ul>
+                        <p>Hãy khám phá các dịch vụ của chúng tôi ngay bây giờ!</p>
+                        <p>Nếu bạn có bất kỳ câu hỏi nào, đừng ngần ngại liên hệ với đội ngũ hỗ trợ của chúng tôi.</p>
+                        <p>Trân trọng,<br>Đội ngũ hỗ trợ</p>
+                    </div>
+                    <div class='footer'>
+                        <p>Đây là email tự động, vui lòng không trả lời email này.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        ";
+
+                await SendEmailAsync(email, subject, body);
+                _logger.LogInformation($"Welcome email sent to {email}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error sending welcome email: {ex.Message}");
+                throw new Exception($"Không thể gửi email chào mừng: {ex.Message}", ex);
+            }
+        }
+
     }
 }
