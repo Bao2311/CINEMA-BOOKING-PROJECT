@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthState } from '../types';
 import api from '../config/axios';  // Import file cấu hình axios API
 
+
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
@@ -9,7 +10,9 @@ interface AuthContextType extends AuthState {
   updateUser: (user: User) => void;
 }
 
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -18,6 +21,7 @@ export const useAuth = () => {
   }
   return context;
 };
+
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
@@ -28,17 +32,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     error: null,
   });
 
+
   // Load user from localStorage when the app starts
   useEffect(() => {
     const loadUser = async () => {
       if (authState.token) {
         try {
           // In a real app, you would verify the token with your backend
-          const userResponse = await api.get('/User/profile', {
+          const userResponse = await api.get('/Auth/profile', {
             headers: {
               Authorization: `Bearer ${authState.token}`,
             },
           });
+
 
           setAuthState({
             ...authState,
@@ -64,18 +70,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
+
     loadUser();
   }, [authState.token]);
+
 
   // Login function
   const login = async (email: string, password: string) => {
     try {
       const response = await api.post('/Auth/login', { email, password });
 
+
       const { token, user } = response.data;
+
 
       localStorage.setItem('token', token);  // Store token
       localStorage.setItem('user', JSON.stringify(user));  // Store user
+
 
       setAuthState({
         user,
@@ -93,6 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+
   // Register function
   const register = async (username: string, email: string, password: string) => {
     try {
@@ -102,10 +114,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
       });
 
+
       const { token, user } = response.data;
+
 
       localStorage.setItem('token', token);  // Store token
       localStorage.setItem('user', JSON.stringify(user));  // Store user
+
 
       setAuthState({
         user,
@@ -123,6 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+
   // Logout function
   const logout = () => {
     localStorage.removeItem('token');
@@ -136,6 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+
   // Update user information
   const updateUser = (user: User) => {
     setAuthState({
@@ -143,6 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user,
     });
   };
+
 
   return (
     <AuthContext.Provider
@@ -158,3 +176,5 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
+
+

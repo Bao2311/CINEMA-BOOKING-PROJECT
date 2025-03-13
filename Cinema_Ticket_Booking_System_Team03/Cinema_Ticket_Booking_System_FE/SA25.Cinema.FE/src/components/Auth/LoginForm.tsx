@@ -4,24 +4,30 @@ import { LogIn } from 'lucide-react';
 import { toast } from 'react-toastify'; // Import react-toastify
 import { useAuth } from '../../context/AuthContext';  // Import useAuth hook
 
+
 const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+
   const navigate = useNavigate();
   const { login } = useAuth();  // Lấy hàm login từ AuthContext
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');  // Reset lỗi khi gửi form
 
+
     try {
       setIsLoading(true);  // Bật loading khi đang xử lý
 
+
       // Gọi API login và lưu thông tin đăng nhập vào localStorage
       await login(email, password);  // Sử dụng hàm login từ AuthContext
+
 
       toast.success('Đăng nhập thành công!');
       navigate('/');  // Điều hướng về trang chính sau khi đăng nhập
@@ -34,6 +40,7 @@ const LoginForm: React.FC = () => {
     }
   };
 
+
   return (
     <div className="max-w-md w-full mx-auto bg-white rounded-lg shadow-md overflow-hidden">
       <div className="px-6 py-8">
@@ -43,13 +50,13 @@ const LoginForm: React.FC = () => {
         <h2 className="text-center text-3xl font-extrabold text-gray-900 mb-6">
           Sign in to your account
         </h2>
-        
+       
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
           </div>
         )}
-        
+       
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -67,6 +74,7 @@ const LoginForm: React.FC = () => {
             />
           </div>
 
+
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               Password
@@ -83,6 +91,7 @@ const LoginForm: React.FC = () => {
             />
           </div>
 
+
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <input
@@ -96,12 +105,14 @@ const LoginForm: React.FC = () => {
               </label>
             </div>
 
+
             <div className="text-sm">
-              <a href="/forgotPassword" className="font-medium text-indigo-600 hover:text-indigo-500">
+              <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
                 Forgot your password?
               </a>
             </div>
           </div>
+
 
           <div>
             <button
@@ -114,7 +125,7 @@ const LoginForm: React.FC = () => {
           </div>
         </form>
       </div>
-      
+     
       <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
         <p className="text-center text-sm text-gray-600">
           Don't have an account?{' '}
@@ -126,5 +137,6 @@ const LoginForm: React.FC = () => {
     </div>
   );
 };
+
 
 export default LoginForm;
