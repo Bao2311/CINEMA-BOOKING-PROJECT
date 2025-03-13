@@ -66,5 +66,60 @@ namespace STP.Repository.Services
                 throw new Exception($"Không thể gửi email: {ex.Message}", ex);
             }
         }
+        /// <summary>
+        /// Gửi email thông báo tài khoản bị khóa tạm thời
+        /// </summary>
+        /// <param name="email">Email người nhận</param>
+        /// <param name="fullName">Họ tên người nhận</param>
+        /// <returns>Task</returns>
+        public async Task SendAccountLockedEmailAsync(string email, string fullName)
+        {
+            try
+            {
+                _logger.LogInformation($"Preparing to send account locked notification to {email}");
+
+                var subject = "Thông báo tài khoản bị khóa tạm thời";
+                var body = $@"
+            <html>
+            <head>
+                <style>
+                    body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
+                    .container {{ max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }}
+                    .header {{ background-color: #f8f9fa; padding: 10px; text-align: center; border-radius: 5px 5px 0 0; }}
+                    .content {{ padding: 20px; }}
+                    .footer {{ background-color: #f8f9fa; padding: 10px; text-align: center; font-size: 12px; color: #6c757d; border-radius: 0 0 5px 5px; }}
+                </style>
+            </head>
+            <body>
+                <div class='container'>
+                    <div class='header'>
+                        <h2>Thông báo tài khoản bị khóa tạm thời</h2>
+                    </div>
+                    <div class='content'>
+                        <p>Xin chào <strong>{fullName}</strong>,</p>
+                        <p>Chúng tôi phát hiện có nhiều lần đăng nhập không thành công liên tiếp vào tài khoản của bạn.</p>
+                        <p>Vì lý do bảo mật, tài khoản của bạn đã bị khóa tạm thời trong vòng 30 phút.</p>
+                        <p>Bạn có thể thử đăng nhập lại sau khoảng thời gian này hoặc liên hệ với quản trị viên để được hỗ trợ.</p>
+                        <p>Nếu bạn không thực hiện các lần đăng nhập này, vui lòng thay đổi mật khẩu của bạn ngay khi có thể đăng nhập lại.</p>
+                        <p>Trân trọng,<br>Đội ngũ hỗ trợ</p>
+                    </div>
+                    <div class='footer'>
+                        <p>Đây là email tự động, vui lòng không trả lời email này.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        ";
+
+                await SendEmailAsync(email, subject, body);
+                _logger.LogInformation($"Account locked notification sent to {email}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error sending account locked notification: {ex.Message}");
+                throw;
+            }
+        }
+
     }
 }

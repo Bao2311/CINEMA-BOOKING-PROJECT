@@ -1,9 +1,10 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using sa25.Repository.Data;
 using STP.APIService.Controllers.DTOs;
 using STP.Repository.Models;
 using System.Security.Claims;
+using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
 
 namespace STP.APIService.Controllers
 {
@@ -98,6 +99,44 @@ namespace STP.APIService.Controllers
             }
         }
 
+        // Task 3.2: Edit Movie
+        [HttpPut]
+        public async Task<ActionResult<MovieResponseDTO>> UpdateMovie([FromBody] UpdateMovieDTO updateMovieDTO)
+        {
+            try
+            {
+                var movie = new Movie()
+                {
+                    Movie_ID = updateMovieDTO.Movie_ID,
+                    Movie_Name = updateMovieDTO.Movie_Name,
+                    Release_Date = updateMovieDTO.Release_Date,
+                    End_Date = updateMovieDTO.End_Date,
+                    Production_Company = updateMovieDTO.Production_Company,
+                    Director = updateMovieDTO.Director,
+                    Cast = updateMovieDTO.Cast,
+                    Duration = updateMovieDTO.Duration,
+                    Genre = updateMovieDTO.Genre,
+                    Rating = updateMovieDTO.Rating,
+                    Language = updateMovieDTO.Language,
+                    Country = updateMovieDTO.Country,
+                    Synopsis = updateMovieDTO.Synopsis,
+                    Poster_URL = updateMovieDTO.Poster_URL,
+                    Trailer_Link = updateMovieDTO.Trailer_Link,
+                    Status = updateMovieDTO.Status,
+                    Created_By = updateMovieDTO.Created_By,
+                    Updated_At = DateTime.Now
+                };
+
+                int rowsAffected = await _unitOfWork.MovieRepository.UpdateAsync(movie);
+
+                return Ok(rowsAffected);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+            }
+        }
+
         // Task: Delete Movie By ID
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteMovie(int id)
@@ -137,5 +176,95 @@ namespace STP.APIService.Controllers
                 return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
             }
         }
+        // Task: Get All Movies
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<MovieResponseDTO>>> GetAllMovies()
+        {
+            try
+            {
+                var movies = await _unitOfWork.MovieRepository.GetAllMoviesAsync();
+
+                if (movies == null || !movies.Any())
+                {
+                    return NotFound(new { message = "No movies found" });
+                }
+
+                var response = movies.Select(movie => new MovieResponseDTO
+                {
+                    Movie_ID = movie.Movie_ID,
+                    Movie_Name = movie.Movie_Name,
+                    Release_Date = movie.Release_Date,
+                    End_Date = movie.End_Date,
+                    Production_Company = movie.Production_Company,
+                    Director = movie.Director,
+                    Cast = movie.Cast,
+                    Duration = movie.Duration,
+                    Genre = movie.Genre,
+                    Rating = movie.Rating,
+                    Language = movie.Language,
+                    Country = movie.Country,
+                    Synopsis = movie.Synopsis,
+                    Poster_URL = movie.Poster_URL,
+                    Trailer_Link = movie.Trailer_Link,
+                    Status = movie.Status,
+                    Created_By = movie.Created_By,
+                    Created_At = movie.Created_At,
+                    Updated_At = movie.Updated_At
+                }).ToList();
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+            }
+        }
+
+        // Task: Get Movie By ID
+        [HttpGet("{id}")]
+        public async Task<ActionResult<MovieResponseDTO>> GetMovieById(int id)
+        {
+            try
+            {
+                var movie = await _unitOfWork.MovieRepository.GetMovieWithDetailsAsync(id);
+
+                if (movie == null)
+                {
+                    return NotFound(new { message = $"Movie with ID {id} not found" });
+                }
+
+                var response = new MovieResponseDTO
+                {
+                    Movie_ID = movie.Movie_ID,
+                    Movie_Name = movie.Movie_Name,
+                    Release_Date = movie.Release_Date,
+                    End_Date = movie.End_Date,
+                    Production_Company = movie.Production_Company,
+                    Director = movie.Director,
+                    Cast = movie.Cast,
+                    Duration = movie.Duration,
+                    Genre = movie.Genre,
+                    Rating = movie.Rating,
+                    Language = movie.Language,
+                    Country = movie.Country,
+                    Synopsis = movie.Synopsis,
+                    Poster_URL = movie.Poster_URL,
+                    Trailer_Link = movie.Trailer_Link,
+                    Status = movie.Status,
+                    Created_By = movie.Created_By,
+                    Created_At = movie.Created_At,
+                    Updated_At = movie.Updated_At
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+            }
+        }
+
+
     }
 }
+
