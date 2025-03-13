@@ -9,7 +9,7 @@ namespace STP.APIService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
     public class MovieController : ControllerBase
     {
         private readonly UnitOfWork _unitOfWork;
@@ -33,6 +33,12 @@ namespace STP.APIService.Controllers
                 }
 
                 int userId = int.Parse(userIdClaim.Value);
+
+                // Kiểm tra ngày phát hành không được trong quá khứ
+                if (createMovieDTO.Release_Date <= DateTime.Now)
+                {
+                    return BadRequest(new { message = "Release date must be in the future" });
+                }
 
                 // Tạo đối tượng Movie từ dữ liệu đầu vào
                 var movie = new Movie

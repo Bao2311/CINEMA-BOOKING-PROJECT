@@ -22,6 +22,6 @@ api.interceptors.request.use(
     // Xử lý lỗi nếu có
     return Promise.reject(error);
   }
-);``
+)
 
 export default api;

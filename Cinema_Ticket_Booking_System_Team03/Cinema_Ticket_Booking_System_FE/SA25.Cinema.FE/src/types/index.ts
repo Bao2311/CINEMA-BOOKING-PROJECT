@@ -1,18 +1,18 @@
 export interface User {
-  id: number; // User_ID từ API
-  fullName?: string; // Full_Name từ API
+  user_ID: number; // User_ID từ API
+  full_Name?: string; // Full_Name từ API
   email?: string; // Email từ API
   password?: string; // Password từ API (Có thể không lưu mật khẩu trong frontend)
   role?: 'Admin' | 'Manager' | 'Staff' | 'Customer'|string; // Role từ API (có thể linh hoạt với string)
   department?: string; // Department từ API
-  hireDate?: string; // Hire_Date từ API
-  dateOfBirth?: string; // Date_Of_Birth từ API
+  hire_Date?: string; // Hire_Date từ API
+  date_Of_Birth?: string; // Date_Of_Birth từ API
   sex?: string; // Sex từ API
-  phoneNumber?: string; // Phone_Number từ API
+  phone_Number?: string; // Phone_Number từ API
   address?: string; // Address từ API
   accountStatus?: string; // Account_Status từ API
-  createdAt?: string; // Created_At từ API
-  lastLogin?: string; // Last_Login từ API
+  created_At?: string; // Created_At từ API
+  last_Login?: string; // Last_Login từ API
   ticketBookings?: TicketBooking[]; // Các ticket bookings của user
   movies?: Movie[]; // Movies mà user đã tạo
   promotions?: Promotion[]; // Promotions mà user đã tạo

@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (authState.token) {
         try {
           // In a real app, you would verify the token with your backend
-          const userResponse = await api.get('/Auth/profile', {
+          const userResponse = await api.get('/User/profile', {
             headers: {
               Authorization: `Bearer ${authState.token}`,
             },

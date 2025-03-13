@@ -10,6 +10,7 @@ namespace STP.APIService.Controllers.DTOs
         public string Movie_Name { get; set; }
 
         [Required]
+        [FutureDate(ErrorMessage = "Release date must be in the future")]
         public DateTime Release_Date { get; set; }
 
         public DateTime? End_Date { get; set; }
@@ -80,5 +81,17 @@ namespace STP.APIService.Controllers.DTOs
         public int Created_By { get; set; }
         public DateTime Created_At { get; set; }
         public DateTime Updated_At { get; set; }
+    }
+
+    public class FutureDateAttribute : ValidationAttribute
+    {
+        public override bool IsValid(object value)
+        {
+            if (value is DateTime date)
+            {
+                return date > DateTime.Now;
+            }
+            return false;
+        }
     }
 }

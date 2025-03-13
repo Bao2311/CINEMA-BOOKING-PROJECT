@@ -12,6 +12,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import BookingPage from './pages/BookingPage';
+import ForgotPassword from './pages/ForgotPassword';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
             <Route path="/manage-employees" element={<ManageEmployeesPage />} />
             <Route path="/movies" element={<MoviesPage />} />
             <Route path="/showtimes" element={<ShowtimesPage />} />
+            <Route path="/forgotPassword" element={<ForgotPassword />} />
             <Route path="*" element={<div>Page not found</div>} />
           </Routes>
         </div>

@@ -42,6 +42,8 @@ namespace STP.APIService
             builder.Services.AddDbContext<CinemaDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
             );
+            // new function 
+            
 
             // Cấu hình JWT Authentication
             var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]);
@@ -70,12 +72,14 @@ namespace STP.APIService
             builder.Services.AddScoped<AuthService>();
             builder.Services.AddScoped<EmailService>();
             builder.Services.AddScoped<UnitOfWork>();
+            builder.Services.AddScoped<IUserProfileService, UserProfileService>();
             builder.Services.AddLogging(logging =>
             {
                 logging.ClearProviders();
                 logging.AddConsole();
                 logging.AddDebug();
             });
+
 
             // Cấu hình Swagger
             builder.Services.AddEndpointsApiExplorer();
@@ -124,7 +128,7 @@ namespace STP.APIService
 
             // Sử dụng CORS
             app.UseCors("CinemaAPIPolicy");
-
+            
             app.UseHttpsRedirection();
 
             // Thêm Authentication và Authorization
