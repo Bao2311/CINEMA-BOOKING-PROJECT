@@ -32,5 +32,10 @@ namespace STP.Repositories
         {
             return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
         }
+        // Phương thức kiểm tra số điện thoại đã tồn tại
+        public async Task<User> GetByPhoneNumberAsync(string phoneNumber)
+        {
+            return await _context.Users.FirstOrDefaultAsync(u => u.Phone_Number == phoneNumber);
+        }
     }
 }

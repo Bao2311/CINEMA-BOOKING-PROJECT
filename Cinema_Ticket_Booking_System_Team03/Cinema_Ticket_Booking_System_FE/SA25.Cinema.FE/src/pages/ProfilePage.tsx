@@ -6,75 +6,108 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios'; 
 import { HomeOutlined } from '@ant-design/icons';
 
+interface UserProfile {
+  full_Name: string;
+  email: string;
+  phone_Number: string;
+  address: string;
+  date_Of_Birth: string;
+  sex: string;
+}
+
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout, updateUser } = useAuth();
 
   const [activeTab, setActiveTab] = useState('profile');
   const [isLoading, setIsLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null); // Lưu thông tin người dùng từ API
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   // Form state
-  const [username, setUsername] = useState('');
+  const [full_Name, setFull_Name] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [address, setAddress] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [sex, setSex] = useState('');
+
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
 
-  // Gọi API để lấy thông tin profile của người dùng
   useEffect(() => {
-    if (user) {
-      setUsername(user.fullName || '');
-      setEmail(user.email || '');
+    const fetchProfile = async () => {
+      try {
+        const response = await axios.get(`https://localhost:7168/api/User/profile`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        const profileData = response.data;
+        setProfile(profileData);
+        setFull_Name(profileData.full_Name || '');
+        setEmail(profileData.email || '');
+        setPhoneNumber(profileData.phone_Number || '');
+        setAddress(profileData.address || '');
+        setDateOfBirth(profileData.date_Of_Birth || '');
+        setSex(profileData.sex || '');
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-      const fetchProfile = async () => {
-        try {
-          // Gọi API để lấy thông tin profile
-          const response = await axios.get(`/api/Auth/profile`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          });
-          setProfile(response.data); // Cập nhật thông tin profile
-        } catch (error) {
-          console.error("Error fetching profile:", error);
-        } finally {
-          setIsLoading(false); // Đánh dấu là đã tải xong
-        }
-      };
-
-      fetchProfile(); // Gọi hàm fetchProfile
-    }
-  }, [user]);
-
-  const handleUpdateProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError('');
-    setFormSuccess('');
-
-    // Validate the form
-    if (!username || !email) {
-      setFormError('Please fill in all the fields');
-      return;
-    }
-
-    if (user) {
-      updateUser({
-        ...user,
-        fullName: username,
-        email,
-      });
-
-      setFormSuccess('Profile updated successfully!');
-    }
-  };
+    fetchProfile();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    window.location.href = "/"; // Redirect to home
+    window.location.href = "/";
   };
 
   const handleHomePageClick = () => {
-    navigate('/');  // Điều hướng về trang HomePage
+    navigate('/');
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validation checks
+    const phoneRegex = /^0[0-9]{9}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+      setFormError('Phone number must start with 0 and have 10 digits.');
+      return;
+    }
+
+    const dob = new Date(dateOfBirth);
+    if (dob >= new Date()) {
+      setFormError('Date of birth must be a past date.');
+      return;
+    }
+
+    // Format date of birth to YYYY-MM-DD
+    const formattedDateOfBirth = dob.toISOString().split('T')[0];
+
+    if (window.confirm('Are you sure you want to update your profile?')) {
+      try {
+        await axios.put(`https://localhost:7168/api/User/profile`, {
+          full_Name,
+          phone_Number: phoneNumber,
+          address,
+          date_Of_Birth: formattedDateOfBirth,
+          sex
+        }, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        setFormSuccess('Profile updated successfully!');
+        setFormError('');
+      } catch (error) {
+        setFormError('Failed to update profile.');
+        console.error("Error updating profile:", error);
+      }
+    }
   };
 
   if (isLoading) {
@@ -99,9 +132,8 @@ const ProfilePage: React.FC = () => {
                   <div className="bg-white rounded-full p-2 mr-3">
                     <User className="h-6 w-6 text-indigo-600" />
                   </div>
-                  
                   <div>
-                    <h2 className="text-xl font-bold">{profile?.fullName}</h2>
+                    <h2 className="text-xl font-bold">{profile?.full_Name}</h2>
                     <p className="text-indigo-200">{profile?.email}</p>
                   </div>
                 </div>
@@ -124,7 +156,7 @@ const ProfilePage: React.FC = () => {
                   </li>
                   <li>
                     <button
-                      onClick={handleHomePageClick} // Khi nhấn vào sẽ chuyển hướng về trang chủ
+                      onClick={handleHomePageClick}
                       className={`w-full flex items-center px-4 py-2 rounded-md ${
                         activeTab === 'bookings'
                           ? 'bg-indigo-50 text-indigo-600 font-medium'
@@ -195,17 +227,18 @@ const ProfilePage: React.FC = () => {
                     </div>
                   )}
 
-                  <form onSubmit={handleUpdateProfile} className="space-y-6">
+                  <form className="space-y-6" onSubmit={handleUpdateProfile}>
                     <div>
-                      <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-                        Username
+                      <label htmlFor="full_Name" className="block text-sm font-medium text-gray-700 mb-1">
+                        Full Name
                       </label>
                       <input
                         type="text"
-                        id="username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
+                        id="full_Name"
+                        value={full_Name}
+                        onChange={(e) => setFull_Name(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        readOnly
                       />
                     </div>
 
@@ -218,8 +251,64 @@ const ProfilePage: React.FC = () => {
                         id="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        readOnly
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                       />
+                    </div>
+
+                    <div>
+                      <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                        Phone Number
+                      </label>
+                      <input
+                        type="text"
+                        id="phoneNumber"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                        Address
+                      </label>
+                      <input
+                        type="text"
+                        id="address"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="dob" className="block text-sm font-medium text-gray-700 mb-1">
+                        Date of Birth
+                      </label>
+                      <input
+                        type="text"
+                        id="dob"
+                        value={dateOfBirth}
+                        onChange={(e) => setDateOfBirth(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="sex" className="block text-sm font-medium text-gray-700 mb-1">
+                        Sex
+                      </label>
+                      <select
+                        id="sex"
+                        value={sex}
+                        onChange={(e) => setSex(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      >
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                      </select>
                     </div>
 
                     <div className="flex justify-end">
@@ -231,13 +320,6 @@ const ProfilePage: React.FC = () => {
                       </button>
                     </div>
                   </form>
-                </div>
-              )}
-
-              {/* Settings Tab */}
-              {activeTab === 'settings' && (
-                <div>
-                  {/* Similar to profile tab, include form to change password and settings */}
                 </div>
               )}
             </div>

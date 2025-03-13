@@ -36,6 +36,7 @@ function App() {
             <Route path="/promotions" element={<PromotionsPage />} />
             <Route path="/movies" element={<MoviesPage />} />
             <Route path="/showtimes" element={<ShowtimesPage />} />
+            <Route path="/forgotPassword" element={<ForgotPassword />} />
             <Route path="*" element={<div>Page not found</div>} />
           </Routes>
         </div>
