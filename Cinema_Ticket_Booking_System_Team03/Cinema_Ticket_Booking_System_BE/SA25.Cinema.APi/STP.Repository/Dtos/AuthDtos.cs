@@ -151,4 +151,82 @@ namespace STP.Repository.Dtos
         // Tùy chọn: Bạn có thể thêm các thông tin khác nếu cần
         // public string AdminComment { get; set; }
     }
+    public class AdminRegisterUserDto
+    {
+        [Required(ErrorMessage = "Email là bắt buộc")]
+        [EmailAddress(ErrorMessage = "Email không hợp lệ")]
+        public string Email { get; set; }
+
+        [Required(ErrorMessage = "Họ tên là bắt buộc")]
+        [StringLength(100, ErrorMessage = "Họ tên không được vượt quá 100 ký tự")]
+        public string FullName { get; set; }
+
+        [Required(ErrorMessage = "Vai trò là bắt buộc")]
+        [RegularExpression("Staff|Manager|Customer", ErrorMessage = "Vai trò phải là Staff hoặc Manager Hoặc Customer")]
+        public string Role { get; set; }
+ 
+        public string Department { get; set; }
+
+        [DataType(DataType.Date)]
+        public DateTime Hire_Date { get; set; }
+        
+        [Required(ErrorMessage = "Ngày sinh là bắt buộc")]
+        public DateTime? DateOfBirth { get; set; }
+       
+        [Required(ErrorMessage = "Giới tính là bắt buộc")]
+        public string Sex { get; set; }
+
+        [Required(ErrorMessage = "Số điện thoại là bắt buộc")]
+        [Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
+        public string PhoneNumber { get; set; }
+        [Required(ErrorMessage = "Địa chỉ là bắt buộc")]
+        public string Address { get; set; }
+    }
+
+    public class UserRegistrationResponseDto
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; }
+        public int? UserId { get; set; }
+    }
+    public class StaffManagerRegistrationDto
+    {
+        [Required(ErrorMessage = "Họ tên là bắt buộc")]
+        [StringLength(100, ErrorMessage = "Họ tên không được vượt quá 100 ký tự")]
+        public string Full_Name { get; set; }
+
+        [Required(ErrorMessage = "Email là bắt buộc")]
+        [EmailAddress(ErrorMessage = "Email không hợp lệ")]
+        public string Email { get; set; }
+
+        [Required(ErrorMessage = "Mật khẩu là bắt buộc")]
+        [StringLength(100, MinimumLength = 6, ErrorMessage = "Mật khẩu phải có ít nhất 6 ký tự")]
+        public string Password { get; set; }
+
+        [Required(ErrorMessage = "Vai trò là bắt buộc")]
+        [RegularExpression("Staff|Manager", ErrorMessage = "Vai trò phải là Staff hoặc Manager")]
+        public string Role { get; set; }
+
+        [Required(ErrorMessage = "Phòng ban là bắt buộc")]
+        public string Department { get; set; }
+
+        [Required(ErrorMessage = "Ngày tuyển dụng là bắt buộc")]
+        [DataType(DataType.Date)]
+        public DateTime Hire_Date { get; set; }
+
+        [Required(ErrorMessage = "Ngày sinh là bắt buộc")]
+        [DataType(DataType.Date)]
+        public DateTime Date_Of_Birth { get; set; }
+
+        [Required(ErrorMessage = "Giới tính là bắt buộc")]
+        public string Sex { get; set; }
+
+        [Required(ErrorMessage = "Số điện thoại là bắt buộc")]
+        [Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
+        public string Phone_Number { get; set; }
+
+        [Required(ErrorMessage = "Địa chỉ là bắt buộc")]
+        public string Address { get; set; }
+    }
+
 }

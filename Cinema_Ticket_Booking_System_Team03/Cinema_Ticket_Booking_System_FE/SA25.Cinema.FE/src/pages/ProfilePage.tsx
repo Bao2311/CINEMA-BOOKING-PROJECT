@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Settings, Ticket, LogOut } from 'lucide-react';
 import Layout from '../components/Layout/Layout';
-import { useAuth } from '../context/AuthContext';
 import axios from 'axios'; 
 import { HomeOutlined } from '@ant-design/icons';
 
@@ -17,7 +16,6 @@ interface UserProfile {
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout, updateUser } = useAuth();
 
   const [activeTab, setActiveTab] = useState('profile');
   const [isLoading, setIsLoading] = useState(true);
