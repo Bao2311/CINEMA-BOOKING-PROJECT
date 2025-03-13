@@ -1,39 +1,86 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { toast } from 'react-toastify';
+import axios from 'axios';
 
 const RegisterForm: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    fullName: '',
+    dateOfBirth: '',
+    sex: '',
+    phoneNumber: '',
+    address: ''
+  });
+
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const { register } = useAuth();
   const navigate = useNavigate();
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
-    if (password !== confirmPassword) {
+  
+    // Kiểm tra định dạng email
+    const emailRegex = /^[\w.-]+@([\w-]+\.)+[\w-]{2,4}$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Invalid email format');
+      return;
+    }
+  
+    // Kiểm tra mật khẩu
+    const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordPattern.test(formData.password)) {
+      setError('Password must be at least 8 characters long, contain letters, numbers, and at least one special character.');
+      return;
+    }
+  
+    if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-    
+  
     setIsLoading(true);
-
+  
     try {
-      await register(username, email, password);
-      navigate('/');
-    } catch (err) {
-      setError('Registration failed. Please try again.');
+      const response = await axios.post('https://localhost:7168/api/Auth/register', formData, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+  
+      console.log('Response:', response); // Debug response từ server
+  
+      if (response.status === 201 || response.status === 200) {
+        toast.success(response.data.message || 'Registration successful!');
+        navigate('/login');
+      } else {
+        throw new Error(response.data?.message || 'Unexpected error occurred');
+      }
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error('API Error:', error.response); // Log lỗi từ API
+        setError(error.response?.data?.message || 'Registration failed. Please try again.');
+        toast.error(error.response?.data?.message || 'Registration failed.');
+      } else {
+        setError('An unexpected error occurred.');
+        toast.error('An unexpected error occurred.');
+      }
     } finally {
       setIsLoading(false);
     }
   };
+  
 
   return (
     <div className="max-w-md w-full mx-auto bg-white rounded-lg shadow-md overflow-hidden">
@@ -53,17 +100,16 @@ const RegisterForm: React.FC = () => {
         
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-              Username
+            <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+              Full Name
             </label>
             <input
-              id="username"
-              name="username"
+              id="fullName"
+              name="fullName"
               type="text"
-              autoComplete="username"
               required
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={formData.fullName}
+              onChange={handleInputChange}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
@@ -78,8 +124,8 @@ const RegisterForm: React.FC = () => {
               type="email"
               autoComplete="email"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={formData.email}
+              onChange={handleInputChange}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
@@ -94,8 +140,8 @@ const RegisterForm: React.FC = () => {
               type="password"
               autoComplete="new-password"
               required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={formData.password}
+              onChange={handleInputChange}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
@@ -110,8 +156,70 @@ const RegisterForm: React.FC = () => {
               type="password"
               autoComplete="new-password"
               required
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700">
+              Date of Birth
+            </label>
+            <input
+              id="dateOfBirth"
+              name="dateOfBirth"
+              type="text" 
+              required
+              value={formData.dateOfBirth}
+              onChange={handleInputChange}
+              placeholder="yyyy-mm-dd"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="sex" className="block text-sm font-medium text-gray-700">
+              Gender
+            </label>
+            <select
+              id="sex"
+              name="sex"
+              required
+              value={formData.sex}
+              onChange={handleInputChange}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="">Select gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
+              Phone Number
+            </label>
+            <input
+              id="phoneNumber"
+              name="phoneNumber"
+              type="tel"
+              value={formData.phoneNumber}
+              onChange={handleInputChange}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+              Address
+            </label>
+            <input
+              id="address"
+              name="address"
+              type="text"
+              value={formData.address}
+              onChange={handleInputChange}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>

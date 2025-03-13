@@ -8,21 +8,28 @@ using STP.Repositories;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Security.Claims;
+using STP.APIService.Controllers.DTOs;
 
 namespace STP.APIService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]  // Đã sửa từ [Authorize(Roles = "Admin")] thành [Authorize]
+    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly UserRepository _userRepository;
         private readonly AuthService _authService;
+        private readonly IUserProfileService _userProfileService;
 
-        public UserController(UserRepository userRepository, AuthService authService)
+        public UserController(
+            UserRepository userRepository,
+            AuthService authService,
+            IUserProfileService userProfileService)
         {
             _userRepository = userRepository;
             _authService = authService;
+            _userProfileService = userProfileService;
         }
 
         // Task 2.4: Implement View Member List
@@ -154,7 +161,7 @@ namespace STP.APIService.Controllers
                     Role = updateDto.Role
                 };
 
-              
+
                 // Cập nhật trạng thái tài khoản nếu có thay đổi
                 if (!string.IsNullOrEmpty(updateDto.AccountStatus) && user.Account_Status != updateDto.AccountStatus)
                 {
@@ -226,6 +233,80 @@ namespace STP.APIService.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Get user profile based on role
+        /// </summary>
+        [HttpGet("profile")]
+        public async Task<ActionResult<object>> GetUserProfile()
+        {
+            try
+            {
+                // Get current user ID from claims
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null)
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                int userId = int.Parse(userIdClaim.Value);
+
+                try
+                {
+                    var profile = await _userProfileService.GetUserProfileAsync(userId);
+                    return Ok(profile);
+                }
+                catch (KeyNotFoundException)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return BadRequest(new { message = ex.Message });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+            }
+        }
+
+        [HttpPut("profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] BaseUpdateProfileDTO updateProfileDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                var userId = GetUserIdFromClaims();
+                var result = await _userProfileService.UpdateUserProfileAsync(userId, updateProfileDto);
+
+                if (result == null)
+                {
+                    return BadRequest(new { message = "Failed to update profile" });
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+            }
+        }
+
+        private int GetUserIdFromClaims()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+            {
+                throw new UnauthorizedAccessException("User not authenticated");
+            }
+
+            return int.Parse(userIdClaim.Value);
         }
     }
 }
