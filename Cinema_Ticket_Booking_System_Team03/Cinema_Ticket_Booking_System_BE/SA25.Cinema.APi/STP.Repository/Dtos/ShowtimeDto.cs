@@ -49,8 +49,8 @@ namespace STP.Repository.DTOs
         public TimeSpan End_Time { get; set; }
 
         [Required]
-        [RegularExpression("^(Regular|Premium|VIP)$",
-            ErrorMessage = "Price_Tier phải là 'Regular', 'Premium', hoặc 'VIP'")]
+        [RegularExpression("^(Regular|VIP)$",
+            ErrorMessage = "Price_Tier phải là 'Regular' hoặc 'VIP'")]
         public string Price_Tier { get; set; }
 
         [Range(0, double.MaxValue)]
@@ -80,8 +80,8 @@ namespace STP.Repository.DTOs
         public TimeSpan End_Time { get; set; }
 
         [Required]
-        [RegularExpression("^(Standard|Premium|VIP)$",
-            ErrorMessage = "Price_Tier phải là 'Standard', 'Premium', hoặc 'VIP'")]
+        [RegularExpression("^(Regular|VIP)$",
+            ErrorMessage = "Price_Tier phải là 'Regular',hoặc 'VIP'")]
         public string Price_Tier { get; set; }
 
         [Range(0, double.MaxValue)]

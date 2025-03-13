@@ -22,14 +22,16 @@ namespace STP.Repository.Services
         private readonly IConfiguration _configuration;
         private readonly UserRepository _userRepository;
         private readonly EmailService _emailService; // Thêm EmailService
+        private readonly AccountLockingService _accountLockingService;
         private readonly ILogger<AuthService> _logger;
-        public AuthService(CinemaDbContext context, IConfiguration configuration, UserRepository userRepository, EmailService emailService, ILogger<AuthService> logger)
+        public AuthService(CinemaDbContext context, IConfiguration configuration, UserRepository userRepository, EmailService emailService, ILogger<AuthService> logger, AccountLockingService accountLockingService)
         {
             _context = context;
             _configuration = configuration;
             _userRepository = userRepository;
             _emailService = emailService; // Khởi tạo EmailService
             _logger = logger;
+            _accountLockingService = accountLockingService;
         }
 
         // HashPassword sử dụng SHA256
@@ -98,44 +100,73 @@ namespace STP.Repository.Services
         public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto)
         {
             if (loginDto == null)
-                throw new ArgumentNullException(nameof(loginDto), "Login data cannot be null");
+                throw new ArgumentNullException(nameof(loginDto), "Dữ liệu đăng nhập không thể trống");
 
-            Console.WriteLine($"Attempting login with email: {loginDto.Email}");
+            Console.WriteLine($"Đang thử đăng nhập với email: {loginDto.Email}");
 
-            // Sử dụng UserRepository để tìm user theo email
+            // Kiểm tra xem tài khoản có bị khóa không
+            if (await _accountLockingService.IsAccountLockedAsync(loginDto.Email))
+            {
+                int remainingMinutes = await _accountLockingService.GetRemainingLockTimeAsync(loginDto.Email);
+                throw new Exception($"Tài khoản của bạn đã bị tạm khóa do đăng nhập sai quá nhiều lần. Vui lòng thử lại sau {remainingMinutes} phút.");
+            }
+
+            // Sử dụng UserRepository để tìm người dùng theo email
             var user = await _userRepository.GetByEmailAsync(loginDto.Email);
 
+            // Kiểm tra xem người dùng có tồn tại không
             if (user == null)
             {
-                Console.WriteLine("User not found");
+                Console.WriteLine("Không tìm thấy người dùng");
+                _logger.LogWarning($"Đăng nhập thất bại với email không tồn tại: {loginDto.Email}");
                 throw new Exception("Tài khoản hoặc mật khẩu sai");
             }
 
-            Console.WriteLine($"User found with ID: {user.User_ID}, Email: {user.Email}");
-            Console.WriteLine($"Password from DB: {user.Password?.Length ?? 0} chars");
-            Console.WriteLine($"Input password: {loginDto.Password?.Length ?? 0} chars");
+            Console.WriteLine($"Đã tìm thấy người dùng với ID: {user.User_ID}, Email: {user.Email}");
 
-            // Xác thực mật khẩu với phương thức mới hỗ trợ cả plain text và hash
+            Console.WriteLine($"Mật khẩu từ DB: {user.Password?.Length ?? 0} ký tự");
+            Console.WriteLine($"Mật khẩu nhập vào: {loginDto.Password?.Length ?? 0} ký tự");
+
+            // Xác thực mật khẩu
             if (!VerifyPassword(loginDto.Password, user.Password))
             {
-                Console.WriteLine("Password verification failed");
-                throw new Exception("Tài khoản hoặc mật khẩu sai");
+                Console.WriteLine("Xác thực mật khẩu thất bại");
+
+                // Ghi nhận đăng nhập thất bại và kiểm tra xem tài khoản có bị khóa không
+                bool isLocked = await _accountLockingService.RecordFailedAttemptAsync(loginDto.Email);
+
+                if (isLocked)
+                {
+                    // Gửi email thông báo nếu tài khoản bị khóa
+                    try
+                    {
+                        await _emailService.SendAccountLockedEmailAsync(user.Email, user.Full_Name);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Không thể gửi email thông báo khóa tài khoản: {ex.Message}");
+                    }
+
+                    throw new Exception("Tài khoản của bạn đã bị tạm khóa do đăng nhập sai 5 lần liên tiếp. Vui lòng thử lại sau 30 phút.");
+                }
+
+                // Hiển thị số lần đăng nhập sai còn lại trước khi bị khóa
+                int attemptsCount = await _accountLockingService.GetFailedAttemptsAsync(loginDto.Email);
+                int remainingAttempts = 5 - attemptsCount;
+                throw new Exception($"Tài khoản hoặc mật khẩu sai. Bạn còn {remainingAttempts} lần thử trước khi tài khoản bị khóa.");
             }
 
-            Console.WriteLine("Password verified successfully");
+            Console.WriteLine("Xác thực mật khẩu thành công");
 
-            if (user.Account_Status != "Active")
-            {
-                Console.WriteLine($"Account status: {user.Account_Status}");
-                throw new Exception("Tài khoản đã bị khóa hoặc chưa kích hoạt");
-            }
+            // Đặt lại số lần đăng nhập sai khi đăng nhập thành công
+            await _accountLockingService.ResetFailedAttemptsAsync(loginDto.Email);
 
-            // Cập nhật thời gian đăng nhập cuối
+            // Cập nhật thời gian đăng nhập cuối cùng
             user.Last_Login = DateTime.Now;
             await _userRepository.UpdateAsync(user);
 
             // Tạo và trả về token
-            Console.WriteLine("Generating JWT token");
+            Console.WriteLine("Đang tạo JWT token");
             var token = GenerateJwtToken(user);
 
             return new AuthResponseDto
@@ -149,6 +180,17 @@ namespace STP.Repository.Services
             };
         }
 
+        // Thêm phương thức mở khóa tài khoản
+        public async Task<bool> UnlockAccountAsync(string email)
+        {
+            var user = await _userRepository.GetByEmailAsync(email);
+            if (user == null)
+                return false;
+
+            await _accountLockingService.UnlockAccountAsync(email);
+            return true;
+        }
+
         // Đổi mật khẩu
         public async Task ChangePasswordAsync(int userId, ChangePasswordDto changePasswordDto)
         {
@@ -160,8 +202,8 @@ namespace STP.Repository.Services
             if (!VerifyPassword(changePasswordDto.OldPassword, user.Password))
                 throw new Exception("Mật khẩu cũ không chính xác");
 
-            // Cập nhật mật khẩu mới - lưu trực tiếp không hash
-            user.Password = changePasswordDto.NewPassword;
+            // Bằng dòng này để mã hóa mật khẩu:
+            user.Password = HashPassword(changePasswordDto.NewPassword);
             await _userRepository.UpdateAsync(user);
         }
 
@@ -284,10 +326,11 @@ namespace STP.Repository.Services
             string newPassword = GenerateRandomPassword();
             _logger.LogInformation($"Generated new password for user: {user.User_ID}");
 
-            // Lưu mật khẩu mới
-            user.Password = newPassword;
+            // Lưu mật khẩu mới và mã hóa pass 
+            user.Password = HashPassword(newPassword);
             await _userRepository.UpdateAsync(user);
             _logger.LogInformation($"Updated password for user: {user.User_ID}");
+
 
             try
             {
@@ -326,9 +369,9 @@ namespace STP.Repository.Services
                 throw new Exception($"Đã đặt lại mật khẩu nhưng không thể gửi email: {ex.Message}");
             }
         }
-    
-    // Tạo mật khẩu ngẫu nhiên
-    private string GenerateRandomPassword(int length = 10)
+
+        // Tạo mật khẩu ngẫu nhiên
+        private string GenerateRandomPassword(int length = 10)
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
             var random = new Random();
@@ -340,4 +383,6 @@ namespace STP.Repository.Services
             return new string(result);
         }
     }
+
+
 }

@@ -4,18 +4,19 @@ using System.Threading.Tasks;
 using System.Linq;
 using STP.Repository.Models;
 using STP.Repository.DTOs;
-using STP.Repository.Dtos; 
-using STP.Repositories;
+using STP.Repository.Repositories;
+using STP.Repository.Data;
 
 namespace STP.Service.Services
 {
     public class ShowtimeService
     {
         private readonly ShowtimeRepository _showtimeRepository;
-
-        public ShowtimeService(ShowtimeRepository showtimeRepository)
+        private readonly CinemaDbContext _context;
+        public ShowtimeService(ShowtimeRepository showtimeRepository, CinemaDbContext context)
         {
             _showtimeRepository = showtimeRepository;
+            _context = context;
         }
 
         public async Task<IEnumerable<ShowtimeDto>> GetAllShowtimesAsync()
@@ -91,6 +92,82 @@ namespace STP.Service.Services
             return await _showtimeRepository.CreateAsync(showtime);
         }
 
+        public async Task<bool> UpdateShowtimeAsync(int id, ShowtimeUpdateDto showtimeDto, int updatedBy)
+        {
+            // Kiểm tra xem lịch chiếu có tồn tại không
+            var existingShowtime = await _showtimeRepository.GetByIdAsync(id);
+            if (existingShowtime == null)
+                return false;
+
+            // Kiểm tra xem lịch chiếu đã bắt đầu chưa
+            if (existingShowtime.Status == "Running" || existingShowtime.Status == "Completed")
+                throw new InvalidOperationException("Không thể chỉnh sửa lịch chiếu đã bắt đầu hoặc đã kết thúc");
+
+            // Kiểm tra xem khung giờ mới có trùng với lịch chiếu khác không
+            bool isAvailable = await IsShowtimeAvailableAsync(
+                showtimeDto.Cinema_Room_ID,
+                showtimeDto.Show_Date,
+                showtimeDto.Start_Time,
+                showtimeDto.End_Time,
+                id); // excludeId = id để bỏ qua chính lịch chiếu đang cập nhật
+
+            if (!isAvailable)
+                throw new InvalidOperationException("Thời gian chiếu đã trùng với lịch chiếu khác trong phòng này");
+
+            // Cập nhật dữ liệu
+            var showtime = new Showtime
+            {
+                Movie_ID = showtimeDto.Movie_ID,
+                Cinema_Room_ID = showtimeDto.Cinema_Room_ID,
+                Show_Date = EnsureSqlDateTimeCompatible(showtimeDto.Show_Date),
+                Start_Time = showtimeDto.Start_Time,
+                End_Time = showtimeDto.End_Time,
+                Price_Tier = showtimeDto.Price_Tier,
+                Base_Price = showtimeDto.Base_Price,
+                Capacity_Available = showtimeDto.Capacity_Available,
+                Status = existingShowtime.Status,
+                Updated_At = EnsureSqlDateTimeCompatible(DateTime.Now)
+            };
+
+
+            return await _showtimeRepository.UpdateAsync(id, showtime);
+        }
+
+        /// <summary>
+        /// Ẩn lịch chiếu bằng cách đổi trạng thái thành Hidden
+        /// </summary>
+        public async Task<bool> HideShowtimeAsync(int id, int userId)
+        {
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    // 1. Lấy thông tin Showtime
+                    var showtime = await _showtimeRepository.GetByIdAsync(id);
+                    if (showtime == null)
+                        return false;
+
+                    // 2. Cập nhật trạng thái của Showtime thành "Hidden"
+                    showtime.Status = "Hidden";  // hoặc bạn có thể dùng "Inactive", "Disabled" tùy theo yêu cầu
+                    showtime.Updated_At = DateTime.UtcNow;
+                    await _showtimeRepository.UpdateAsync(id, showtime);
+
+                    await transaction.CommitAsync();
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+
+                    // Log chi tiết lỗi
+                    Console.WriteLine($"Error: {ex.Message}");
+                    if (ex.InnerException != null)
+                        Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+                    Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+                    return false;
+                }
+            }
+        }
 
         private DateTime EnsureSqlDateTimeCompatible(DateTime date)
         {

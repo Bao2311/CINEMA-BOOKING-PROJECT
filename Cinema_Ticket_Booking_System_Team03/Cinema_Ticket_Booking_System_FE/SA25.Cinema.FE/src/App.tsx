@@ -12,6 +12,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import BookingPage from './pages/BookingPage';
+import PromotionsPage from './pages/PromotionsPage';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
             <Route path="/admin-dashboard" element={<AdminDashboardPage />} />
             <Route path="/manage-movies" element={<ManageMoviesPage />} />
             <Route path="/manage-employees" element={<ManageEmployeesPage />} />
+            <Route path="/promotions" element={<PromotionsPage />} />
             <Route path="/movies" element={<MoviesPage />} />
             <Route path="/showtimes" element={<ShowtimesPage />} />
             <Route path="*" element={<div>Page not found</div>} />
