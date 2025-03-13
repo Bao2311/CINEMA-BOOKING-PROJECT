@@ -115,16 +115,10 @@ namespace STP.Repositories
                 .ToListAsync();
         }
 
-        // Delete movie
-        public async Task<bool> RemoveAsync(int id)
+        public async Task<IEnumerable<Movie>> GetAllMoviesAsync()
         {
-            var movie = await _context.Movies.FindAsync(id);
-            if (movie == null)
-                return false;
-
-            _context.Movies.Remove(movie);
-            await _context.SaveChangesAsync();
-            return true;
+            return await _context.Movies.ToListAsync();
         }
+
     }
 }

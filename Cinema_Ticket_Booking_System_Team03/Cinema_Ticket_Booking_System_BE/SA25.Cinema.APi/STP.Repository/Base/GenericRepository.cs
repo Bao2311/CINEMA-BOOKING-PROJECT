@@ -90,12 +90,13 @@ namespace PMS.Repository.Base
             var tracker = _context.Attach(entity); // Đính thực thể vào DbContext nếu chưa theo dõi
             tracker.State = EntityState.Modified; // Đánh dấu thực thể là đã sửa đổi
             return await _context.SaveChangesAsync(); // Lưu thay đổi bất đồng bộ vào cơ sở dữ liệu
+
         }
 
         // Phương thức bất đồng bộ để xóa một thực thể
-        public async Task<bool> RemoveAsync(T entity)
+        public async Task<bool> RemoveAsync(int id)
         {
-            _context.Remove(entity); // Xóa thực thể khỏi DbContext
+            _context.Remove(id); // Xóa thực thể khỏi DbContext
             await _context.SaveChangesAsync(); // Lưu thay đổi bất đồng bộ vào cơ sở dữ liệu
             return true;
         }

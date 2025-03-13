@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
@@ -12,6 +12,7 @@ using STP.Repository.Services;
 using STP.Repositories;
 using STP.Repository.Repositories;
 using STP.Service.Services;
+using sa25.Repository.Data;
 
 namespace STP.APIService
 {
@@ -20,7 +21,7 @@ namespace STP.APIService
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-
+            
             // Cấu hình CORS
             builder.Services.AddCors(options =>
             {
@@ -67,11 +68,14 @@ namespace STP.APIService
             });
 
             // Đăng ký các Repository và Services
+            // Trong phần đăng ký các Repository và Services
+            builder.Services.AddScoped<UnitOfWork>();
             builder.Services.AddScoped<ShowtimeRepository>();
             builder.Services.AddScoped<ShowtimeService>();
             builder.Services.AddScoped<UserRepository>();
             builder.Services.AddScoped<AuthService>();
             builder.Services.AddScoped<EmailService>();
+            builder.Services.AddScoped<MovieRepository>();
             //builder.Services.AddScoped<TicketSellingRepository>();
             //builder.Services.AddScoped<TicketSellingService>();
             builder.Services.AddMemoryCache();
