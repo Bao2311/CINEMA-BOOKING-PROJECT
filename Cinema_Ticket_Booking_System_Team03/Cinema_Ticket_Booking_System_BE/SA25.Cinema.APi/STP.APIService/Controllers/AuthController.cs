@@ -124,7 +124,7 @@ namespace STP.APIService.Controllers
                 return BadRequest(new { message = ex.Message, success = false });
             }
         }
-        
+
         // Task 2.4: Get Current User Profile
         [HttpGet("profile")]
         [Authorize]
@@ -203,3 +203,4 @@ namespace STP.APIService.Controllers
         }
     }
 }
+

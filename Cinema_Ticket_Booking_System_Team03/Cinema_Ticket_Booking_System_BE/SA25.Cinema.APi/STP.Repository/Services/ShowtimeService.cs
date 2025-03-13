@@ -4,31 +4,19 @@ using System.Threading.Tasks;
 using System.Linq;
 using STP.Repository.Models;
 using STP.Repository.DTOs;
-<<<<<<< HEAD
-using STP.Repository.Dtos; 
-using STP.Repositories;
-=======
 using STP.Repository.Repositories;
 using STP.Repository.Data;
->>>>>>> ee6f79ee8a6fc14ddf838526ed48ef22d04ca912
 
 namespace STP.Service.Services
 {
     public class ShowtimeService
     {
         private readonly ShowtimeRepository _showtimeRepository;
-<<<<<<< HEAD
-
-        public ShowtimeService(ShowtimeRepository showtimeRepository)
-        {
-            _showtimeRepository = showtimeRepository;
-=======
         private readonly CinemaDbContext _context;
         public ShowtimeService(ShowtimeRepository showtimeRepository, CinemaDbContext context)
         {
             _showtimeRepository = showtimeRepository;
             _context = context;
->>>>>>> ee6f79ee8a6fc14ddf838526ed48ef22d04ca912
         }
 
         public async Task<IEnumerable<ShowtimeDto>> GetAllShowtimesAsync()
@@ -104,8 +92,6 @@ namespace STP.Service.Services
             return await _showtimeRepository.CreateAsync(showtime);
         }
 
-<<<<<<< HEAD
-=======
         public async Task<bool> UpdateShowtimeAsync(int id, ShowtimeUpdateDto showtimeDto, int updatedBy)
         {
             // Kiểm tra xem lịch chiếu có tồn tại không
@@ -182,7 +168,6 @@ namespace STP.Service.Services
                 }
             }
         }
->>>>>>> ee6f79ee8a6fc14ddf838526ed48ef22d04ca912
 
         private DateTime EnsureSqlDateTimeCompatible(DateTime date)
         {
@@ -233,3 +218,5 @@ namespace STP.Service.Services
         }
     }
 }
+
+
