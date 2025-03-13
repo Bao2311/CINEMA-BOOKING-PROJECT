@@ -114,5 +114,11 @@ namespace STP.Repositories
                 .Take(count)
                 .ToListAsync();
         }
+
+        public async Task<IEnumerable<Movie>> GetAllMoviesAsync()
+        {
+            return await _context.Movies.ToListAsync();
+        }
+
     }
 }

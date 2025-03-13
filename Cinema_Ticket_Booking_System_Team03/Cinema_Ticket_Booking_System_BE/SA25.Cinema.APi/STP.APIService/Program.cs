@@ -13,6 +13,7 @@ using System.Text.Json.Serialization;
 using System.Text;
 using STP.APIService.Controllers;
 using STP.Service.Services;
+using sa25.Repository.Data;
 
 
 
@@ -88,6 +89,7 @@ namespace STP.APIService
 
             // Đăng ký các Repository và Services
             // Trong phần đăng ký các Repository và Services
+            builder.Services.AddScoped<UnitOfWork>();
             builder.Services.AddScoped<UserRepository>();
             builder.Services.AddScoped<AuthService>();
             builder.Services.AddScoped<EmailService>();
