@@ -97,7 +97,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
         className="w-full h-64 object-cover"
       />
       <div className="p-4">
-        <Link to={`/movies/${movie.movie_ID}`}>
+        <Link to={`/movie/${movie.movie_ID}`}>
           <h3 className="font-bold text-lg mb-1 hover:text-indigo-600 transition-colors">
             {movie.movie_Name}
           </h3>
