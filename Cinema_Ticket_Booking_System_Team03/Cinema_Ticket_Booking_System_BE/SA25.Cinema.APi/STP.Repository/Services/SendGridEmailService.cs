@@ -273,5 +273,72 @@ namespace STP.Repository.Services
                 throw new Exception($"Không thể gửi email chào mừng: {ex.Message}", ex);
             }
         }
+        /// <summary>
+        /// Gửi email xác thực tài khoản cho người dùng mới đăng ký
+        /// </summary>
+        /// <param name="email">Email người nhận</param>
+        /// <param name="fullName">Họ tên người nhận</param>
+        /// <param name="token">Token xác thực</param>
+        /// <returns>Task</returns>
+        public async Task SendVerificationEmailAsync(string email, string fullName, string token)
+        {
+            try
+            {
+                _logger.LogInformation($"Preparing to send verification email to {email}");
+
+                // Lấy URL API từ cấu hình
+                var baseUrl = _configuration["AppSettings:ApiBaseUrl"] ?? "https://localhost:5001";
+                var verificationUrl = $"{baseUrl}/api/auth/verify-email?token={token}";
+
+                // Chuẩn bị tiêu đề và nội dung email
+                string subject = "Xác thực tài khoản STP Cinema";
+                string body = $@"
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }}
+                .header {{ background-color: #f8f9fa; padding: 10px; text-align: center; border-radius: 5px 5px 0 0; }}
+                .content {{ padding: 20px; }}
+                .button {{ display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; }}
+                .footer {{ background-color: #f8f9fa; padding: 10px; text-align: center; font-size: 12px; color: #6c757d; border-radius: 0 0 5px 5px; }}
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h2>Xác thực tài khoản STP Cinema</h2>
+                </div>
+                <div class='content'>
+                    <p>Xin chào <strong>{fullName}</strong>,</p>
+                    <p>Cảm ơn bạn đã đăng ký tài khoản tại STP Cinema. Để hoàn tất quá trình đăng ký, vui lòng xác thực email của bạn bằng cách nhấp vào nút bên dưới:</p>
+                    <p style='text-align: center;'>
+                        <a href='{verificationUrl}' class='button' style='color: white;'>Xác thực tài khoản</a>
+                    </p>
+                    <p>Hoặc bạn có thể sao chép và dán đường dẫn sau vào trình duyệt:</p>
+                    <p style='word-break: break-all;'><a href='{verificationUrl}'>{verificationUrl}</a></p>
+                    <p>Liên kết này sẽ hết hạn sau 24 giờ.</p>
+                    <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.</p>
+                    <p>Trân trọng,<br>Đội ngũ STP Cinema</p>
+                </div>
+                <div class='footer'>
+                    <p>Đây là email tự động, vui lòng không trả lời email này.</p>
+                </div>
+            </div>
+        </body>
+        </html>";
+
+                // Gửi email
+                await SendEmailAsync(email, subject, body);
+                _logger.LogInformation($"Verification email sent to {email}");
+            }
+            catch (Exception ex)
+            {
+                // Ghi log lỗi và ném ngoại lệ
+                _logger.LogError(ex, $"Error sending verification email: {ex.Message}");
+                throw new Exception($"Không thể gửi email xác thực: {ex.Message}", ex);
+            }
+        }
+
     }
 }
