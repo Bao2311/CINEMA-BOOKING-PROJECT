@@ -32,6 +32,16 @@ const ProfilePage: React.FC = () => {
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
 
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+
+  // Notification preferences state
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [smsNotifications, setSmsNotifications] = useState(false);
+  const [marketingCommunications, setMarketingCommunications] = useState(true);
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -108,6 +118,48 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (newPassword !== confirmNewPassword) {
+      setFormError('New password and confirm new password do not match.');
+      return;
+    }
+
+    if (window.confirm('Are you sure you want to change your password?')) {
+      try {
+        await axios.put(`https://localhost:7168/api/User/change-password`, {
+          currentPassword,
+          newPassword
+        }, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        setFormSuccess('Password changed successfully!');
+        setFormError('');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+      } catch (error) {
+        setFormError('Failed to change password.');
+        console.error("Error changing password:", error);
+      }
+    }
+  };
+
+  const handleToggleEmailNotifications = () => {
+    setEmailNotifications(!emailNotifications);
+  };
+
+  const handleToggleSmsNotifications = () => {
+    setSmsNotifications(!smsNotifications);
+  };
+
+  const handleToggleMarketingCommunications = () => {
+    setMarketingCommunications(!marketingCommunications);
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -156,7 +208,7 @@ const ProfilePage: React.FC = () => {
                     <button
                       onClick={handleHomePageClick}
                       className={`w-full flex items-center px-4 py-2 rounded-md ${
-                        activeTab === 'bookings'
+                        activeTab === 'home'
                           ? 'bg-indigo-50 text-indigo-600 font-medium'
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
@@ -318,6 +370,97 @@ const ProfilePage: React.FC = () => {
                       </button>
                     </div>
                   </form>
+                </div>
+              )}
+
+              {/* Settings Tab */}
+              {activeTab === 'settings' && (
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Account Settings</h2>
+
+                  <form className="space-y-6" onSubmit={handleChangePassword}>
+                    <div>
+                      <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                        Current Password
+                      </label>
+                      <input
+                        type="password"
+                        id="currentPassword"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                        New Password
+                      </label>
+                      <input
+                        type="password"
+                        id="newPassword"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="confirmNewPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                        Confirm New Password
+                      </label>
+                      <input
+                        type="password"
+                        id="confirmNewPassword"
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      />
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        type="submit"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md transition-colors"
+                      >
+                        Change Password
+                      </button>
+                    </div>
+                  </form>
+
+                  <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-6">Notification Preferences</h2>
+
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <span>Email Notifications</span>
+                      <input
+                        type="checkbox"
+                        checked={emailNotifications}
+                        onChange={handleToggleEmailNotifications}
+                        className="form-checkbox h-5 w-5 text-indigo-600"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span>SMS Notifications</span>
+                      <input
+                        type="checkbox"
+                        checked={smsNotifications}
+                        onChange={handleToggleSmsNotifications}
+                        className="form-checkbox h-5 w-5 text-indigo-600"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span>Marketing Communications</span>
+                      <input
+                        type="checkbox"
+                        checked={marketingCommunications}
+                        onChange={handleToggleMarketingCommunications}
+                        className="form-checkbox h-5 w-5 text-indigo-600"
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

@@ -1,15 +1,15 @@
-// src/components/Auth/UserForm.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 interface UserFormProps {
   user?: {
-    fullName: string;
-    dateOfBirth: string;
+    full_Name: string;
+    date_Of_Birth: string;
     sex: string;
-    phoneNumber: string;
+    phone_Number: string;
     address: string;
     role: string;
-    accountStatus: string;
+    account_Status: string;
+    email: string;
   };
   onSubmit: (data: any) => void;
   onCancel: () => void;
@@ -17,35 +17,19 @@ interface UserFormProps {
 
 const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
-    fullName: user?.fullName || '',
-    dateOfBirth: user?.dateOfBirth || '',
+    full_Name: user?.full_Name || '',
+    date_Of_Birth: user?.date_Of_Birth || '',
     sex: user?.sex || '',
-    phoneNumber: user?.phoneNumber || '',
+    phone_Number: user?.phone_Number || '',
     address: user?.address || '',
     role: user?.role || '',
-    accountStatus: user?.accountStatus || '',
+    account_Status: user?.account_Status || '',
+    email: user?.email || '',
   });
-
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        fullName: user.fullName,
-        dateOfBirth: user.dateOfBirth,
-        sex: user.sex,
-        phoneNumber: user.phoneNumber,
-        address: user.address,
-        role: user.role,
-        accountStatus: user.accountStatus,
-      });
-    }
-  }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prevData => ({
-      ...prevData,
-      [name]: value,
-    }));
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -56,126 +40,98 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
-          Full Name
-        </label>
+        <label className="block text-sm font-medium text-gray-700">Full Name</label>
         <input
           type="text"
-          id="fullName"
-          name="fullName"
-          value={formData.fullName}
+          name="full_Name"
+          value={formData.full_Name}
           onChange={handleChange}
-          required
-          className="mt-1 p-2 border border-gray-300 rounded-md w-full"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
         />
       </div>
-
       <div>
-        <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700">
-          Date of Birth
-        </label>
+        <label className="block text-sm font-medium text-gray-700">Email</label>
+        <input
+          type="email"
+          name="email"
+          value={formData.email}
+          onChange={handleChange}
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
         <input
           type="date"
-          id="dateOfBirth"
-          name="dateOfBirth"
-          value={formData.dateOfBirth}
+          name="date_Of_Birth"
+          value={formData.date_Of_Birth}
           onChange={handleChange}
-          required
-          className="mt-1 p-2 border border-gray-300 rounded-md w-full"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
         />
       </div>
-
       <div>
-        <label htmlFor="sex" className="block text-sm font-medium text-gray-700">
-          Sex
-        </label>
+        <label className="block text-sm font-medium text-gray-700">Sex</label>
         <input
           type="text"
-          id="sex"
           name="sex"
           value={formData.sex}
           onChange={handleChange}
-          required
-          className="mt-1 p-2 border border-gray-300 rounded-md w-full"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
         />
       </div>
-
       <div>
-        <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
-          Phone Number
-        </label>
+        <label className="block text-sm font-medium text-gray-700">Phone Number</label>
         <input
           type="text"
-          id="phoneNumber"
-          name="phoneNumber"
-          value={formData.phoneNumber}
+          name="phone_Number"
+          value={formData.phone_Number}
           onChange={handleChange}
-          required
-          className="mt-1 p-2 border border-gray-300 rounded-md w-full"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
         />
       </div>
-
       <div>
-        <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-          Address
-        </label>
+        <label className="block text-sm font-medium text-gray-700">Address</label>
         <input
           type="text"
-          id="address"
           name="address"
           value={formData.address}
           onChange={handleChange}
-          required
-          className="mt-1 p-2 border border-gray-300 rounded-md w-full"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
         />
       </div>
-
       <div>
-        <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-          Role
-        </label>
+        <label className="block text-sm font-medium text-gray-700">Role</label>
         <input
           type="text"
-          id="role"
           name="role"
           value={formData.role}
           onChange={handleChange}
-          required
-          className="mt-1 p-2 border border-gray-300 rounded-md w-full"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
         />
       </div>
-
       <div>
-        <label htmlFor="accountStatus" className="block text-sm font-medium text-gray-700">
-          Account Status
-        </label>
+        <label className="block text-sm font-medium text-gray-700">Account Status</label>
         <input
           type="text"
-          id="accountStatus"
-          name="accountStatus"
-          value={formData.accountStatus}
+          name="account_Status"
+          value={formData.account_Status}
           onChange={handleChange}
-          required
-          className="mt-1 p-2 border border-gray-300 rounded-md w-full"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
         />
       </div>
-
-      <div className="flex space-x-4 mt-6">
-        {/* Submit Button */}
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-        >
-          {user ? 'Update User' : 'Create User'}
-        </button>
-        
-        {/* Cancel Button */}
+      <div className="flex justify-end space-x-4">
         <button
           type="button"
           onClick={onCancel}
-          className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
+          className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md"
         >
           Cancel
+        </button>
+        <button
+          type="submit"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+        >
+          {user ? 'Update User' : 'Create User'}
         </button>
       </div>
     </form>

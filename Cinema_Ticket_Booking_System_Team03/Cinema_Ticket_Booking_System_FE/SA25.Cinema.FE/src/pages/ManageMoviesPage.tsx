@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout/Layout';
+import { Plus, RefreshCw, ChevronLeft, ChevronRight, Edit, Trash2 } from 'lucide-react';
+import Modal from '../components/Admin/Modal';
 import axios from 'axios';
 
 const ManageMoviesPage: React.FC = () => {
   const [movies, setMovies] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const moviesPerPage = 5;
+  const [isAddingMovie, setIsAddingMovie] = useState(false);
 
   const [newMovie, setNewMovie] = useState({
     movie_Name: '',
@@ -82,6 +87,7 @@ const ManageMoviesPage: React.FC = () => {
         poster_URL: '',
         trailer_Link: '',
       });
+      setIsAddingMovie(false);
     } catch (error) {
       console.error('Error adding movie:', error);
     }
@@ -119,6 +125,14 @@ const ManageMoviesPage: React.FC = () => {
     }
   };
 
+  // Tính toán các phim hiển thị dựa trên trang hiện tại
+  const indexOfLastMovie = currentPage * moviesPerPage;
+  const indexOfFirstMovie = indexOfLastMovie - moviesPerPage;
+  const currentMovies = movies.slice(indexOfFirstMovie, indexOfLastMovie);
+
+  // Tính tổng số trang
+  const totalPages = Math.ceil(movies.length / moviesPerPage);
+
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -135,83 +149,155 @@ const ManageMoviesPage: React.FC = () => {
           </div>
         ) : (
           <div>
-            {/* Form thêm phim */}
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">Thêm Phim Mới</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input
-                  type="text"
-                  value={newMovie.movie_Name}
-                  onChange={(e) => setNewMovie({ ...newMovie, movie_Name: e.target.value })}
-                  placeholder="Tên Phim"
-                  className="border p-2 rounded"
-                />
-                <input
-                  type="date"
-                  value={newMovie.release_Date}
-                  onChange={(e) => setNewMovie({ ...newMovie, release_Date: e.target.value })}
-                  placeholder="Ngày Phát Hành"
-                  className="border p-2 rounded"
-                />
-                {/* Thêm các input còn lại cho các trường khác */}
-              </div>
+            {/* Buttons for actions */}
+            <div className="flex justify-between mb-4">
               <button
-                onClick={addMovie}
-                className="mt-4 bg-blue-600 text-white py-2 px-6 rounded"
+                onClick={() => setIsAddingMovie(true)}
+                className="bg-blue-600 text-white py-2 px-4 rounded flex items-center"
               >
-                Thêm Phim
+                <Plus className="h-5 w-5 mr-2" />
+                Tạo phim
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-green-600 text-white py-2 px-4 rounded flex items-center"
+              >
+                <RefreshCw className="h-5 w-5 mr-2" />
+                Refresh
               </button>
             </div>
 
             {/* Danh sách phim */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {movies.map((movie) => (
-                <div key={movie.movie_ID} className="bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition duration-300">
-                  <img
-                    src={movie.poster_URL}
-                    alt={movie.movie_Name}
-                    className="w-full h-72 object-cover"
-                  />
-                  <div className="p-4">
-                    <h2 className="text-xl font-semibold text-gray-800 mb-2">{movie.movie_Name}</h2>
-                    <p className="text-sm text-gray-600 mb-2">Đạo diễn: {movie.director}</p>
-                    <p className="text-sm text-gray-600 mb-2">Ngày phát hành: {new Date(movie.release_Date).toLocaleDateString()}</p>
-                    <p className="text-sm text-gray-600 mb-4">Thể loại: {movie.genre}</p>
-                    <p className="text-sm text-gray-700">{movie.synopsis.length > 100 ? `${movie.synopsis.slice(0, 100)}...` : movie.synopsis}</p>
-                    <div className="mt-4 text-center">
-                      <a
-                        href={movie.trailer_Link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-indigo-600 hover:text-indigo-800 font-medium"
-                      >
-                        Xem Trailer
-                      </a>
-                    </div>
-                    {/* Các nút quản lý: Chỉnh sửa, xóa */}
-                    <div className="flex justify-between mt-4">
-                      <button
-                        onClick={() => editMovie(movie.movie_ID)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        Sửa
-                      </button>
-                      <button
-                        onClick={() => deleteMovie(movie.movie_ID)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        Xóa
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white">
+                <thead>
+                  <tr>
+                    <th className="py-2 px-4 border-b">ID</th>
+                    <th className="py-2 px-4 border-b">Hình ảnh</th>
+                    <th className="py-2 px-4 border-b">Tên phim</th>
+                    <th className="py-2 px-4 border-b">Loại phim</th>
+                    <th className="py-2 px-4 border-b">Năm phát hành</th>
+                    <th className="py-2 px-4 border-b">Thể loại</th>
+                    <th className="py-2 px-4 border-b">View</th>
+                    <th className="py-2 px-4 border-b">Rating</th>
+                    <th className="py-2 px-4 border-b">Trạng thái</th>
+                    <th className="py-2 px-4 border-b">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentMovies.map((movie) => (
+                    <tr key={movie.movie_ID}>
+                      <td className="py-2 px-4 border-b">{movie.movie_ID}</td>
+                      <td className="py-2 px-4 border-b">
+                        <img src={movie.poster_URL} alt={movie.movie_Name} className="h-16 w-16 object-cover" />
+                      </td>
+                      <td className="py-2 px-4 border-b">{movie.movie_Name}</td>
+                      <td className="py-2 px-4 border-b">{movie.genre}</td>
+                      <td className="py-2 px-4 border-b">{new Date(movie.release_Date).getFullYear()}</td>
+                      <td className="py-2 px-4 border-b">{movie.genre}</td>
+                      <td className="py-2 px-4 border-b">{movie.view}</td>
+                      <td className="py-2 px-4 border-b">{movie.rating}</td>
+                      <td className="py-2 px-4 border-b">
+                        <span className={`px-2 py-1 rounded-full text-white ${movie.status === 'Công khai' ? 'bg-green-500' : 'bg-red-500'}`}>
+                          {movie.status}
+                        </span>
+                      </td>
+                      <td className="py-2 px-4 border-b">
+                        <button
+                          onClick={() => editMovie(movie.movie_ID)}
+                          className="text-blue-600 hover:text-blue-800 mr-2"
+                        >
+                          <Edit className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => deleteMovie(movie.movie_ID)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex justify-between items-center mt-6">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-l flex items-center"
+              >
+                <ChevronLeft className="h-5 w-5" />
+                Previous
+              </button>
+              <span className="text-lg font-medium text-gray-700">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-r flex items-center"
+              >
+                Next
+                <ChevronRight className="h-5 w-5" />
+              </button>
             </div>
           </div>
         )}
       </div>
+
+      {/* Modal for Adding Movie */}
+      <Modal isOpen={isAddingMovie} onClose={() => setIsAddingMovie(false)}>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Thêm Phim Mới</h2>
+        <form onSubmit={(e) => { e.preventDefault(); addMovie(); }}>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="movie_Name">
+              Tên phim
+            </label>
+            <input
+              type="text"
+              id="movie_Name"
+              value={newMovie.movie_Name}
+              onChange={(e) => setNewMovie({ ...newMovie, movie_Name: e.target.value })}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="release_Date">
+              Ngày phát hành
+            </label>
+            <input
+              type="date"
+              id="release_Date"
+              value={newMovie.release_Date}
+              onChange={(e) => setNewMovie({ ...newMovie, release_Date: e.target.value })}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
+          {/* Add other fields similarly */}
+          <div className="flex items-center justify-between">
+            <button
+              type="submit"
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
+              Thêm
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsAddingMovie(false)}
+              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
+              Hủy
+            </button>
+          </div>
+        </form>
+      </Modal>
     </Layout>
   );
 };
 
-export default ManageMoviesPage;
+export default ManageMoviesPage;  
