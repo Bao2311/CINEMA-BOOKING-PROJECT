@@ -263,14 +263,10 @@ namespace STP.Repository.Dtos
     // DTO dùng để trả về kết quả đăng ký
     public class UserRegistrationResponseDto
     {
-        // Kết quả đăng ký thành công hay không
         public bool Success { get; set; }
-
-        // Thông báo kết quả
         public string Message { get; set; }
-
-        // ID người dùng nếu đăng ký thành công
-        public int? UserId { get; set; }
+        public int UserId { get; set; }
+        public bool RequiresEmailVerification { get; set; } = false;
     }
 
     // DTO dùng cho đăng ký tài khoản nhân viên/quản lý

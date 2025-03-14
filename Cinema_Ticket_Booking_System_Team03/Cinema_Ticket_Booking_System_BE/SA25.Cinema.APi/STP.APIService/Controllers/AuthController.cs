@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using System.Net.Mail;
 using System.Net;
+using STP.Repositories;
 
 namespace STP.APIService.Controllers
 {
@@ -22,16 +23,19 @@ namespace STP.APIService.Controllers
         private readonly ILogger<AuthController> _logger;
         private readonly EmailService _emailService;
         private readonly AccountLockingService _accountLockingService;
-
+        private readonly EmailVerificationService _emailVerificationService;
+        private readonly UserRepository _userRepository;
         /// <summary>
         /// Khởi tạo controller với các dependency cần thiết
         /// </summary>
-        public AuthController(AuthService authService, ILogger<AuthController> logger, EmailService emailService, AccountLockingService accountLockingService)
+        public AuthController(AuthService authService, ILogger<AuthController> logger, EmailService emailService, AccountLockingService accountLockingService, EmailVerificationService emailVerificationService, UserRepository userRepository)
         {
             _authService = authService;
             _logger = logger;
             _emailService = emailService;
             _accountLockingService = accountLockingService;
+            _emailVerificationService = emailVerificationService;
+            _userRepository = userRepository;
         }
 
         /// <summary>
@@ -253,6 +257,164 @@ namespace STP.APIService.Controllers
                 // Ghi log và trả về lỗi
                 _logger.LogError($"Lỗi khi mở khóa tài khoản: {ex.Message}");
                 return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// API xác thực email - không yêu cầu xác thực
+        /// </summary>
+        [HttpGet("verify-email")]
+        public async Task<IActionResult> VerifyEmail([FromQuery] string token)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(token))
+                {
+                    return BadRequest(new { success = false, message = "Token không hợp lệ" });
+                }
+
+                bool verified = await _emailVerificationService.VerifyEmailAsync(token, _userRepository);
+
+                if (verified)
+                {
+                    // Trả về trang HTML thông báo thành công
+                    string htmlResponse = @"
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset='UTF-8'>
+                <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                <title>Xác thực email thành công</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                        max-width: 600px;
+                        margin: 0 auto;
+                        padding: 20px;
+                        text-align: center;
+                    }
+                    .success-container {
+                        border: 1px solid #ddd;
+                        border-radius: 5px;
+                        padding: 20px;
+                        margin-top: 30px;
+                    }
+                    .success-icon {
+                        color: #28a745;
+                        font-size: 48px;
+                    }
+                    h1 {
+                        color: #28a745;
+                    }
+                    .btn {
+                        display: inline-block;
+                        background-color: #007bff;
+                        color: white;
+                        padding: 10px 20px;
+                        text-decoration: none;
+                        border-radius: 5px;
+                        margin-top: 20px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class='success-container'>
+                    <div class='success-icon'>✓</div>
+                    <h1>Xác thực email thành công!</h1>
+                    <p>Cảm ơn bạn đã xác thực email. Tài khoản của bạn đã được kích hoạt.</p>
+                    <p>Bạn có thể đăng nhập và bắt đầu sử dụng dịch vụ của chúng tôi.</p>
+                </div>
+            </body>
+            </html>";
+
+                    return Content(htmlResponse, "text/html");
+                }
+                else
+                {
+                    // Trả về trang HTML thông báo thất bại
+                    string htmlResponse = @"
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset='UTF-8'>
+                <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                <title>Xác thực email thất bại</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                        max-width: 600px;
+                        margin: 0 auto;
+                        padding: 20px;
+                        text-align: center;
+                    }
+                    .error-container {
+                        border: 1px solid #ddd;
+                        border-radius: 5px;
+                        padding: 20px;
+                        margin-top: 30px;
+                    }
+                    .error-icon {
+                        color: #dc3545;
+                        font-size: 48px;
+                    }
+                    h1 {
+                        color: #dc3545;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class='error-container'>
+                    <div class='error-icon'>✗</div>
+                    <h1>Xác thực email thất bại</h1>
+                    <p>Đường dẫn xác thực không hợp lệ hoặc đã hết hạn.</p>
+                    <p>Vui lòng thử lại hoặc yêu cầu gửi lại email xác thực.</p>
+                </div>
+            </body>
+            </html>";
+
+                    return Content(htmlResponse, "text/html");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Lỗi khi xác thực email: {ex.Message}");
+                return BadRequest(new { success = false, message = "Đã xảy ra lỗi khi xác thực email" });
+            }
+        }
+
+        /// <summary>
+        /// API gửi lại email xác thực - không yêu cầu xác thực
+        /// </summary>
+        [HttpPost("resend-verification")]
+        public async Task<IActionResult> ResendVerificationEmail([FromBody] ResendVerificationDto model)
+        {
+            try
+            {
+                var user = await _userRepository.GetByEmailAsync(model.Email);
+                if (user == null)
+                {
+                    return NotFound(new { success = false, message = "Không tìm thấy tài khoản với email này" });
+                }
+
+                // Kiểm tra trạng thái tài khoản
+                if (user.Account_Status != "Pending")
+                {
+                    return BadRequest(new { success = false, message = "Tài khoản đã được xác thực hoặc không ở trạng thái chờ xác thực" });
+                }
+
+                // Tạo và gửi token xác thực mới
+                await _emailVerificationService.GenerateVerificationTokenAsync(user.Email, user.Full_Name);
+
+                return Ok(new { success = true, message = "Email xác thực đã được gửi lại" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Lỗi khi gửi lại email xác thực: {ex.Message}");
+                return BadRequest(new { success = false, message = "Đã xảy ra lỗi khi gửi lại email xác thực" });
             }
         }
     }
