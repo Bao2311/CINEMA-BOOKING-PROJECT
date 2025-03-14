@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import MoviesPage from './pages/MoviesPage';
+import MovieDetailPage from './pages/MovieDetailPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import { AuthProvider } from './context/AuthContext';
 import "slick-carousel/slick/slick.css";
@@ -19,6 +20,7 @@ import ManageMoviesPage from './pages/ManageMoviesPage';
 import ShowtimesPage from './pages/ShowtimesPage';
 import ManageShowtimesPage from './pages/ManageShowtimesPage';
 import Homepage_Admin from './pages/Homepage-Admin';
+import ForgotPassword from './pages/ForgotPassword';
 
 function App() {
   return (
@@ -40,7 +42,8 @@ function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/booking/:id" element={<BookingPage />} />
             <Route path="/homepage-admin" element={<Homepage_Admin />} />
-
+            <Route path="/forgot-password" element={<ForgotPassword />} />  
+            
             {/* Route chính AdminDashboardPage với các route con */}
             <Route path="/admin" element={<AdminDashboardPage />}>
               <Route path="manage-employees" element={<ManageEmployeesPage />} />
@@ -49,7 +52,9 @@ function App() {
             </Route>
 
             <Route path="/movies" element={<MoviesPage />} />
+            <Route path="/movie/:id" element={<MovieDetailPage />} />
             <Route path="/showtimes" element={<ShowtimesPage />} />
+            <Route path="/showtimes/:movieId" element={<ShowtimesPage />} />
 
             {/* Catch-all route */}
             <Route path="*" element={<div>Page not found</div>} />

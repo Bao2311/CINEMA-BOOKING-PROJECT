@@ -203,6 +203,7 @@ namespace STP.APIService.Controllers
         /// - Truy vấn tất cả phim từ database
         /// - Chuyển đổi sang DTO để trả về client
         /// </summary>
+        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<MovieResponseDTO>>> GetAllMovies()
         {
@@ -253,6 +254,7 @@ namespace STP.APIService.Controllers
         /// - Truy vấn phim từ database theo ID
         /// - Chuyển đổi sang DTO để trả về client
         /// </summary>
+         [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<ActionResult<MovieResponseDTO>> GetMovieById(int id)
         {

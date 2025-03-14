@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Movie } from '../../types';
+import { Movie } from '../../types/index';
 import { X } from 'lucide-react';
 
 interface MovieFormProps {
@@ -9,15 +9,19 @@ interface MovieFormProps {
 }
 
 const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
-  const [title, setTitle] = useState(movie?.title || '');
-  const [description, setDescription] = useState(movie?.description || '');
+  const [title, setTitle] = useState(movie?.movie_Name || '');
+  const [description, setDescription] = useState(movie?.synopsis || '');
   const [duration, setDuration] = useState(movie?.duration.toString() || '');
-  const [genre, setGenre] = useState<string[]>(movie?.genre || []);
+  const [genre, setGenre] = useState<string[]>(movie?.genre.split(',') || []);
   const [genreInput, setGenreInput] = useState('');
-  const [releaseDate, setReleaseDate] = useState(movie?.releaseDate || '');
-  const [posterUrl, setPosterUrl] = useState(movie?.posterUrl || '');
-  const [trailerUrl, setTrailerUrl] = useState(movie?.trailerUrl || '');
-  const [rating, setRating] = useState(movie?.rating.toString() || '');
+  const [releaseDate, setReleaseDate] = useState(movie?.release_Date || '');
+  const [posterUrl, setPosterUrl] = useState(movie?.poster_Url || '');
+  const [trailerUrl, setTrailerUrl] = useState(movie?.trailer_Link || '');
+  const [rating, setRating] = useState<string>(movie?.rating.toString() || '');
+  const [synopsis, setSynopsis] = useState(movie?.synopsis || '');
+  const [productionCompany, setProductionCompany] = useState(movie?.production_Company || '');
+  const [language, setLanguage] = useState(movie?.language || '');
+  const [country, setCountry] = useState(movie?.country || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = () => {
@@ -34,6 +38,10 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
     if (!rating.trim()) newErrors.rating = 'Rating is required';
     if (isNaN(Number(rating))) newErrors.rating = 'Rating must be a number';
     if (Number(rating) < 0 || Number(rating) > 10) newErrors.rating = 'Rating must be between 0 and 10';
+    if (!synopsis.trim()) newErrors.synopsis = 'Synopsis is required';
+    if (!productionCompany.trim()) newErrors.productionCompany = 'Production Company is required';
+    if (!language.trim()) newErrors.language = 'Language is required';
+    if (!country.trim()) newErrors.country = 'Country is required';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -45,14 +53,17 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
     if (!validateForm()) return;
     
     onSubmit({
-      title,
-      description,
+      movie_Name: title,
+      synopsis: description,
       duration: Number(duration),
-      genre,
-      releaseDate,
-      posterUrl,
-      trailerUrl,
+      genre: genre.join(','),
+      release_Date: releaseDate,
+      poster_Url: posterUrl,
+      trailer_Link: trailerUrl,
       rating: Number(rating),
+      production_Company: productionCompany,
+      language,
+      country,
     });
   };
 
@@ -170,7 +181,7 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
         {errors.genre && <p className="mt-1 text-sm text-red-600">{errors.genre}</p>}
         
         <div className="flex flex-wrap gap-2 mt-2">
-          {genre.map((g, index) => (
+          {genre.map((g: string, index: number) => (
             <div
               key={index}
               className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full flex items-center"
@@ -237,6 +248,70 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
           }`}
         />
         {errors.rating && <p className="mt-1 text-sm text-red-600">{errors.rating}</p>}
+      </div>
+
+      <div>
+        <label htmlFor="synopsis" className="block text-sm font-medium text-gray-700 mb-1">
+          Synopsis
+        </label>
+        <textarea
+          id="synopsis"
+          value={synopsis}
+          onChange={(e) => setSynopsis(e.target.value)}
+          rows={4}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+            errors.synopsis ? 'border-red-500' : 'border-gray-300'
+          }`}
+        />
+        {errors.synopsis && <p className="mt-1 text-sm text-red-600">{errors.synopsis}</p>}
+      </div>
+
+      <div>
+        <label htmlFor="productionCompany" className="block text-sm font-medium text-gray-700 mb-1">
+          Production Company
+        </label>
+        <input
+          type="text"
+          id="productionCompany"
+          value={productionCompany}
+          onChange={(e) => setProductionCompany(e.target.value)}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+            errors.productionCompany ? 'border-red-500' : 'border-gray-300'
+          }`}
+        />
+        {errors.productionCompany && <p className="mt-1 text-sm text-red-600">{errors.productionCompany}</p>}
+      </div>
+
+      <div>
+        <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-1">
+          Language
+        </label>
+        <input
+          type="text"
+          id="language"
+          value={language}
+          onChange={(e) => setLanguage(e.target.value)}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+            errors.language ? 'border-red-500' : 'border-gray-300'
+          }`}
+        />
+        {errors.language && <p className="mt-1 text-sm text-red-600">{errors.language}</p>}
+      </div>
+
+      <div>
+        <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
+          Country
+        </label>
+        <input
+          type="text"
+          id="country"
+          value={country}
+          onChange={(e) => setCountry(e.target.value)}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+            errors.country ? 'border-red-500' : 'border-gray-300'
+          }`}
+        />
+        {errors.country && <p className="mt-1 text-sm text-red-600">{errors.country}</p>}
       </div>
 
       <div className="flex justify-end space-x-4">
