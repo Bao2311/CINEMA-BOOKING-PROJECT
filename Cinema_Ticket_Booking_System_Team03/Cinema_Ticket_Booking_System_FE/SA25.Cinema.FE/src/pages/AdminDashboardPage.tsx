@@ -224,13 +224,15 @@
 
 // src/pages/AdminDashboardPage.tsx
 // AdminDashboardPage.tsx
+
+
 import React, { useState, useEffect } from 'react';
-import { Link, Outlet, useNavigate } from 'react-router-dom';  // Added useNavigate
+import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Home, Users, Film, Ticket, Settings, LogOut } from 'lucide-react';  // Icons from lucide-react
 
 const AdminDashboardPage: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, setAuthToken } = useAuth();  // Giả sử bạn vẫn lấy thông tin người dùng và trạng thái xác thực từ context
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const navigate = useNavigate();  // Hook to navigate
   const [stats, setStats] = useState({
@@ -242,22 +244,7 @@ const AdminDashboardPage: React.FC = () => {
     totalEmployees: 25,
   });
 
-  useEffect(() => {
-    // If the user is not authenticated or is not an admin, redirect to home page
-    if (!isAuthenticated || user?.role !== 'admin') {
-      navigate('/');  // Redirect to home page if the user is not admin
-    }
 
-    // Set the stats (simulated as mock data)
-    setStats({
-      totalRevenue: 125680,
-      ticketsSold: 4256,
-      activeMovies: 12,
-      upcomingMovies: 8,
-      totalCustomers: 3500,
-      totalEmployees: 25,
-    });
-  }, [isAuthenticated, user?.role, navigate]);
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">
@@ -315,3 +302,5 @@ const AdminDashboardPage: React.FC = () => {
 };
 
 export default AdminDashboardPage;
+
+
