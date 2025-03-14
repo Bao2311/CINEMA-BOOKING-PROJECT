@@ -2,19 +2,33 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+
+/// <summary>
+/// Dịch vụ quản lý việc khóa tài khoản sau nhiều lần đăng nhập thất bại.
+/// </summary>
 public class AccountLockingService
 {
     private readonly IMemoryCache _cache;
     private readonly ILogger<AccountLockingService> _logger;
     private const int MAX_FAILED_ATTEMPTS = 5;
-    private const int LOCK_DURATION_MINUTES = 30; // Thay đổi thành 30 phút
+    private const int LOCK_DURATION_MINUTES = 30; // Thời gian khóa tài khoản (30 phút)
 
+    /// <summary>
+    /// Khởi tạo một instance mới của AccountLockingService.
+    /// </summary>
+    /// <param name="cache">Cache để lưu trữ thông tin về các lần đăng nhập thất bại và trạng thái khóa</param>
+    /// <param name="logger">Logger để ghi lại các sự kiện</param>
     public AccountLockingService(IMemoryCache cache, ILogger<AccountLockingService> logger)
     {
         _cache = cache;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Kiểm tra xem tài khoản có đang bị khóa hay không.
+    /// </summary>
+    /// <param name="email">Email của tài khoản cần kiểm tra</param>
+    /// <returns>true nếu tài khoản đang bị khóa, false nếu không</returns>
     public async Task<bool> IsAccountLockedAsync(string email)
     {
         string lockKey = $"lock_{email}";
@@ -30,6 +44,11 @@ public class AccountLockingService
         return false;
     }
 
+    /// <summary>
+    /// Lấy số lần đăng nhập thất bại của một tài khoản.
+    /// </summary>
+    /// <param name="email">Email của tài khoản</param>
+    /// <returns>Số lần đăng nhập thất bại</returns>
     public async Task<int> GetFailedAttemptsAsync(string email)
     {
         string attemptsKey = $"attempts_{email}";
@@ -37,6 +56,11 @@ public class AccountLockingService
         return attempts;
     }
 
+    /// <summary>
+    /// Lấy thời gian còn lại (phút) trước khi tài khoản được mở khóa.
+    /// </summary>
+    /// <param name="email">Email của tài khoản</param>
+    /// <returns>Số phút còn lại trước khi tài khoản được mở khóa, 0 nếu tài khoản không bị khóa</returns>
     public async Task<int> GetRemainingLockTimeAsync(string email)
     {
         if (!await IsAccountLockedAsync(email))
@@ -47,6 +71,12 @@ public class AccountLockingService
         return remainingMinutes > 0 ? remainingMinutes : 0;
     }
 
+    /// <summary>
+    /// Ghi nhận một lần đăng nhập thất bại cho tài khoản.
+    /// Nếu số lần thất bại vượt quá ngưỡng, tài khoản sẽ bị khóa.
+    /// </summary>
+    /// <param name="email">Email của tài khoản</param>
+    /// <returns>true nếu tài khoản bị khóa sau lần thất bại này, false nếu chưa bị khóa</returns>
     public async Task<bool> RecordFailedAttemptAsync(string email)
     {
         string attemptsKey = $"attempts_{email}";
@@ -77,13 +107,16 @@ public class AccountLockingService
 
             _logger.LogWarning($"Tài khoản {email} đã bị khóa trong {LOCK_DURATION_MINUTES} phút do đăng nhập sai {MAX_FAILED_ATTEMPTS} lần");
 
-            return true; // Hợp lệ vì phương thức được khai báo là Task<bool>
+            return true;
         }
 
         return false;
     }
 
-
+    /// <summary>
+    /// Đặt lại số lần đăng nhập thất bại về 0 cho tài khoản.
+    /// </summary>
+    /// <param name="email">Email của tài khoản</param>
     public async Task ResetFailedAttemptsAsync(string email)
     {
         string attemptsKey = $"attempts_{email}";
@@ -91,6 +124,10 @@ public class AccountLockingService
         _logger.LogInformation($"Đã đặt lại số lần đăng nhập thất bại cho tài khoản {email}");
     }
 
+    /// <summary>
+    /// Mở khóa tài khoản thủ công.
+    /// </summary>
+    /// <param name="email">Email của tài khoản cần mở khóa</param>
     public async Task UnlockAccountAsync(string email)
     {
         string attemptsKey = $"attempts_{email}";

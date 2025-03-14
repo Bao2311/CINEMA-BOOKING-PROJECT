@@ -8,6 +8,10 @@ using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
 
 namespace STP.APIService.Controllers
 {
+    /// <summary>
+    /// API quản lý thông tin phim, chỉ cho phép Admin và Staff truy cập
+    /// Các chức năng: thêm, sửa, xóa, lấy danh sách và chi tiết phim
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Roles = "Admin,Staff")]
@@ -20,13 +24,18 @@ namespace STP.APIService.Controllers
             _unitOfWork = unitOfWork;
         }
 
-        // Task 3.1: Add New Movie
+        /// <summary>
+        /// API thêm phim mới vào hệ thống
+        /// - Xác thực người dùng qua token JWT
+        /// - Kiểm tra ngày phát hành phải trong tương lai
+        /// - Lưu thông tin phim và trả về kết quả
+        /// </summary>
         [HttpPost]
         public async Task<ActionResult<MovieResponseDTO>> CreateMovie([FromBody] CreateMovieDTO createMovieDTO)
         {
             try
             {
-                // Lấy ID người dùng hiện tại từ claims
+                // Lấy ID người dùng từ token JWT
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
                 if (userIdClaim == null)
                 {
@@ -35,13 +44,13 @@ namespace STP.APIService.Controllers
 
                 int userId = int.Parse(userIdClaim.Value);
 
-                // Kiểm tra ngày phát hành không được trong quá khứ
+                // Kiểm tra ngày phát hành phải trong tương lai
                 if (createMovieDTO.Release_Date <= DateTime.Now)
                 {
                     return BadRequest(new { message = "Release date must be in the future" });
                 }
 
-                // Tạo đối tượng Movie từ dữ liệu đầu vào
+                // Khởi tạo đối tượng Movie từ DTO
                 var movie = new Movie
                 {
                     Movie_Name = createMovieDTO.Movie_Name,
@@ -64,10 +73,10 @@ namespace STP.APIService.Controllers
                     Updated_At = DateTime.Now
                 };
 
-                // Thêm bộ phim vào cơ sở dữ liệu
+                // Lưu phim vào database
                 await _unitOfWork.MovieRepository.CreateAsync(movie);
 
-                // Chuyển đổi sang DTO để trả về phản hồi
+                // Chuyển đổi thành DTO để trả về
                 var response = new MovieResponseDTO
                 {
                     Movie_ID = movie.Movie_ID,
@@ -99,12 +108,18 @@ namespace STP.APIService.Controllers
             }
         }
 
-        // Task 3.2: Edit Movie
+        /// <summary>
+        /// API cập nhật thông tin phim
+        /// - Nhận thông tin cập nhật từ client
+        /// - Cập nhật thời gian sửa đổi
+        /// - Lưu vào database và trả về số dòng bị ảnh hưởng
+        /// </summary>
         [HttpPut]
         public async Task<ActionResult<MovieResponseDTO>> UpdateMovie([FromBody] UpdateMovieDTO updateMovieDTO)
         {
             try
             {
+                // Khởi tạo đối tượng Movie từ DTO để cập nhật
                 var movie = new Movie()
                 {
                     Movie_ID = updateMovieDTO.Movie_ID,
@@ -124,9 +139,10 @@ namespace STP.APIService.Controllers
                     Trailer_Link = updateMovieDTO.Trailer_Link,
                     Status = updateMovieDTO.Status,
                     Created_By = updateMovieDTO.Created_By,
-                    Updated_At = DateTime.Now
+                    Updated_At = DateTime.Now // Cập nhật thời gian sửa đổi
                 };
 
+                // Cập nhật phim trong database
                 int rowsAffected = await _unitOfWork.MovieRepository.UpdateAsync(movie);
 
                 return Ok(rowsAffected);
@@ -137,32 +153,37 @@ namespace STP.APIService.Controllers
             }
         }
 
-        // Task: Delete Movie By ID
+        /// <summary>
+        /// API xóa phim theo ID
+        /// - Kiểm tra phim có tồn tại không
+        /// - Kiểm tra phim có liên kết với suất chiếu hoặc đánh giá không
+        /// - Xóa phim nếu không có ràng buộc
+        /// </summary>
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteMovie(int id)
         {
             try
             {
-                // Kiểm tra xem bộ phim có tồn tại không
+                // Kiểm tra phim có tồn tại không
                 var movie = await _unitOfWork.MovieRepository.GetMovieWithDetailsAsync(id);
                 if (movie == null)
                 {
                     return NotFound(new { message = $"Movie with ID {id} not found" });
                 }
 
-                // Kiểm tra có suất chiếu không
+                // Kiểm tra phim có suất chiếu liên kết không
                 if (movie.Showtimes != null && movie.Showtimes.Any())
                 {
                     return BadRequest(new { message = "Cannot delete a movie that has associated showtimes" });
                 }
 
-                // Kiểm tra xem phim có đánh giá nào từ người dùng không
+                // Kiểm tra phim có đánh giá từ người dùng không
                 if (movie.MovieRatings != null && movie.MovieRatings.Any())
                 {
                     return BadRequest(new { message = "Cannot delete a movie that has user ratings" });
                 }
 
-                // Xóa bộ phim
+                // Thực hiện xóa phim
                 var result = await _unitOfWork.MovieRepository.RemoveAsync(id);
                 if (!result)
                 {
@@ -176,12 +197,18 @@ namespace STP.APIService.Controllers
                 return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
             }
         }
-        // Task: Get All Movies
+
+        /// <summary>
+        /// API lấy danh sách tất cả phim
+        /// - Truy vấn tất cả phim từ database
+        /// - Chuyển đổi sang DTO để trả về client
+        /// </summary>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<MovieResponseDTO>>> GetAllMovies()
         {
             try
             {
+                // Lấy tất cả phim từ database
                 var movies = await _unitOfWork.MovieRepository.GetAllMoviesAsync();
 
                 if (movies == null || !movies.Any())
@@ -189,6 +216,7 @@ namespace STP.APIService.Controllers
                     return NotFound(new { message = "No movies found" });
                 }
 
+                // Chuyển đổi danh sách phim thành DTO để trả về
                 var response = movies.Select(movie => new MovieResponseDTO
                 {
                     Movie_ID = movie.Movie_ID,
@@ -220,12 +248,17 @@ namespace STP.APIService.Controllers
             }
         }
 
-        // Task: Get Movie By ID
+        /// <summary>
+        /// API lấy thông tin chi tiết phim theo ID
+        /// - Truy vấn phim từ database theo ID
+        /// - Chuyển đổi sang DTO để trả về client
+        /// </summary>
         [HttpGet("{id}")]
         public async Task<ActionResult<MovieResponseDTO>> GetMovieById(int id)
         {
             try
             {
+                // Lấy thông tin phim từ database theo ID
                 var movie = await _unitOfWork.MovieRepository.GetMovieWithDetailsAsync(id);
 
                 if (movie == null)
@@ -233,6 +266,7 @@ namespace STP.APIService.Controllers
                     return NotFound(new { message = $"Movie with ID {id} not found" });
                 }
 
+                // Chuyển đổi thành DTO để trả về
                 var response = new MovieResponseDTO
                 {
                     Movie_ID = movie.Movie_ID,
@@ -263,8 +297,5 @@ namespace STP.APIService.Controllers
                 return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
             }
         }
-
-
     }
 }
-

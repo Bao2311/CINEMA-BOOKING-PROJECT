@@ -9,11 +9,23 @@ using System.Threading.Tasks;
 
 namespace STP.Repositories
 {
+    /// <summary>
+    /// Repository để thao tác với dữ liệu Movie trong cơ sở dữ liệu.
+    /// Cung cấp các phương thức CRUD cơ bản và các phương thức tìm kiếm nâng cao cho entity Movie.
+    /// </summary>
     public class MovieRepository : GenericRepository<Movie>
     {
+        /// <summary>
+        /// Khởi tạo một instance mới của MovieRepository.
+        /// </summary>
+        /// <param name="context">Database context để thao tác với cơ sở dữ liệu</param>
         public MovieRepository(CinemaDbContext context) : base(context) { }
 
-        // Get movies by name
+        /// <summary>
+        /// Lấy danh sách phim theo tên.
+        /// </summary>
+        /// <param name="name">Tên phim cần tìm</param>
+        /// <returns>Danh sách phim có tên chứa chuỗi tìm kiếm</returns>
         public async Task<List<Movie>> GetByNameAsync(string name)
         {
             return await _context.Movies
@@ -21,7 +33,11 @@ namespace STP.Repositories
                 .ToListAsync();
         }
 
-        // Get movies by genre
+        /// <summary>
+        /// Lấy danh sách phim theo thể loại.
+        /// </summary>
+        /// <param name="genre">Thể loại phim cần tìm</param>
+        /// <returns>Danh sách phim thuộc thể loại cần tìm</returns>
         public async Task<List<Movie>> GetByGenreAsync(string genre)
         {
             return await _context.Movies
@@ -29,7 +45,10 @@ namespace STP.Repositories
                 .ToListAsync();
         }
 
-        // Get upcoming movies
+        /// <summary>
+        /// Lấy danh sách phim sắp chiếu.
+        /// </summary>
+        /// <returns>Danh sách phim sắp chiếu, sắp xếp theo ngày phát hành</returns>
         public async Task<List<Movie>> GetUpcomingMoviesAsync()
         {
             var today = DateTime.Now;
@@ -39,7 +58,10 @@ namespace STP.Repositories
                 .ToListAsync();
         }
 
-        // Get now showing movies
+        /// <summary>
+        /// Lấy danh sách phim đang chiếu.
+        /// </summary>
+        /// <returns>Danh sách phim đang chiếu, sắp xếp theo tên phim</returns>
         public async Task<List<Movie>> GetNowShowingMoviesAsync()
         {
             var today = DateTime.Now;
@@ -49,7 +71,10 @@ namespace STP.Repositories
                 .ToListAsync();
         }
 
-        // Get movies with ratings
+        /// <summary>
+        /// Lấy danh sách phim kèm theo đánh giá.
+        /// </summary>
+        /// <returns>Danh sách phim bao gồm thông tin đánh giá</returns>
         public async Task<List<Movie>> GetMoviesWithRatingsAsync()
         {
             return await _context.Movies
@@ -57,7 +82,11 @@ namespace STP.Repositories
                 .ToListAsync();
         }
 
-        // Get movie with all details including showtimes and ratings
+        /// <summary>
+        /// Lấy thông tin chi tiết của một phim bao gồm lịch chiếu, đánh giá và thông tin người tạo.
+        /// </summary>
+        /// <param name="id">ID của phim cần lấy thông tin</param>
+        /// <returns>Thông tin chi tiết của phim</returns>
         public async Task<Movie> GetMovieWithDetailsAsync(int id)
         {
             return await _context.Movies
@@ -67,7 +96,12 @@ namespace STP.Repositories
                 .FirstOrDefaultAsync(m => m.Movie_ID == id);
         }
 
-        // Update movie status
+        /// <summary>
+        /// Cập nhật trạng thái của phim.
+        /// </summary>
+        /// <param name="id">ID của phim cần cập nhật</param>
+        /// <param name="status">Trạng thái mới của phim</param>
+        /// <returns>true nếu cập nhật thành công, false nếu không tìm thấy phim</returns>
         public async Task<bool> UpdateMovieStatusAsync(int id, string status)
         {
             var movie = await GetByIdAsync(id);
@@ -80,7 +114,13 @@ namespace STP.Repositories
             return true;
         }
 
-        // Search movies by multiple criteria
+        /// <summary>
+        /// Tìm kiếm phim theo nhiều tiêu chí.
+        /// </summary>
+        /// <param name="term">Từ khóa tìm kiếm (tên phim, nội dung, diễn viên, đạo diễn)</param>
+        /// <param name="genre">Thể loại phim</param>
+        /// <param name="language">Ngôn ngữ của phim</param>
+        /// <returns>Danh sách phim thỏa mãn các tiêu chí tìm kiếm</returns>
         public async Task<List<Movie>> SearchMoviesAsync(string term, string genre = null, string language = null)
         {
             var query = _context.Movies.AsQueryable();
@@ -106,7 +146,11 @@ namespace STP.Repositories
             return await query.ToListAsync();
         }
 
-        // Get latest movies
+        /// <summary>
+        /// Lấy danh sách phim mới nhất.
+        /// </summary>
+        /// <param name="count">Số lượng phim cần lấy</param>
+        /// <returns>Danh sách phim mới nhất theo ngày phát hành</returns>
         public async Task<List<Movie>> GetLatestMoviesAsync(int count = 10)
         {
             return await _context.Movies
@@ -115,10 +159,13 @@ namespace STP.Repositories
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// Lấy tất cả các phim.
+        /// </summary>
+        /// <returns>Danh sách tất cả các phim</returns>
         public async Task<IEnumerable<Movie>> GetAllMoviesAsync()
         {
             return await _context.Movies.ToListAsync();
         }
-
     }
 }
