@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Ticket, ArrowRight } from 'lucide-react';
-import Layout from '../components/Layout/Layout';
 import MovieCard from '../components/Movies/MovieCard';
 import axios from 'axios';
 import { Movie } from '../types';
@@ -41,7 +40,7 @@ const HomePage: React.FC = () => {
   }, []);
 
   return (
-    <Layout>
+    <div>
       {/* Hero Section */}
       <section className="relative bg-gray-900 text-white">
         <div className="absolute inset-0 overflow-hidden">
@@ -129,9 +128,8 @@ const HomePage: React.FC = () => {
           </div>
         </div>
       </section>
-    </Layout>
+    </div>
   );
 };
 
 export default HomePage;
-

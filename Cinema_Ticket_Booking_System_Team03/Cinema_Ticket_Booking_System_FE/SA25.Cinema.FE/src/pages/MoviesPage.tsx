@@ -37,12 +37,6 @@ const MoviesPage: React.FC = () => {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-
-  // Lấy token từ localStorage (hoặc sessionStorage)
-  //const token = localStorage.getItem('authToken');  // Token được lưu trong localStorage dưới tên 'authToken'
-    const token ='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwidW5pcXVlX25hbWUiOiJOZ3V54buFbiBWxINuIE1pbmgiLCJlbWFpbCI6Im5ndXllbnZhbmFAY2luZW1hLmNvbSIsInJvbGUiOiJBZG1pbiIsIm5iZiI6MTc0MTk0MTM4MSwiZXhwIjoxNzQyMDI3NzgxLCJpYXQiOjE3NDE5NDEzODEsImlzcyI6Imh0dHBzOi8vbG9jYWxob3N0OjcxNjgiLCJhdWQiOiJodHRwczovL2xvY2FsaG9zdDo3MTY4In0.TWIOf4mEpy98Z4-u4Dg_jsHd10Wv_XevyAEhfiNLN-s'; 
-
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDirector, setFilterDirector] = useState('');
   const [filterReleaseDate, setFilterReleaseDate] = useState('');
@@ -93,7 +87,7 @@ const MoviesPage: React.FC = () => {
   };
 
   return (
-    <Layout>
+    <div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <h1 className="text-4xl font-semibold text-gray-800 mb-8 text-center">Movies List</h1>
 
@@ -195,7 +189,7 @@ const MoviesPage: React.FC = () => {
           </div>
         )}
       </div>
-    </Layout>
+    </div >
   );
 };
 

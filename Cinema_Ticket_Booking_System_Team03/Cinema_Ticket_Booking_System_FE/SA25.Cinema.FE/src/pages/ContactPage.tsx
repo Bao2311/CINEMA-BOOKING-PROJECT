@@ -33,7 +33,7 @@ const ContactPage: React.FC = () => {
   };
 
   return (
-    <Layout>
+    <div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Hero Section */}
         <div className="text-center mb-12">
@@ -203,7 +203,7 @@ const ContactPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </Layout>
+    </div >
   );
 };
 

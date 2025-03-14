@@ -42,7 +42,7 @@ const ForgotPassword: React.FC = () => {
   };
 
   return (
-    <Layout>
+    <div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-md mx-auto">
           <h2 className="text-2xl font-bold text-center mb-6">Forgot Password</h2>
@@ -86,7 +86,7 @@ const ForgotPassword: React.FC = () => {
           </form>
         </div>
       </div>
-    </Layout>
+    </div >
   );
 };
 

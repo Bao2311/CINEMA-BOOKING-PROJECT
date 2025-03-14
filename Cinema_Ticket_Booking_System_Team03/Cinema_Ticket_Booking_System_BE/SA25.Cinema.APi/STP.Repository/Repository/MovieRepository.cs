@@ -95,6 +95,19 @@ namespace STP.Repositories
                 .Include(m => m.CreatedBy)
                 .FirstOrDefaultAsync(m => m.Movie_ID == id);
         }
+        public async Task<bool> RemoveAsyncid(int id)
+        {
+            var movie = await _context.Movies.FindAsync(id); // Tìm đối tượng movie theo ID
+            if (movie == null)
+            {
+                return false; // Nếu không tìm thấy phim, trả về false
+            }
+
+            _context.Movies.Remove(movie); // Xóa đối tượng movie
+            await _context.SaveChangesAsync(); // Lưu thay đổi vào cơ sở dữ liệu
+
+            return true; // Trả về true nếu xóa thành công
+        }
 
         /// <summary>
         /// Cập nhật trạng thái của phim.

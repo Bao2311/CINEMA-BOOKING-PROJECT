@@ -184,7 +184,7 @@ namespace STP.APIService.Controllers
                 }
 
                 // Thực hiện xóa phim
-                var result = await _unitOfWork.MovieRepository.RemoveAsync(id);
+                var result = await _unitOfWork.MovieRepository.RemoveAsyncid(id);
                 if (!result)
                 {
                     return StatusCode(500, new { message = "Failed to delete the movie" });

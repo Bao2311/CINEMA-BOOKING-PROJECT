@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Layout from '../components/Layout/Layout';
 import { Plus, RefreshCw, ChevronLeft, ChevronRight, Edit, Trash2 } from 'lucide-react';
 import Modal from '../components/Admin/Modal';
 import axios from 'axios';
@@ -27,13 +26,20 @@ const ManageMoviesPage: React.FC = () => {
     synopsis: '',
     poster_URL: '',
     trailer_Link: '',
+    status: '',
   });
-
-  const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwidW5pcXVlX25hbWUiOiJOZ3V54buFbiBWxINuIE1pbmgiLCJlbWFpbCI6Im5ndXllbnZhbmFAY2luZW1hLmNvbSIsInJvbGUiOiJBZG1pbiIsIm5iZiI6MTc0MTg4MTg2OSwiZXhwIjoxNzQxOTY4MjY5LCJpYXQiOjE3NDE4ODE4NjksImlzcyI6Imh0dHBzOi8vbG9jYWxob3N0OjcxNjgiLCJhdWQiOiJodHRwczovL2xvY2FsaG9zdDo3MTY4In0.E2BDWXEGaBhdBvsuReK94u_Ee4ycqukiw6L2ft-iMr8'; // Thay thế bằng token thực tế
 
   // Hàm để lấy dữ liệu phim
   useEffect(() => {
     const fetchMovies = async () => {
+      const token = localStorage.getItem('token'); // Lấy token từ localStorage
+
+      if (!token) {
+        setError('Token không hợp lệ. Vui lòng đăng nhập lại.');
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const response = await axios.get('https://localhost:7168/api/Movie', {
           headers: {
@@ -63,6 +69,13 @@ const ManageMoviesPage: React.FC = () => {
 
   // Hàm thêm phim
   const addMovie = async () => {
+    const token = localStorage.getItem('token'); // Lấy token từ localStorage
+
+    if (!token) {
+      setError('Token không hợp lệ. Vui lòng đăng nhập lại.');
+      return;
+    }
+
     try {
       const response = await axios.post('https://localhost:7168/api/Movie', newMovie, {
         headers: {
@@ -86,6 +99,7 @@ const ManageMoviesPage: React.FC = () => {
         synopsis: '',
         poster_URL: '',
         trailer_Link: '',
+        status: '',
       });
       setIsAddingMovie(false);
     } catch (error) {
@@ -95,22 +109,48 @@ const ManageMoviesPage: React.FC = () => {
 
   // Hàm xóa phim
   const deleteMovie = async (movieId: number) => {
+    const token = localStorage.getItem('token'); // Lấy token từ localStorage
+
+    if (!token) {
+      setError('Token không hợp lệ. Vui lòng đăng nhập lại.');
+      return;
+    }
+
+    const confirmDelete = window.confirm("Bạn có chắc chắn muốn xóa phim này không?");
+    if (!confirmDelete) return;
+
     try {
-      await axios.delete(`https://localhost:7168/api/Movie/${movieId}`, {
+      const response = await axios.delete(`https://localhost:7168/api/Movie/${movieId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      setMovies(movies.filter(movie => movie.movie_ID !== movieId));
-    } catch (error) {
+      if (response.status === 200) {
+        setMovies(movies.filter(movie => movie.movie_ID !== movieId));
+      } else {
+        setError('Có lỗi xảy ra khi xóa phim.');
+      }
+    } catch (error: any) {
+      if (error.response) {
+        // Xử lý lỗi từ máy chủ
+        setError(`Lỗi: ${error.response.data.message || 'Có lỗi xảy ra.'}`);
+      } else {
+        // Xử lý lỗi mạng
+        setError('Có lỗi xảy ra khi kết nối với máy chủ.');
+      }
       console.error('Error deleting movie:', error);
     }
   };
 
   // Hàm chỉnh sửa thông tin phim
   const editMovie = async (movieId: number) => {
-    // Có thể tạo form để sửa thông tin hoặc mở modal
-    // Sau khi sửa, gửi yêu cầu PUT để cập nhật phim
+    const token = localStorage.getItem('token'); // Lấy token từ localStorage
+
+    if (!token) {
+      setError('Token không hợp lệ. Vui lòng đăng nhập lại.');
+      return;
+    }
+
     try {
       const updatedMovie = { ...newMovie, movie_ID: movieId }; // Chỉnh sửa thông tin theo form nhập
       await axios.put(`https://localhost:7168/api/Movie/${movieId}`, updatedMovie, {
@@ -134,9 +174,9 @@ const ManageMoviesPage: React.FC = () => {
   const totalPages = Math.ceil(movies.length / moviesPerPage);
 
   return (
-    <Layout>
+    <div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 className="text-4xl font-semibold text-gray-800 mb-8 text-center">Quản Lý Phim</h1>
+        <h1 className="text-4xl font-semibold text-gray-800 mb-8 text-center">Manage Movies</h1>
 
         {/* Hiển thị khi đang tải dữ liệu */}
         {isLoading ? (
@@ -156,7 +196,7 @@ const ManageMoviesPage: React.FC = () => {
                 className="bg-blue-600 text-white py-2 px-4 rounded flex items-center"
               >
                 <Plus className="h-5 w-5 mr-2" />
-                Tạo phim
+                Add New Movie
               </button>
               <button
                 onClick={() => window.location.reload()}
@@ -198,7 +238,7 @@ const ManageMoviesPage: React.FC = () => {
                       <td className="py-2 px-4 border-b">{movie.view}</td>
                       <td className="py-2 px-4 border-b">{movie.rating}</td>
                       <td className="py-2 px-4 border-b">
-                        <span className={`px-2 py-1 rounded-full text-white ${movie.status === 'Công khai' ? 'bg-green-500' : 'bg-red-500'}`}>
+                        <span className={`px-2 py-1 rounded-full text-white ${movie.status === 'Now Showing' ? 'bg-green-500' : 'bg-red-500'}`}>
                           {movie.status}
                         </span>
                       </td>
@@ -251,7 +291,7 @@ const ManageMoviesPage: React.FC = () => {
       {/* Modal for Adding Movie */}
       <Modal isOpen={isAddingMovie} onClose={() => setIsAddingMovie(false)}>
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Thêm Phim Mới</h2>
-        <form onSubmit={(e) => { e.preventDefault(); addMovie(); }}>
+        <form onSubmit={(e) => { e.preventDefault(); addMovie(); }} className="grid grid-cols-3 gap-4">
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="movie_Name">
               Tên phim
@@ -270,15 +310,184 @@ const ManageMoviesPage: React.FC = () => {
               Ngày phát hành
             </label>
             <input
-              type="date"
+              type="text"
               id="release_Date"
+              placeholder='yyyy/mm/dd'
               value={newMovie.release_Date}
               onChange={(e) => setNewMovie({ ...newMovie, release_Date: e.target.value })}
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               required
             />
           </div>
-          {/* Add other fields similarly */}
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="end_Date">
+              Ngày kết thúc
+            </label>
+            <input
+              type="text"
+              id="end_Date"
+              placeholder='yyyy/mm/dd'
+              value={newMovie.end_Date}
+              onChange={(e) => setNewMovie({ ...newMovie, end_Date: e.target.value })}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="production_Company">
+              Công ty sản xuất
+            </label>
+            <input
+              type="text"
+              id="production_Company"
+              value={newMovie.production_Company}
+              onChange={(e) => setNewMovie({ ...newMovie, production_Company: e.target.value })}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="director">
+              Đạo diễn
+            </label>
+            <input
+              type="text"
+              id="director"
+              value={newMovie.director}
+              onChange={(e) => setNewMovie({ ...newMovie, director: e.target.value })}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cast">
+              Diễn viên
+            </label>
+            <input
+              type="text"
+              id="cast"
+              value={newMovie.cast}
+              onChange={(e) => setNewMovie({ ...newMovie, cast: e.target.value })}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="duration">
+              Thời gian (phút)
+            </label>
+            <input
+              type="number"
+              id="duration"
+              value={newMovie.duration}
+              onChange={(e) => setNewMovie({ ...newMovie, duration: Number(e.target.value) })}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="genre">
+              Thể loại
+            </label>
+            <input
+              type="text"
+              id="genre"
+              value={newMovie.genre}
+              onChange={(e) => setNewMovie({ ...newMovie, genre: e.target.value })}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="rating">
+              Đánh giá
+            </label>
+            <input
+              type="text"
+              id="rating"
+              value={newMovie.rating}
+              onChange={(e) => setNewMovie({ ...newMovie, rating: e.target.value })}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="language">
+              Ngôn ngữ
+            </label>
+            <input
+              type="text"
+              id="language"
+              value={newMovie.language}
+              onChange={(e) => setNewMovie({ ...newMovie, language: e.target.value })}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="country">
+              Quốc gia
+            </label>
+            <input
+              type="text"
+              id="country"
+              value={newMovie.country}
+              onChange={(e) => setNewMovie({ ...newMovie, country: e.target.value })}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="synopsis">
+              Tóm tắt
+            </label>
+            <textarea
+              id="synopsis"
+              value={newMovie.synopsis}
+              onChange={(e) => setNewMovie({ ...newMovie, synopsis: e.target.value })}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="poster_URL">
+              URL hình ảnh
+            </label>
+            <input
+              type="text"
+              id="poster_URL"
+              value={newMovie.poster_URL}
+              onChange={(e) => setNewMovie({ ...newMovie, poster_URL: e.target.value })}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="trailer_Link">
+              URL trailer
+            </label>
+            <input
+              type="text"
+              id="trailer_Link"
+              value={newMovie.trailer_Link}
+              onChange={(e) => setNewMovie({ ...newMovie, trailer_Link: e.target.value })}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="status">
+              Trạng thái
+            </label>
+            <input
+              type="text"
+              id="status"
+              value={newMovie.status}
+              onChange={(e) => setNewMovie({ ...newMovie, status: e.target.value })}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
           <div className="flex items-center justify-between">
             <button
               type="submit"
@@ -296,7 +505,7 @@ const ManageMoviesPage: React.FC = () => {
           </div>
         </form>
       </Modal>
-    </Layout>
+    </div>
   );
 };
 

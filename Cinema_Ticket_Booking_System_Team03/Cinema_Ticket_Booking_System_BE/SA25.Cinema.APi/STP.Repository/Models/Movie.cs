@@ -57,7 +57,7 @@ namespace STP.Repository.Models
         /// <summary>
         /// Thể loại của bộ phim (có thể chứa nhiều thể loại phân cách bằng dấu phẩy)
         /// </summary>
-        public string Genre { get; set; }
+           public string Genre { get; set; }
 
         /// <summary>
         /// Xếp hạng độ tuổi của phim (ví dụ: "G", "PG", "PG-13", "R", "NC-17")

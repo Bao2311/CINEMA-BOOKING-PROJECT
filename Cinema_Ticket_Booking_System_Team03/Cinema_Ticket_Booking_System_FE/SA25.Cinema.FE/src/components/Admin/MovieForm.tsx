@@ -26,7 +26,7 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!title.trim()) newErrors.title = 'Title is required';
     if (!description.trim()) newErrors.description = 'Description is required';
     if (!duration.trim()) newErrors.duration = 'Duration is required';
@@ -42,16 +42,16 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
     if (!productionCompany.trim()) newErrors.productionCompany = 'Production Company is required';
     if (!language.trim()) newErrors.language = 'Language is required';
     if (!country.trim()) newErrors.country = 'Country is required';
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     onSubmit({
       movie_Name: title,
       synopsis: description,
@@ -96,9 +96,8 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
           id="title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-            errors.title ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${errors.title ? 'border-red-500' : 'border-gray-300'
+            }`}
         />
         {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
       </div>
@@ -112,9 +111,8 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={4}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-            errors.description ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${errors.description ? 'border-red-500' : 'border-gray-300'
+            }`}
         />
         {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
       </div>
@@ -130,9 +128,8 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
             min="1"
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-              errors.duration ? 'border-red-500' : 'border-gray-300'
-            }`}
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${errors.duration ? 'border-red-500' : 'border-gray-300'
+              }`}
           />
           {errors.duration && <p className="mt-1 text-sm text-red-600">{errors.duration}</p>}
         </div>
@@ -146,9 +143,8 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
             id="releaseDate"
             value={releaseDate}
             onChange={(e) => setReleaseDate(e.target.value)}
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-              errors.releaseDate ? 'border-red-500' : 'border-gray-300'
-            }`}
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${errors.releaseDate ? 'border-red-500' : 'border-gray-300'
+              }`}
           />
           {errors.releaseDate && <p className="mt-1 text-sm text-red-600">{errors.releaseDate}</p>}
         </div>
@@ -165,9 +161,8 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
             value={genreInput}
             onChange={(e) => setGenreInput(e.target.value)}
             onKeyDown={handleGenreKeyDown}
-            className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-              errors.genre ? 'border-red-500' : 'border-gray-300'
-            }`}
+            className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${errors.genre ? 'border-red-500' : 'border-gray-300'
+              }`}
             placeholder="Add a genre"
           />
           <button
@@ -179,7 +174,7 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
           </button>
         </div>
         {errors.genre && <p className="mt-1 text-sm text-red-600">{errors.genre}</p>}
-        
+
         <div className="flex flex-wrap gap-2 mt-2">
           {genre.map((g: string, index: number) => (
             <div
@@ -208,9 +203,8 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
           id="posterUrl"
           value={posterUrl}
           onChange={(e) => setPosterUrl(e.target.value)}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-            errors.posterUrl ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${errors.posterUrl ? 'border-red-500' : 'border-gray-300'
+            }`}
         />
         {errors.posterUrl && <p className="mt-1 text-sm text-red-600">{errors.posterUrl}</p>}
       </div>
@@ -224,9 +218,8 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
           id="trailerUrl"
           value={trailerUrl}
           onChange={(e) => setTrailerUrl(e.target.value)}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-            errors.trailerUrl ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${errors.trailerUrl ? 'border-red-500' : 'border-gray-300'
+            }`}
         />
         {errors.trailerUrl && <p className="mt-1 text-sm text-red-600">{errors.trailerUrl}</p>}
       </div>
@@ -243,9 +236,8 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
           min="0"
           max="10"
           step="0.1"
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-            errors.rating ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${errors.rating ? 'border-red-500' : 'border-gray-300'
+            }`}
         />
         {errors.rating && <p className="mt-1 text-sm text-red-600">{errors.rating}</p>}
       </div>
@@ -259,9 +251,8 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
           value={synopsis}
           onChange={(e) => setSynopsis(e.target.value)}
           rows={4}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-            errors.synopsis ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${errors.synopsis ? 'border-red-500' : 'border-gray-300'
+            }`}
         />
         {errors.synopsis && <p className="mt-1 text-sm text-red-600">{errors.synopsis}</p>}
       </div>
@@ -275,9 +266,8 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
           id="productionCompany"
           value={productionCompany}
           onChange={(e) => setProductionCompany(e.target.value)}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-            errors.productionCompany ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${errors.productionCompany ? 'border-red-500' : 'border-gray-300'
+            }`}
         />
         {errors.productionCompany && <p className="mt-1 text-sm text-red-600">{errors.productionCompany}</p>}
       </div>
@@ -291,9 +281,8 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
           id="language"
           value={language}
           onChange={(e) => setLanguage(e.target.value)}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-            errors.language ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${errors.language ? 'border-red-500' : 'border-gray-300'
+            }`}
         />
         {errors.language && <p className="mt-1 text-sm text-red-600">{errors.language}</p>}
       </div>
@@ -307,9 +296,8 @@ const MovieForm: React.FC<MovieFormProps> = ({ movie, onSubmit, onCancel }) => {
           id="country"
           value={country}
           onChange={(e) => setCountry(e.target.value)}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-            errors.country ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${errors.country ? 'border-red-500' : 'border-gray-300'
+            }`}
         />
         {errors.country && <p className="mt-1 text-sm text-red-600">{errors.country}</p>}
       </div>

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import NavbarLoginAdmin from './Navbar-Login-Admin';
-import NavbarLogin from './Navbar-Login';
+import Navbar from './Navbar';
 import Footer from './Footer';
 
 interface LayoutProps {
@@ -9,21 +9,21 @@ interface LayoutProps {
   showNavbar?: boolean; // New prop to control navbar visibility
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, showNavbar }) => { // Include showNavbar in destructuring
+const Layout: React.FC<LayoutProps> = ({ children, showNavbar }) => {
   const { user } = useAuth();
 
   useEffect(() => {
     // Token check logic can be implemented here if needed
   }, []);
 
-  const isAdmin = user?.role === 'admin';
+  const role = localStorage.getItem('role');
 
-  // Add console log to verify current user role
-  console.log('Current user role:', user?.role);
+  // Log vai trò hiện tại
+  console.log('Current user role:', role);
 
   return (
     <div className="flex flex-col min-h-screen">
-      {showNavbar && (isAdmin ? <NavbarLoginAdmin /> : <NavbarLogin />)} 
+      {showNavbar && (role === 'Admin' ? <NavbarLoginAdmin /> : <Navbar />)} 
       <main className="flex-grow">
         {children} {/* Render các phần tử con tại đây */}
       </main>

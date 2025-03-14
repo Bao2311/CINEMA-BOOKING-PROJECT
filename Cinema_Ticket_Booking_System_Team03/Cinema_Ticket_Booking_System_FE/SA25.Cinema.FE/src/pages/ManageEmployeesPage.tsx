@@ -153,7 +153,7 @@ const ManageUsersPage: React.FC = () => {
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
 
   return (
-    <Layout showNavbar={false}>
+    <div showNavbar={false}>
       <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-10 py-16">
         <div className="flex justify-between items-center mb-10">
           <h1 className="text-4xl font-bold text-gray-900">Manage Users</h1>
@@ -288,7 +288,7 @@ const ManageUsersPage: React.FC = () => {
         </div>
       </div>
       <ToastContainer />
-    </Layout>
+    </div >
   );
 };
 

@@ -22,7 +22,7 @@ const BookingConfirmationPage: React.FC = () => {
   };
 
   return (
-    <Layout>
+    <div>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="bg-green-600 text-white p-6 text-center">
@@ -100,7 +100,7 @@ const BookingConfirmationPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </Layout>
+    </div>
   );
 };
 
