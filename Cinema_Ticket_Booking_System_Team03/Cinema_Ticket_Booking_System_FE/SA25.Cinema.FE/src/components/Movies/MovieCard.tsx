@@ -61,6 +61,7 @@
 // export default MovieCard;
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 // Interface để đảm bảo kiểu dữ liệu của một bộ phim
 interface Movie {
@@ -96,19 +97,14 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
         className="w-full h-64 object-cover"
       />
       <div className="p-4">
-        <h3 className="text-lg font-semibold">{movie.movie_Name}</h3>
-        <p className="text-sm text-gray-600">{movie.release_Date}</p>
-        <p className="text-sm text-gray-600">{movie.genre}</p>
-        <p className="text-sm text-gray-600">Director: {movie.director}</p>
-        <p className="mt-2 text-gray-700">{movie.synopsis}</p>
-        <a
-          href={movie.trailer_Link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 mt-2 inline-block"
-        >
-          Watch Trailer
-        </a>
+        <Link to={`/movie/${movie.movie_ID}`}>
+          <h3 className="font-bold text-lg mb-1 hover:text-indigo-600 transition-colors">
+            {movie.movie_Name}
+          </h3>
+        </Link>
+        <p className="text-gray-500 mb-2">Director: {movie.director}</p>
+        <p className="text-gray-500 mb-2">Release Date: {new Date(movie.release_Date).toLocaleDateString()}</p>
+        <p className="text-gray-500 mb-2">Genre: {movie.genre}</p>
       </div>
     </div>
   );

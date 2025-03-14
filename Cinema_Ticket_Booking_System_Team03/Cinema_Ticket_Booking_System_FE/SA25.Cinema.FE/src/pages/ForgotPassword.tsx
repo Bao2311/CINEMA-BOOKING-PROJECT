@@ -1,24 +1,44 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import Layout from '../components/Layout/Layout';
 
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
       setError('Email is required');
       return;
     }
     setError('');
-    setSuccess('Password reset link has been sent to your email');
     
-    // Gọi API để xử lý quên mật khẩu ở đây
-    // axios.post('/api/forgot-password', { email }) 
-    // .then(response => { ... })
-    // .catch(error => { setError('An error occurred'); })
+    try {
+      const response = await axios.post('https://localhost:7168/api/Auth/reset-password', { email }, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (response.status === 200) {
+        setSuccess('Password reset link has been sent to your email');
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000); // Redirect after 2 seconds
+      } else {
+        throw new Error(response.data?.message || 'Unexpected error occurred');
+      }
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error('API Error:', error.response);
+        setError(error.response?.data?.message || 'An error occurred while sending the reset link');
+      } else {
+        console.error('Unexpected Error:', error);
+        setError('An unexpected error occurred.');
+      }
+    }
   };
 
   return (

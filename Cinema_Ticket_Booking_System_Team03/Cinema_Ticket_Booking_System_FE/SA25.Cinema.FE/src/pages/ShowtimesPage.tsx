@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout/Layout';
 import { motion } from 'framer-motion';
+
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Movie {
@@ -11,6 +12,9 @@ interface Movie {
   cast: string;
   poster_URL: string;
 }
+
+import { useParams } from 'react-router-dom';
+
 
 interface Showtime {
   showtime_ID: number;
@@ -27,6 +31,7 @@ interface Showtime {
 }
 
 const ShowtimesPage = () => {
+  const { movieId } = useParams<{ movieId: string }>();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showtimes, setShowtimes] = useState<Showtime[]>([]);
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -34,14 +39,17 @@ const ShowtimesPage = () => {
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
+
     const fetchShowtimesAndMovies = async () => {
       const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwidW5pcXVlX25hbWUiOiJOZ3V54buFbiBWxINuIE1pbmgiLCJlbWFpbCI6Im5ndXllbnZhbmFAY2luZW1hLmNvbSIsInJvbGUiOiJBZG1pbiIsIm5iZiI6MTc0MTg4MTg2OSwiZXhwIjoxNzQxOTY4MjY5LCJpYXQiOjE3NDE4ODE4NjksImlzcyI6Imh0dHBzOi8vbG9jYWxob3N0OjcxNjgiLCJhdWQiOiJodHRwczovL2xvY2FsaG9zdDo3MTY4In0.E2BDWXEGaBhdBvsuReK94u_Ee4ycqukiw6L2ft-iMr8"; // Thay thế bằng token hợp lệ
+
+
+    const fetchShowtimes = async () => {
 
       try {
         const showtimesResponse = await fetch('https://localhost:7168/api/Showtimes', {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         });
@@ -49,6 +57,7 @@ const ShowtimesPage = () => {
         if (!showtimesResponse.ok) {
           throw new Error('Failed to fetch showtimes');
         }
+
 
         const showtimesData = await showtimesResponse.json();
         const showtimes = showtimesData['$values'];
@@ -76,6 +85,12 @@ const ShowtimesPage = () => {
 
         setShowtimes(mergedShowtimes);
         setMovies(movies);
+
+        const data = await response.json();
+        const allShowtimes = data['$values'];
+        const filteredShowtimes = movieId ? allShowtimes.filter((showtime: Showtime) => showtime.movie_ID.toString() === movieId) : allShowtimes;
+        setShowtimes(filteredShowtimes);
+
       } catch (err) {
         setError('Error fetching data, please try again.');
         console.error(err);
@@ -83,9 +98,9 @@ const ShowtimesPage = () => {
         setLoading(false);
       }
     };
+    fetchShowtimes();
+  }, [movieId]);
 
-    fetchShowtimesAndMovies();
-  }, []);
 
   const getFormattedDate = (date: string) => new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
