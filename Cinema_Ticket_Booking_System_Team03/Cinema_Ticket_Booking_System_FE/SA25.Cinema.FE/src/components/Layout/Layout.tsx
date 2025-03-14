@@ -6,9 +6,10 @@ import Footer from './Footer';
 
 interface LayoutProps {
   children?: React.ReactNode; // Đảm bảo rằng bạn định nghĩa 'children' nếu có
+  showNavbar?: boolean; // New prop to control navbar visibility
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const Layout: React.FC<LayoutProps> = ({ children, showNavbar }) => { // Include showNavbar in destructuring
   const { user } = useAuth();
 
   useEffect(() => {
@@ -22,7 +23,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {isAdmin ? <NavbarLoginAdmin /> : <NavbarLogin />}
+      {showNavbar && (isAdmin ? <NavbarLoginAdmin /> : <NavbarLogin />)} 
       <main className="flex-grow">
         {children} {/* Render các phần tử con tại đây */}
       </main>

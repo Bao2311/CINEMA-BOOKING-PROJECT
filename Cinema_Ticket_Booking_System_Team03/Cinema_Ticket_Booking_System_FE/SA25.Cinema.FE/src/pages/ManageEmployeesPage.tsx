@@ -243,16 +243,15 @@
 
 // export default ManageEmployeesPage;
 
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit, Trash2, Mail } from 'lucide-react';
 import Layout from '../components/Layout/Layout';
-import EmployeeForm from '../components/Admin/EmployeeForm';
+import UserForm from '../components/Auth/UserForm';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
+import { Menu, Dropdown } from 'antd';
 
-interface Employee {
+interface User {
   $id: string;
   user_ID: number;
   full_Name: string;
@@ -264,147 +263,169 @@ interface Employee {
   address: string;
   account_Status: string;
   created_At: string;
-  last_Login: string;
+  last_Login: string | null;
 }
 
-interface User {
-  id: string;
-  username: string;
-  email: string;
-  role: string;
-}
-
-const ManageEmployeesPage: React.FC = () => {
+const ManageUsersPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
   
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAddingEmployee, setIsAddingEmployee] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [isAddingUser, setIsAddingUser] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
+  const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwidW5pcXVlX25hbWUiOiJOZ3V54buFbiBWxINuIE1pbmgiLCJlbWFpbCI6Im5ndXllbnZhbmFAY2luZW1hLmNvbSIsInJvbGUiOiJBZG1pbiIsIm5iZiI6MTc0MTkxMzExMCwiZXhwIjoxNzQxOTk5NTEwLCJpYXQiOjE3NDE5MTMxMTAsImlzcyI6Imh0dHBzOi8vbG9jYWxob3N0OjcxNjgiLCJhdWQiOiJodHRwczovL2xvY2FsaG9zdDo3MTY4In0.TB5uLsWtcJh3Rac6Jnz2bZTeBajZd4803vhhlVWB8wQ'; // Your provided token
+
   useEffect(() => {
-    const fetchEmployees = async () => {
+    const fetchUsers = async () => {
       try {
         const response = await axios.get('https://localhost:7168/api/User', {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${token}`,
           },
         });
-        if (Array.isArray(response.data)) {
-          setEmployees(response.data);
+
+        if (response.data && response.data.$values && Array.isArray(response.data.$values)) {
+          setUsers(response.data.$values);
         } else {
-          console.error("API response is not an array:", response.data);
-          setEmployees([]);
+          console.error('API response is not an array:', response.data);
+          setUsers([]);
         }
       } catch (error) {
-        console.error("Error fetching employees:", error);
-        setEmployees([]);
+        console.error('Error fetching users:', error);
+        setUsers([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchEmployees();
-  }, [isAuthenticated, user, navigate]);
+    fetchUsers();
+  }, [token]); // Add token to the dependency array if you might change it dynamically
 
-  const handleAddEmployee = async (data: { employee: Omit<Employee, 'user_ID' | '$id'>, user: Omit<User, 'id'> }) => {
+  const handleAddUser = async (data: Omit<User, '$id' | 'user_ID' | 'created_At' | 'last_Login'>) => {
+    const postData = {
+      email: data.email,
+      fullName: data.full_Name,
+      role: data.role,
+      department: data.department, // Department is new
+      hire_Date: new Date().toISOString(),
+      dateOfBirth: data.date_Of_Birth,
+      sex: data.sex,
+      phoneNumber: data.phone_Number,
+      address: data.address,
+    };
+    
     try {
-      const response = await axios.post('https://localhost:7168/api/User', data, {
+      const response = await axios.post('https://localhost:7168/api/User', postData, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${token}`,
         },
       });
-      setEmployees([...employees, response.data]);
-      setIsAddingEmployee(false);
+      setUsers([...users, response.data]);
+      setIsAddingUser(false);
     } catch (error) {
-      console.error("Error adding employee:", error);
+      console.error('Error adding user:', error);
     }
   };
 
-  const handleUpdateEmployee = async (data: { employee: Omit<Employee, 'user_ID' | '$id'>, user: Omit<User, 'id'> }) => {
-    if (!editingEmployee) return;
+  const handleUpdateUser = async (data: Omit<User, '$id' | 'created_At' | 'last_Login'>) => {
+    if (!editingUser) return;
+    const putData = { 
+      fullName: data.full_Name,
+      dateOfBirth: data.date_Of_Birth,
+      sex: data.sex,
+      phoneNumber: data.phone_Number,
+      address: data.address,
+      role: data.role,
+      accountStatus: data.account_Status,
+    };
+    
     try {
-      const response = await axios.put(`https://localhost:7168/api/User/${editingEmployee.user_ID}`, data, {
+      const response = await axios.put(`https://localhost:7168/api/User/${editingUser.user_ID}`, putData, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${token}`,
         },
       });
-      setEmployees(employees.map(emp => emp.user_ID === editingEmployee.user_ID ? response.data : emp));
-      setEditingEmployee(null);
+      setUsers(users.map(user => user.user_ID === editingUser.user_ID ? response.data : user));
+      setEditingUser(null);
     } catch (error) {
-      console.error("Error updating employee:", error);
+      console.error('Error updating user:', error);
     }
   };
 
-  const handleDeleteEmployee = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this employee?')) {
+  const handleDeleteUser = async (id: number) => {
+    if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        await axios.delete(`https://localhost:7168/api/User/${id}`, {
+        const response = await axios.delete(`https://localhost:7168/api/User/${id}`, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${token}`,
           },
         });
-        setEmployees(employees.filter(employee => employee.user_ID !== id));
+
+        if (response.status === 200) {
+          setUsers(users.filter(user => user.user_ID !== id));
+        } else {
+          console.error('Failed to delete user:', response);
+        }
       } catch (error) {
-        console.error("Error deleting employee:", error);
+        console.error('Error deleting user:', error);
       }
     }
   };
 
-  const filteredEmployees = employees.filter(employee => 
-    employee.full_Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.role.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = users.filter(user =>
+    user.full_Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <Layout>
+    <Layout showNavbar={false}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Manage Employees</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Manage Users</h1>
           <button
-            onClick={() => setIsAddingEmployee(true)}
+            onClick={() => setIsAddingUser(true)}
             className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md flex items-center transition-colors"
           >
             <Plus className="h-5 w-5 mr-1" />
-            Add Employee
+            Add User
           </button>
         </div>
-        
-        {isAddingEmployee && (
+
+        {isAddingUser && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Add New Employee</h2>
-            <EmployeeForm
-              onSubmit={handleAddEmployee}
-              onCancel={() => setIsAddingEmployee(false)}
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Add New User</h2>
+            <UserForm
+              onSubmit={handleAddUser}
+              onCancel={() => setIsAddingUser(false)}
             />
           </div>
         )}
-        
-        {editingEmployee && (
+
+        {editingUser && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Edit Employee</h2>
-            <EmployeeForm
-              employee={editingEmployee}
-              onSubmit={handleUpdateEmployee}
-              onCancel={() => setEditingEmployee(null)}
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Edit User</h2>
+            <UserForm
+              user={editingUser}
+              onSubmit={handleUpdateUser}
+              onCancel={() => setEditingUser(null)}
             />
           </div>
         )}
-        
+
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="p-4 border-b border-gray-200">
             <input
               type="text"
-              placeholder="Search employees..."
+              placeholder="Search users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
-          
+
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
@@ -414,91 +435,39 @@ const ManageEmployeesPage: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Full Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Email
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Role
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date of Birth
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Phone Number
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Address
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Account Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredEmployees.length === 0 ? (
+                  {filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
-                        No employees found.
-                      </td>
+                      <td colSpan={5} className="px-6 py-4 text-center text-gray-500">No users found.</td>
                     </tr>
                   ) : (
-                    filteredEmployees.map(employee => (
-                      <tr key={employee.user_ID} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {employee.full_Name}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">{employee.email}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            employee.role === 'Admin'
-                              ? 'bg-purple-100 text-purple-800'
-                              : 'bg-green-100 text-green-800'
-                          }`}>
-                            {employee.role}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">
-                            {new Date(employee.date_Of_Birth).toLocaleDateString()}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">{employee.phone_Number}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">{employee.address}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">{employee.account_Status}</div>
-                        </td>
+                    filteredUsers.map(user => (
+                      <tr key={user.user_ID}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.full_Name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.role}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.account_Status}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
-                            <a
-                              href={`mailto:${employee.email}`}
-                              className="text-indigo-600 hover:text-indigo-900"
-                              title="Email"
-                            >
+                            <a href={`mailto:${user.email}`} className="text-indigo-600 hover:text-indigo-900" title="Email">
                               <Mail className="h-5 w-5" />
                             </a>
                             <button
-                              onClick={() => setEditingEmployee(employee)}
+                              onClick={() => setEditingUser(user)}
                               className="text-yellow-600 hover:text-yellow-900"
                               title="Edit"
                             >
                               <Edit className="h-5 w-5" />
                             </button>
                             <button
-                              onClick={() => handleDeleteEmployee(employee.user_ID)}
+                              onClick={() => handleDeleteUser(user.user_ID)}
                               className="text-red-600 hover:text-red-900"
                               title="Delete"
                             >
@@ -519,4 +488,4 @@ const ManageEmployeesPage: React.FC = () => {
   );
 };
 
-export default ManageEmployeesPage;
+export default ManageUsersPage;

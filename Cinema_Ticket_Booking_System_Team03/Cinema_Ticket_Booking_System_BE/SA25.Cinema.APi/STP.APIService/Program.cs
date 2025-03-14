@@ -1,18 +1,20 @@
-using System.Text;
-using System.Text.Json.Serialization;
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using STP.Repository;
-using STP.Repository.Models;
-using STP.Repository.Data;
-using PMS.Repository.Base;
-using STP.Repository.Services;
+using Microsoft.OpenApi.Models;
 using STP.Repositories;
+using STP.Repository.Data;
+using STP.Repository.Services;
+using System.Text.Json.Serialization;
+using System.Text;
+using STP.APIService.Controllers;
 using STP.Repository.Repositories;
 using STP.Service.Services;
 using sa25.Repository.Data;
+
+
+
 
 namespace STP.APIService
 {
@@ -92,6 +94,7 @@ namespace STP.APIService
             builder.Services.AddScoped<ShowtimeService>();
             builder.Services.AddScoped<UserRepository>();
             builder.Services.AddScoped<AuthService>();
+
             builder.Services.AddScoped<EmailService>();
             builder.Services.AddScoped<IUserProfileService, UserProfileService>();
             builder.Services.AddScoped<MovieRepository>();
@@ -108,7 +111,11 @@ namespace STP.APIService
                 logging.AddDebug(); // Thêm Debug logger
             });
 
-            // Cấu hình Swagger để tạo tài liệu API
+            // Đăng ký MovieRepository và MovieService
+            builder.Services.AddScoped<MovieRepository>();
+
+
+            // Cấu hình Swagger
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
@@ -117,7 +124,7 @@ namespace STP.APIService
                 // Cấu hình Swagger để hỗ trợ JWT Authentication
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
-                    Description = "JWT Authorization header using the Bearer scheme",
+                    Description = "JWT Authorization header using the Bearer scheme. Just paste your token without using the 'Bearer' prefix.",
                     Name = "Authorization",
                     In = ParameterLocation.Header,
                     Type = SecuritySchemeType.ApiKey,

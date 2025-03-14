@@ -1,220 +1,214 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, Eye } from 'lucide-react';
 import Layout from '../components/Layout/Layout';
-import MovieForm from '../components/Admin/MovieForm';
-import { Movie } from '../types';
-import { mockMovies } from '../data/mockData';
-import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
 
 const ManageMoviesPage: React.FC = () => {
-  const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
-  
-  const [movies, setMovies] = useState<Movie[]>([]);
+  const [movies, setMovies] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAddingMovie, setIsAddingMovie] = useState(false);
-  const [editingMovie, setEditingMovie] = useState<Movie | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  
+  const [error, setError] = useState<string | null>(null);
+
+  const [newMovie, setNewMovie] = useState({
+    movie_Name: '',
+    release_Date: '',
+    end_Date: '',
+    production_Company: '',
+    director: '',
+    cast: '',
+    duration: 0,
+    genre: '',
+    rating: '',
+    language: '',
+    country: '',
+    synopsis: '',
+    poster_URL: '',
+    trailer_Link: '',
+  });
+
+  const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwidW5pcXVlX25hbWUiOiJOZ3V54buFbiBWxINuIE1pbmgiLCJlbWFpbCI6Im5ndXllbnZhbmFAY2luZW1hLmNvbSIsInJvbGUiOiJBZG1pbiIsIm5iZiI6MTc0MTg4MTg2OSwiZXhwIjoxNzQxOTY4MjY5LCJpYXQiOjE3NDE4ODE4NjksImlzcyI6Imh0dHBzOi8vbG9jYWxob3N0OjcxNjgiLCJhdWQiOiJodHRwczovL2xvY2FsaG9zdDo3MTY4In0.E2BDWXEGaBhdBvsuReK94u_Ee4ycqukiw6L2ft-iMr8'; // Thay thế bằng token thực tế
+
+  // Hàm để lấy dữ liệu phim
   useEffect(() => {
-    // Check if user is authenticated and has appropriate role
-    // if (!isAuthenticated || (user && user.role !== 'admin' && user.role !== 'employee')) {
-    //   navigate('/');
-    //   return;
-    // }
-    
-    // In a real app, this would be an API call
-    // For now, we'll use mock data
-    setMovies(mockMovies);
-    setIsLoading(false);
-  }, [isAuthenticated, user, navigate]);
+    const fetchMovies = async () => {
+      try {
+        const response = await axios.get('https://localhost:7168/api/Movie', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-  const handleAddMovie = (movieData: Omit<Movie, 'id'>) => {
-    // In a real app, this would be an API call
-    // For now, we'll simulate adding a movie
-    const newMovie: Movie = {
-      id: `movie-${Date.now()}`,
-      ...movieData,
+        if (Array.isArray(response.data.$values)) {
+          setMovies(response.data.$values);
+        } else {
+          setError('Dữ liệu phim không hợp lệ.');
+        }
+      } catch (error: any) {
+        if (error.response && error.response.status === 404) {
+          setError('Không tìm thấy API phim. Vui lòng kiểm tra lại URL hoặc máy chủ.');
+        } else {
+          setError('Có lỗi xảy ra khi tải dữ liệu.');
+        }
+        console.error('Error fetching movies:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
-    
-    setMovies([...movies, newMovie]);
-    setIsAddingMovie(false);
-  };
 
-  const handleUpdateMovie = (movieData: Omit<Movie, 'id'>) => {
-    // In a real app, this would be an API call
-    // For now, we'll simulate updating a movie
-    if (!editingMovie) return;
-    
-    const updatedMovies = movies.map(movie => 
-      movie.id === editingMovie.id ? { ...movie, ...movieData } : movie
-    );
-    
-    setMovies(updatedMovies);
-    setEditingMovie(null);
-  };
+    fetchMovies();
+  }, []);
 
-  const handleDeleteMovie = (id: string) => {
-    // In a real app, this would be an API call with confirmation
-    // For now, we'll simulate deleting a movie
-    if (window.confirm('Are you sure you want to delete this movie?')) {
-      setMovies(movies.filter(movie => movie.id !== id));
+  // Hàm thêm phim
+  const addMovie = async () => {
+    try {
+      const response = await axios.post('https://localhost:7168/api/Movie', newMovie, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setMovies([...movies, response.data]);
+      setNewMovie({
+        movie_Name: '',
+        release_Date: '',
+        end_Date: '',
+        production_Company: '',
+        director: '',
+        cast: '',
+        duration: 0,
+        genre: '',
+        rating: '',
+        language: '',
+        country: '',
+        synopsis: '',
+        poster_URL: '',
+        trailer_Link: '',
+      });
+    } catch (error) {
+      console.error('Error adding movie:', error);
     }
   };
 
-  const filteredMovies = movies.filter(movie => 
-    movie.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Hàm xóa phim
+  const deleteMovie = async (movieId: number) => {
+    try {
+      await axios.delete(`https://localhost:7168/api/Movie/${movieId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setMovies(movies.filter(movie => movie.movie_ID !== movieId));
+    } catch (error) {
+      console.error('Error deleting movie:', error);
+    }
+  };
+
+  // Hàm chỉnh sửa thông tin phim
+  const editMovie = async (movieId: number) => {
+    // Có thể tạo form để sửa thông tin hoặc mở modal
+    // Sau khi sửa, gửi yêu cầu PUT để cập nhật phim
+    try {
+      const updatedMovie = { ...newMovie, movie_ID: movieId }; // Chỉnh sửa thông tin theo form nhập
+      await axios.put(`https://localhost:7168/api/Movie/${movieId}`, updatedMovie, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setMovies(movies.map(movie => (movie.movie_ID === movieId ? updatedMovie : movie)));
+    } catch (error) {
+      console.error('Error editing movie:', error);
+    }
+  };
 
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Manage Movies</h1>
-          <button
-            onClick={() => setIsAddingMovie(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md flex items-center transition-colors"
-          >
-            <Plus className="h-5 w-5 mr-1" />
-            Add Movie
-          </button>
-        </div>
-        
-        {isAddingMovie && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Add New Movie</h2>
-            <MovieForm
-              onSubmit={handleAddMovie}
-              onCancel={() => setIsAddingMovie(false)}
-            />
+        <h1 className="text-4xl font-semibold text-gray-800 mb-8 text-center">Quản Lý Phim</h1>
+
+        {/* Hiển thị khi đang tải dữ liệu */}
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-indigo-600"></div>
+          </div>
+        ) : error ? (
+          <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
+            {error}
+          </div>
+        ) : (
+          <div>
+            {/* Form thêm phim */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-4">Thêm Phim Mới</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  value={newMovie.movie_Name}
+                  onChange={(e) => setNewMovie({ ...newMovie, movie_Name: e.target.value })}
+                  placeholder="Tên Phim"
+                  className="border p-2 rounded"
+                />
+                <input
+                  type="date"
+                  value={newMovie.release_Date}
+                  onChange={(e) => setNewMovie({ ...newMovie, release_Date: e.target.value })}
+                  placeholder="Ngày Phát Hành"
+                  className="border p-2 rounded"
+                />
+                {/* Thêm các input còn lại cho các trường khác */}
+              </div>
+              <button
+                onClick={addMovie}
+                className="mt-4 bg-blue-600 text-white py-2 px-6 rounded"
+              >
+                Thêm Phim
+              </button>
+            </div>
+
+            {/* Danh sách phim */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {movies.map((movie) => (
+                <div key={movie.movie_ID} className="bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition duration-300">
+                  <img
+                    src={movie.poster_URL}
+                    alt={movie.movie_Name}
+                    className="w-full h-72 object-cover"
+                  />
+                  <div className="p-4">
+                    <h2 className="text-xl font-semibold text-gray-800 mb-2">{movie.movie_Name}</h2>
+                    <p className="text-sm text-gray-600 mb-2">Đạo diễn: {movie.director}</p>
+                    <p className="text-sm text-gray-600 mb-2">Ngày phát hành: {new Date(movie.release_Date).toLocaleDateString()}</p>
+                    <p className="text-sm text-gray-600 mb-4">Thể loại: {movie.genre}</p>
+                    <p className="text-sm text-gray-700">{movie.synopsis.length > 100 ? `${movie.synopsis.slice(0, 100)}...` : movie.synopsis}</p>
+                    <div className="mt-4 text-center">
+                      <a
+                        href={movie.trailer_Link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-600 hover:text-indigo-800 font-medium"
+                      >
+                        Xem Trailer
+                      </a>
+                    </div>
+                    {/* Các nút quản lý: Chỉnh sửa, xóa */}
+                    <div className="flex justify-between mt-4">
+                      <button
+                        onClick={() => editMovie(movie.movie_ID)}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        onClick={() => deleteMovie(movie.movie_ID)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
-        
-        {editingMovie && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Edit Movie</h2>
-            <MovieForm
-              movie={editingMovie}
-              onSubmit={handleUpdateMovie}
-              onCancel={() => setEditingMovie(null)}
-            />
-          </div>
-        )}
-        
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="p-4 border-b border-gray-200">
-            <input
-              type="text"
-              placeholder="Search movies..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Title
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Genre
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Duration
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Release Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Rating
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredMovies.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                        No movies found.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredMovies.map(movie => (
-                      <tr key={movie.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="h-10 w-10 flex-shrink-0">
-                              <img
-                                className="h-10 w-10 rounded-md object-cover"
-                                src={movie.posterUrl}
-                                alt={movie.title}
-                              />
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{movie.title}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">
-                            {movie.genre.join(', ')}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">{movie.duration} min</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">
-                            {new Date(movie.releaseDate).toLocaleDateString()}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">{movie.rating.toFixed(1)}/10</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => navigate(`/movies/${movie.id}`)}
-                              className="text-indigo-600 hover:text-indigo-900"
-                              title="View"
-                            >
-                              <Eye className="h-5 w-5" />
-                            </button>
-                            <button
-                              onClick={() => setEditingMovie(movie)}
-                              className="text-yellow-600 hover:text-yellow-900"
-                              title="Edit"
-                            >
-                              <Edit className="h-5 w-5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteMovie(movie.id)}
-                              className="text-red-600 hover:text-red-900"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-5 w-5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
       </div>
     </Layout>
   );
