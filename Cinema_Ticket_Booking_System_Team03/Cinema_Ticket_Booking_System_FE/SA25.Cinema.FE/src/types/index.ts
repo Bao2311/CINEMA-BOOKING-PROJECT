@@ -55,12 +55,39 @@ export interface BookingHistory {
   // Navigation Property
   ticketBooking?: TicketBooking; // Associated TicketBooking
 }
+// export interface Movie {
+//   id: number; // Movie_ID từ API
+//   name: string; // Movie_Name từ API
+//   releaseDate: string; // Release_Date từ API (dạng string hoặc Date)
+//   endDate?: string; // End_Date từ API (dạng string hoặc Date, có thể null)
+//   productionCompany: string; // Production_Company từ API
+//   director: string; // Director từ API
+//   cast: string; // Cast từ API
+//   duration: number; // Duration từ API (dữ liệu kiểu số nguyên, minutes)
+//   genre: string; // Genre từ API (một chuỗi)
+//   rating: string; // Rating từ API (một chuỗi)
+//   language: string; // Language từ API
+//   country: string; // Country từ API
+//   synopsis: string; // Synopsis từ API (tóm tắt nội dung phim)
+//   posterUrl: string; // Poster_URL từ API (URL của poster phim)
+//   trailerLink: string; // Trailer_Link từ API (URL của trailer)
+//   status: string; // Status từ API (mặc định là "Coming Soon")
+//   createdBy: number; // Created_By từ API (ID của người tạo)
+//   createdAt: string; // Created_At từ API (Ngày tạo)
+//   updatedAt: string; // Updated_At từ API (Ngày cập nhật)
+//   createdByUser?: User; // CreatedBy là một đối tượng User (dữ liệu của người tạo)
+//   showtimes?: Showtime[]; // Showtimes liên quan đến phim này
+//   movieRatings?: MovieRating[]; // MovieRatings (đánh giá của phim)
+// }
+
+
+
 export interface Movie {
-  id: number; // Movie_ID từ API
-  name: string; // Movie_Name từ API
-  releaseDate: string; // Release_Date từ API (dạng string hoặc Date)
-  endDate?: string; // End_Date từ API (dạng string hoặc Date, có thể null)
-  productionCompany: string; // Production_Company từ API
+  movie_ID: number; // Movie_ID từ API
+  movie_Name: string; // Movie_Name từ API
+  release_Date: string; // Release_Date từ API (dạng string hoặc Date)
+  end_Date?: string; // End_Date từ API (dạng string hoặc Date, có thể null)
+  production_Company: string; // Production_Company từ API
   director: string; // Director từ API
   cast: string; // Cast từ API
   duration: number; // Duration từ API (dữ liệu kiểu số nguyên, minutes)
@@ -69,16 +96,18 @@ export interface Movie {
   language: string; // Language từ API
   country: string; // Country từ API
   synopsis: string; // Synopsis từ API (tóm tắt nội dung phim)
-  posterUrl: string; // Poster_URL từ API (URL của poster phim)
-  trailerLink: string; // Trailer_Link từ API (URL của trailer)
+  poster_Url: string; // Poster_URL từ API (URL của poster phim)
+  trailer_Link: string; // Trailer_Link từ API (URL của trailer)
   status: string; // Status từ API (mặc định là "Coming Soon")
-  createdBy: number; // Created_By từ API (ID của người tạo)
-  createdAt: string; // Created_At từ API (Ngày tạo)
-  updatedAt: string; // Updated_At từ API (Ngày cập nhật)
+  created_By: number; // Created_By từ API (ID của người tạo)
+  created_At: string; // Created_At từ API (Ngày tạo)
+  updated_At: string; // Updated_At từ API (Ngày cập nhật)
   createdByUser?: User; // CreatedBy là một đối tượng User (dữ liệu của người tạo)
   showtimes?: Showtime[]; // Showtimes liên quan đến phim này
   movieRatings?: MovieRating[]; // MovieRatings (đánh giá của phim)
 }
+
+
 
 export interface Promotion {
   promotionId: number; // Promotion_ID

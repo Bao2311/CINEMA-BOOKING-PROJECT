@@ -55,7 +55,7 @@ const RegisterForm: React.FC = () => {
     setIsLoading(true);
   
     try {
-      const response = await axios.post('https://localhost:7168/api/Auth/register', formData, {
+      const response = await axios.post('http://localhost7168/api/Auth/register', formData, {
         headers: { 'Content-Type': 'application/json' },
       });
   

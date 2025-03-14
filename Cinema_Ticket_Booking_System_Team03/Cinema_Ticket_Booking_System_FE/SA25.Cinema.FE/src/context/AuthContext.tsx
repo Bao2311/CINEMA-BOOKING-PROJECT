@@ -1,7 +1,218 @@
+// import React, { createContext, useContext, useState, useEffect } from 'react';
+// import { User, AuthState } from '../types';
+// import api from '../config/axios';  // Import file cấu hình axios API
+
+
+
+
+// interface AuthContextType extends AuthState {
+//   login: (email: string, password: string) => Promise<void>;
+//   register: (username: string, email: string, password: string) => Promise<void>;
+//   logout: () => void;
+//   updateUser: (user: User) => void;
+// }
+
+
+
+
+// const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+
+
+
+// export const useAuth = () => {
+//   const context = useContext(AuthContext);
+//   if (!context) {
+//     throw new Error('useAuth must be used within an AuthProvider');
+//   }
+//   return context;
+// };
+
+
+
+
+// export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+//   const [authState, setAuthState] = useState<AuthState>({
+//     user: null,
+//     token: localStorage.getItem('token'),
+//     isAuthenticated: false,
+//     isLoading: true,
+//     error: null,
+//   });
+
+
+
+
+//   // Load user from localStorage when the app starts
+//   useEffect(() => {
+//     const loadUser = async () => {
+//       if (authState.token) {
+//         try {
+//           // In a real app, you would verify the token with your backend
+//           const userResponse = await api.get('/Auth/profile', {
+//             headers: {
+//               Authorization: `Bearer ${authState.token}`,
+//             },
+//           });
+//           setAuthState({
+//             ...authState,
+//             user: userResponse.data,
+//             isAuthenticated: true,
+//             isLoading: false,
+//           });
+//         } catch (error) {
+//           localStorage.removeItem('token');
+//           setAuthState({
+//             ...authState,
+//             token: null,
+//             isAuthenticated: false,
+//             isLoading: false,
+//             error: 'Session expired. Please login again.',
+//           });
+//         }
+//       } else {
+//         setAuthState({
+//           ...authState,
+//           isLoading: false,
+//         });
+//       }
+//     };
+
+
+
+
+//     loadUser();
+//   }, [authState.token]);  
+
+
+
+
+//   // Login function
+//   const login = async (email: string, password: string) => {
+//     try {
+//       const response = await api.post('/Auth/login', { email, password });
+
+
+
+
+//       const { token, user } = response.data;
+
+
+
+
+//       localStorage.setItem('token', token);  // Store token
+//       localStorage.setItem('user', JSON.stringify(user));  // Store user
+
+
+
+
+//       setAuthState({
+//         user,
+//         token,
+//         isAuthenticated: true,
+//         isLoading: false,
+//         error: null,
+//       });
+//     } catch (error) {
+//       setAuthState({
+//         ...authState,
+//         error: 'Invalid credentials',
+//         isLoading: false,
+//       });
+//     }
+//   };
+
+
+
+
+//   // Register function
+//   const register = async (username: string, email: string, password: string) => {
+//     try {
+//       const response = await api.post('/Auth/register', {
+//         username,
+//         email,
+//         password,
+//       });
+
+
+
+
+//       const { token, user } = response.data;
+
+
+
+
+//       localStorage.setItem('token', token);  // Store token
+//       localStorage.setItem('user', JSON.stringify(user));  // Store user
+
+
+
+
+//       setAuthState({
+//         user,
+//         token,
+//         isAuthenticated: true,
+//         isLoading: false,
+//         error: null,
+//       });
+//     } catch (error) {
+//       setAuthState({
+//         ...authState,
+//         error: 'Registration failed',
+//         isLoading: false,
+//       });
+//     }
+//   };
+
+
+
+
+//   // Logout function
+//   const logout = () => {
+//     localStorage.removeItem('token');
+//     localStorage.removeItem('user');
+//     setAuthState({
+//       user: null,
+//       token: null,
+//       isAuthenticated: false,
+//       isLoading: false,
+//       error: null,
+//     });
+//   };
+
+
+
+
+//   // Update user information
+//   const updateUser = (user: User) => {
+//     setAuthState({
+//       ...authState,
+//       user,
+//     });
+//   };
+
+
+
+
+//   return (
+//     <AuthContext.Provider
+//       value={{
+//         ...authState,
+//         login,
+//         register,
+//         logout,
+//         updateUser,
+//       }}
+//     >
+//       {children}
+//     </AuthContext.Provider>
+//   );
+// };
+
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthState } from '../types';
 import api from '../config/axios';  // Import file cấu hình axios API
-
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -10,9 +221,7 @@ interface AuthContextType extends AuthState {
   updateUser: (user: User) => void;
 }
 
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -21,7 +230,6 @@ export const useAuth = () => {
   }
   return context;
 };
-
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
@@ -32,20 +240,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     error: null,
   });
 
-
   // Load user from localStorage when the app starts
   useEffect(() => {
     const loadUser = async () => {
-      if (authState.token) {
+      const token = localStorage.getItem('token');
+      if (token) {
         try {
           // In a real app, you would verify the token with your backend
-          const userResponse = await api.get('', {///Auth/profile
+          const userResponse = await api.get('/Auth/profile', {
             headers: {
-              Authorization: `Bearer ${authState.token}`,
+              Authorization: `Bearer ${token}`,
             },
           });
-
-
           setAuthState({
             ...authState,
             user: userResponse.data,
@@ -70,23 +276,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-
     loadUser();
-  }, [authState.token]);
-
+  }, []); // Dependency array should be empty to only run once on mount
 
   // Login function
   const login = async (email: string, password: string) => {
+    setAuthState({ ...authState, isLoading: true });
     try {
       const response = await api.post('/Auth/login', { email, password });
-
-
       const { token, user } = response.data;
 
-
+      // Store token in localStorage
       localStorage.setItem('token', token);  // Store token
       localStorage.setItem('user', JSON.stringify(user));  // Store user
-
 
       setAuthState({
         user,
@@ -95,32 +297,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading: false,
         error: null,
       });
-    } catch (error) {
+    } catch (error: any) {
       setAuthState({
         ...authState,
-        error: 'Invalid credentials',
+        error: error?.response?.data?.message || 'Invalid credentials',
         isLoading: false,
       });
     }
   };
-
 
   // Register function
   const register = async (username: string, email: string, password: string) => {
+    setAuthState({ ...authState, isLoading: true });
     try {
-      const response = await api.post('/Auth/register', {
-        username,
-        email,
-        password,
-      });
-
-
+      const response = await api.post('/Auth/register', { username, email, password });
       const { token, user } = response.data;
 
-
+      // Store token and user in localStorage
       localStorage.setItem('token', token);  // Store token
       localStorage.setItem('user', JSON.stringify(user));  // Store user
-
 
       setAuthState({
         user,
@@ -129,15 +324,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading: false,
         error: null,
       });
-    } catch (error) {
+    } catch (error: any) {
       setAuthState({
         ...authState,
-        error: 'Registration failed',
+        error: error?.response?.data?.message || 'Registration failed',
         isLoading: false,
       });
     }
   };
-
 
   // Logout function
   const logout = () => {
@@ -152,7 +346,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-
   // Update user information
   const updateUser = (user: User) => {
     setAuthState({
@@ -160,7 +353,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user,
     });
   };
-
 
   return (
     <AuthContext.Provider
@@ -176,5 +368,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
+
+
+
 
 

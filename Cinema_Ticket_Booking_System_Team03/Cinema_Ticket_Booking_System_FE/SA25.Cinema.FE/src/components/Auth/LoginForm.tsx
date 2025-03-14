@@ -5,6 +5,8 @@ import { toast } from 'react-toastify'; // Import react-toastify
 import { useAuth } from '../../context/AuthContext';  // Import useAuth hook
 
 
+
+
 const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -12,8 +14,12 @@ const LoginForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
 
 
+
+
   const navigate = useNavigate();
   const { login } = useAuth();  // Lấy hàm login từ AuthContext
+
+
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,12 +27,18 @@ const LoginForm: React.FC = () => {
     setError('');  // Reset lỗi khi gửi form
 
 
+
+
     try {
       setIsLoading(true);  // Bật loading khi đang xử lý
 
 
+
+
       // Gọi API login và lưu thông tin đăng nhập vào localStorage
       await login(email, password);  // Sử dụng hàm login từ AuthContext
+
+
 
 
       toast.success('Đăng nhập thành công!');
@@ -39,6 +51,8 @@ const LoginForm: React.FC = () => {
       setIsLoading(false);  // Tắt loading sau khi xử lý xong
     }
   };
+
+
 
 
   return (
@@ -75,6 +89,8 @@ const LoginForm: React.FC = () => {
           </div>
 
 
+
+
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               Password
@@ -92,6 +108,8 @@ const LoginForm: React.FC = () => {
           </div>
 
 
+
+
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <input
@@ -106,12 +124,16 @@ const LoginForm: React.FC = () => {
             </div>
 
 
+
+
             <div className="text-sm">
               <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
                 Forgot your password?
               </a>
             </div>
           </div>
+
+
 
 
           <div>
@@ -137,6 +159,8 @@ const LoginForm: React.FC = () => {
     </div>
   );
 };
+
+
 
 
 export default LoginForm;
