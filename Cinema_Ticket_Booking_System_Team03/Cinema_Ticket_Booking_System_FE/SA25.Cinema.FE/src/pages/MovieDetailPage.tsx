@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout/Layout';
 import MovieDetail from '../components/Movies/MovieDetail';
 import { Movie, Showtime } from '../types';
-import { mockMovies, mockShowtimes } from '../data/mockData';
+import axios from 'axios';
 
 const MovieDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -11,30 +11,32 @@ const MovieDetailPage: React.FC = () => {
   const [movie, setMovie] = useState<Movie | null>(null);
   const [showtimes, setShowtimes] = useState<Showtime[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    // In a real app, these would be API calls
-    // For now, we'll use mock data
-    
-    if (!id) {
+    const fetchMovieDetails = async () => {
+      try {
+        const movieResponse = await axios.get(`https://localhost:7168/api/Movie/${id}`);
+        setMovie(movieResponse.data);
+
+        const showtimesResponse = await axios.get('https://localhost:7168/api/Showtimes');
+        const allShowtimes = showtimesResponse.data['$values'];
+        const filteredShowtimes = allShowtimes.filter((showtime: Showtime) => showtime.movie_ID.toString() === id);
+        setShowtimes(filteredShowtimes);
+      } catch (error) {
+        setError('Failed to fetch movie details or showtimes.');
+        console.error('Error fetching data:', error);
+        navigate('/movies');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchMovieDetails();
+    } else {
       navigate('/movies');
-      return;
     }
-    
-    const foundMovie = mockMovies.find(m => m.id === id);
-    
-    if (!foundMovie) {
-      navigate('/movies');
-      return;
-    }
-    
-    setMovie(foundMovie);
-    
-    // Get showtimes for this movie
-    const movieShowtimes = mockShowtimes.filter(s => s.movieId === id);
-    setShowtimes(movieShowtimes);
-    
-    setIsLoading(false);
   }, [id, navigate]);
 
   if (isLoading) {
@@ -56,6 +58,7 @@ const MovieDetailPage: React.FC = () => {
       </Layout>
     );
   }
+
 
   return (
     <Layout>

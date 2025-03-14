@@ -14,19 +14,22 @@ const MovieDetail: React.FC<MovieDetailProps> = ({ movie, showtimes }) => {
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<string>('');
   
+  // Convert rating to a number
+  const rating = parseFloat(movie.rating);
+  
   // Get unique dates from showtimes
   const dates = Array.from(
-    new Set(showtimes.map(showtime => showtime.date))
+    new Set(showtimes.map(showtime => showtime.show_Date))
   ).sort();
   
   // Filter showtimes by selected date
   const filteredShowtimes = selectedDate
-    ? showtimes.filter(showtime => showtime.date === selectedDate)
+    ? showtimes.filter(showtime => showtime.show_Date === selectedDate)
     : [];
   
   // Group showtimes by date for display
   const showtimesByDate = dates.reduce((acc, date) => {
-    acc[date] = showtimes.filter(showtime => showtime.date === date);
+    acc[date] = showtimes.filter(showtime => showtime.show_Date === date);
     return acc;
   }, {} as Record<string, Showtime[]>);
 
@@ -45,20 +48,20 @@ const MovieDetail: React.FC<MovieDetailProps> = ({ movie, showtimes }) => {
         {/* Movie backdrop */}
         <div className="w-full h-96 bg-gray-900">
           <img
-            src={movie.posterUrl}
-            alt={movie.title}
-            className="w-full h-full object-cover opacity-50"
+            src={movie.poster_URL}
+            alt={movie.movie_Name}
+            className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
         </div>
         
         {/* Movie info overlay */}
         <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-          <h1 className="text-4xl font-bold mb-2">{movie.title}</h1>
+          <h1 className="text-4xl font-bold mb-2">{movie.movie_Name}</h1>
           <div className="flex flex-wrap items-center gap-4 mb-4">
             <div className="flex items-center">
               <Star className="h-5 w-5 mr-1 text-yellow-400 fill-current" />
-              <span>{movie.rating.toFixed(1)}/10</span>
+              <span>{!isNaN(rating) ? rating.toFixed(1) : 'N/A'}/10</span>
             </div>
             <div className="flex items-center">
               <Clock className="h-5 w-5 mr-1" />
@@ -66,12 +69,12 @@ const MovieDetail: React.FC<MovieDetailProps> = ({ movie, showtimes }) => {
             </div>
             <div className="flex items-center">
               <Calendar className="h-5 w-5 mr-1" />
-              <span>{new Date(movie.releaseDate).toLocaleDateString()}</span>
+              <span>{new Date(movie.release_Date).toLocaleDateString()}</span>
             </div>
           </div>
           
           <div className="flex flex-wrap gap-2 mb-4">
-            {movie.genre.map((genre, index) => (
+            {movie.genre.split(',').map((genre, index) => (
               <span
                 key={index}
                 className="bg-indigo-600 text-white px-3 py-1 rounded-full text-sm"
@@ -83,7 +86,7 @@ const MovieDetail: React.FC<MovieDetailProps> = ({ movie, showtimes }) => {
           
           <div className="flex space-x-4">
             <a
-              href={movie.trailerUrl}
+              href={movie.trailer_Link}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition-colors"
@@ -105,7 +108,7 @@ const MovieDetail: React.FC<MovieDetailProps> = ({ movie, showtimes }) => {
       <div className="p-6">
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-4">Synopsis</h2>
-          <p className="text-gray-700">{movie.description}</p>
+          <p className="text-gray-700">{movie.synopsis}</p>
         </div>
         
         <div>
@@ -142,19 +145,19 @@ const MovieDetail: React.FC<MovieDetailProps> = ({ movie, showtimes }) => {
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     {filteredShowtimes.map(showtime => (
                       <button
-                        key={showtime.id}
-                        onClick={() => handleBooking(showtime.id)}
+                        key={showtime.showtime_ID}
+                        onClick={() => handleBooking(showtime.showtime_ID.toString())}
                         className="bg-white border border-gray-300 hover:border-indigo-500 rounded-md p-4 text-center transition-colors"
                       >
                         <p className="font-medium text-gray-900">
-                          {new Date(`${showtime.date}T${showtime.startTime}`).toLocaleTimeString([], {
+                          {new Date(`${showtime.show_Date}T${showtime.start_Time}`).toLocaleTimeString([], {
                             hour: '2-digit',
                             minute: '2-digit'
                           })}
                         </p>
-                        <p className="text-sm text-gray-500">Room {showtime.roomId}</p>
+                        <p className="text-sm text-gray-500">Room {showtime.cinema_Room_ID}</p>
                         <p className="text-sm font-medium text-indigo-600 mt-2">
-                          ${showtime.price.toFixed(2)}
+                          {showtime.base_Price.toLocaleString()} VND
                         </p>
                       </button>
                     ))}
