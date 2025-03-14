@@ -5,8 +5,16 @@ using System;
 
 namespace STP.Repository.Data
 {
+    /// <summary>
+    /// Lớp DbContext chính của ứng dụng rạp chiếu phim, quản lý kết nối và ánh xạ giữa
+    /// các entity và bảng trong cơ sở dữ liệu.
+    /// </summary>
     public class CinemaDbContext : DbContext
     {
+        /// <summary>
+        /// Khởi tạo một instance mới của CinemaDbContext với các tùy chọn được cung cấp.
+        /// </summary>
+        /// <param name="options">Các tùy chọn cấu hình cho DbContext</param>
         public CinemaDbContext(DbContextOptions<CinemaDbContext> options)
             : base(options)
         {
@@ -30,7 +38,11 @@ namespace STP.Repository.Data
         public DbSet<PointsRedemption> PointsRedemptions { get; set; }
         public DbSet<FailedLogin> FailedLogins { get; set; }
 
-        // Phương thức lấy chuỗi kết nối từ cấu hình (appsettings.json)
+        /// <summary>
+        /// Lấy chuỗi kết nối từ tệp cấu hình appsettings.json
+        /// </summary>
+        /// <param name="connectionStringName">Tên của chuỗi kết nối cần lấy</param>
+        /// <returns>Chuỗi kết nối đến cơ sở dữ liệu</returns>
         public static string GetConnectionString(string connectionStringName)
         {
             var config = new ConfigurationBuilder()
@@ -41,7 +53,10 @@ namespace STP.Repository.Data
             return config.GetConnectionString(connectionStringName);
         }
 
-        // Phương thức cấu hình DbContext với chuỗi kết nối
+        /// <summary>
+        /// Cấu hình DbContext với chuỗi kết nối nếu chưa được cấu hình
+        /// </summary>
+        /// <param name="optionsBuilder">Builder để cấu hình options cho DbContext</param>
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
@@ -51,7 +66,10 @@ namespace STP.Repository.Data
             }
         }
 
-        // Cấu hình bảng và các quan hệ
+        /// <summary>
+        /// Cấu hình chi tiết cho các entity và mối quan hệ giữa chúng
+        /// </summary>
+        /// <param name="modelBuilder">Builder để xây dựng mô hình dữ liệu</param>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -264,8 +282,9 @@ namespace STP.Repository.Data
                 .HasForeignKey(pu => pu.Booking_ID)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Cấu hình index cho FailedLogin để tối ưu truy vấn
             modelBuilder.Entity<FailedLogin>()
-        .HasIndex(fl => fl.User_ID);
+                .HasIndex(fl => fl.User_ID);
 
             modelBuilder.Entity<FailedLogin>()
                 .HasIndex(fl => fl.AttemptTime);

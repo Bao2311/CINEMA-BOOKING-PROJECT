@@ -10,13 +10,18 @@ using STP.Repository.Repositories;
 
 namespace sa25.Repository.Data
 {
+    // Lớp UnitOfWork triển khai mẫu Unit of Work để quản lý các giao dịch cơ sở dữ liệu
+    // và cung cấp quyền truy cập tập trung đến tất cả các repository
     public class UnitOfWork : IDisposable
     {
+        // Context cơ sở dữ liệu chính
         private readonly CinemaDbContext _context;
+        // Logger để ghi lại các hoạt động
         private readonly ILogger _logger;
+        // Đối tượng giao dịch cơ sở dữ liệu
         private IDbContextTransaction _transaction;
 
-        // Khai báo các repository cụ thể
+        // Khai báo các repository cụ thể - sử dụng lazy loading
         private UserRepository _userRepository;
         private MovieRepository _movieRepository;
         private CinemaRoomRepository _cinemaRoomRepository;
@@ -33,14 +38,15 @@ namespace sa25.Repository.Data
         private MovieRatingRepository _movieRatingRepository;
         private PointsRedemptionRepository _pointsRedemptionRepository;
 
-        // Constructor
+        // Constructor - nhận database context và logger thông qua dependency injection
         public UnitOfWork(CinemaDbContext context, ILogger<UnitOfWork> logger)
         {
             _context = context;
             _logger = logger;
         }
 
-        // Repository properties
+        // Properties truy cập các repository - sử dụng mẫu singleton cho mỗi repository
+        // Mỗi property sử dụng toán tử null-coalescing để khởi tạo repository chỉ khi cần
         public UserRepository UserRepository =>
             _userRepository ??= new UserRepository(_context);
 
@@ -86,31 +92,37 @@ namespace sa25.Repository.Data
         public PointsRedemptionRepository PointsRedemptionRepository =>
             _pointsRedemptionRepository ??= new PointsRedemptionRepository(_context);
 
-        // Phương thức bắt đầu giao dịch
+        // Phương thức bắt đầu giao dịch cơ sở dữ liệu mới
         public async Task BeginTransactionAsync()
         {
             _transaction = await _context.Database.BeginTransactionAsync();
         }
 
-        // Phương thức cam kết giao dịch
+        // Phương thức lưu thay đổi và commit giao dịch
         public async Task CommitAsync()
         {
+            // Kiểm tra xem giao dịch đã được bắt đầu chưa
             if (_transaction == null) throw new InvalidOperationException("No transaction started.");
+            // Lưu các thay đổi vào cơ sở dữ liệu
             await _context.SaveChangesAsync();
+            // Commit giao dịch
             await _transaction.CommitAsync();
         }
 
-        // Phương thức rollback giao dịch
+        // Phương thức rollback giao dịch khi có lỗi
         public async Task RollbackAsync()
         {
+            // Chỉ rollback nếu giao dịch đã tồn tại
             if (_transaction == null) return;
             await _transaction.RollbackAsync();
         }
 
-        // Phương thức hủy giao dịch
+        // Phương thức giải phóng tài nguyên - triển khai từ interface IDisposable
         public void Dispose()
         {
+            // Giải phóng giao dịch nếu có
             _transaction?.Dispose();
+            // Giải phóng database context
             _context.Dispose();
         }
     }

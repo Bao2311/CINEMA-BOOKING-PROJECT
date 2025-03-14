@@ -17,26 +17,28 @@ using Org.BouncyCastle.Crypto.Generators;
 
 namespace STP.Repository.Services
 {
+    // Lớp dịch vụ xử lý các chức năng liên quan đến xác thực và quản lý tài khoản người dùng
     public class AuthService
     {
-        private readonly CinemaDbContext _context;
-        private readonly IConfiguration _configuration;
-        private readonly UserRepository _userRepository;
-        private readonly EmailService _emailService; // Thêm EmailService
-        private readonly AccountLockingService _accountLockingService;
-        private readonly ILogger<AuthService> _logger;
+        private readonly CinemaDbContext _context; // Context để tương tác với cơ sở dữ liệu
+        private readonly IConfiguration _configuration; // Cấu hình ứng dụng
+        private readonly UserRepository _userRepository; // Repository xử lý dữ liệu người dùng
+        private readonly EmailService _emailService; // Dịch vụ gửi email
+        private readonly AccountLockingService _accountLockingService; // Dịch vụ khóa tài khoản
+        private readonly ILogger<AuthService> _logger; // Logger ghi nhật ký
 
+        // Constructor với dependency injection
         public AuthService(CinemaDbContext context, IConfiguration configuration, UserRepository userRepository, EmailService emailService, ILogger<AuthService> logger, AccountLockingService accountLockingService)
         {
             _context = context;
             _configuration = configuration;
             _userRepository = userRepository;
-            _emailService = emailService; // Khởi tạo EmailService
+            _emailService = emailService;
             _logger = logger;
             _accountLockingService = accountLockingService;
         }
 
-        // HashPassword sử dụng SHA256
+        // Phương thức băm mật khẩu sử dụng thuật toán SHA256
         private string HashPasswordWithSHA256(string password)
         {
             using (var sha256 = System.Security.Cryptography.SHA256.Create())
@@ -58,7 +60,7 @@ namespace STP.Repository.Services
             }
         }
 
-        // Xác minh mật khẩu - kiểm tra cả mật khẩu thường và mật khẩu đã hash
+        // Phương thức xác minh mật khẩu - hỗ trợ cả plain text và hash
         private bool VerifyPassword(string password, string storedPassword)
         {
             // Trường hợp 1: So sánh trực tiếp (nếu mật khẩu được lưu dưới dạng plain text)
@@ -74,12 +76,12 @@ namespace STP.Repository.Services
             }
         }
 
-        // Đăng ký người dùng mới
+        // Phương thức đăng ký người dùng mới
         public async Task<UserRegistrationResponseDto> RegisterAsync(RegisterDto model)
         {
             try
             {
-                // Kiểm tra email đã tồn tại
+                // Kiểm tra email đã tồn tại chưa
                 var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
                 if (existingUser != null)
                 {
@@ -90,8 +92,10 @@ namespace STP.Repository.Services
                     };
                 }
 
+                // Băm mật khẩu trước khi lưu vào DB
                 string passwordHash = HashPasswordWithSHA256(model.Password);
 
+                // Tạo đối tượng người dùng mới
                 var newUser = new User
                 {
                     Email = model.Email,
@@ -102,6 +106,7 @@ namespace STP.Repository.Services
                     Created_At = DateTime.UtcNow
                 };
 
+                // Thêm vào DB và lưu thay đổi
                 _context.Users.Add(newUser);
                 await _context.SaveChangesAsync();
 
@@ -111,6 +116,7 @@ namespace STP.Repository.Services
                     await _emailService.SendWelcomeEmailAsync(newUser.Email, newUser.Full_Name);
                 }
 
+                // Trả về kết quả thành công
                 return new UserRegistrationResponseDto
                 {
                     Success = true,
@@ -120,6 +126,7 @@ namespace STP.Repository.Services
             }
             catch (Exception ex)
             {
+                // Ghi log lỗi và trả về thông báo thất bại
                 _logger.LogError($"Lỗi khi đăng ký người dùng: {ex.Message}");
                 return new UserRegistrationResponseDto
                 {
@@ -129,7 +136,7 @@ namespace STP.Repository.Services
             }
         }
 
-        // Đăng nhập
+        // Phương thức đăng nhập
         public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto)
         {
             if (loginDto == null)
@@ -144,10 +151,10 @@ namespace STP.Repository.Services
                 throw new Exception($"Tài khoản của bạn đã bị tạm khóa do đăng nhập sai quá nhiều lần. Vui lòng thử lại sau {remainingMinutes} phút.");
             }
 
-            // Sử dụng UserRepository để tìm người dùng theo email
+            // Tìm người dùng theo email
             var user = await _userRepository.GetByEmailAsync(loginDto.Email);
 
-            // Kiểm tra xem người dùng có tồn tại không
+            // Kiểm tra người dùng tồn tại
             if (user == null)
             {
                 Console.WriteLine("Không tìm thấy người dùng");
@@ -156,7 +163,6 @@ namespace STP.Repository.Services
             }
 
             Console.WriteLine($"Đã tìm thấy người dùng với ID: {user.User_ID}, Email: {user.Email}");
-
             Console.WriteLine($"Mật khẩu từ DB: {user.Password?.Length ?? 0} ký tự");
             Console.WriteLine($"Mật khẩu nhập vào: {loginDto.Password?.Length ?? 0} ký tự");
 
@@ -165,7 +171,7 @@ namespace STP.Repository.Services
             {
                 Console.WriteLine("Xác thực mật khẩu thất bại");
 
-                // Ghi nhận đăng nhập thất bại và kiểm tra xem tài khoản có bị khóa không
+                // Ghi nhận đăng nhập thất bại và kiểm tra khóa tài khoản
                 bool isLocked = await _accountLockingService.RecordFailedAttemptAsync(loginDto.Email);
 
                 if (isLocked)
@@ -183,7 +189,7 @@ namespace STP.Repository.Services
                     throw new Exception("Tài khoản của bạn đã bị tạm khóa do đăng nhập sai 5 lần liên tiếp. Vui lòng thử lại sau 30 phút.");
                 }
 
-                // Hiển thị số lần đăng nhập sai còn lại trước khi bị khóa
+                // Hiển thị số lần đăng nhập sai còn lại
                 int attemptsCount = await _accountLockingService.GetFailedAttemptsAsync(loginDto.Email);
                 int remainingAttempts = 5 - attemptsCount;
                 throw new Exception($"Tài khoản hoặc mật khẩu sai. Bạn còn {remainingAttempts} lần thử trước khi tài khoản bị khóa.");
@@ -202,6 +208,7 @@ namespace STP.Repository.Services
             Console.WriteLine("Đang tạo JWT token");
             var token = GenerateJwtToken(user);
 
+            // Trả về thông tin đăng nhập thành công
             return new AuthResponseDto
             {
                 UserId = user.User_ID,
@@ -213,7 +220,7 @@ namespace STP.Repository.Services
             };
         }
 
-        // Thêm phương thức mở khóa tài khoản
+        // Phương thức mở khóa tài khoản
         public async Task<bool> UnlockAccountAsync(string email)
         {
             var user = await _userRepository.GetByEmailAsync(email);
@@ -224,30 +231,30 @@ namespace STP.Repository.Services
             return true;
         }
 
-        // Đổi mật khẩu
+        // Phương thức đổi mật khẩu
         public async Task ChangePasswordAsync(int userId, ChangePasswordDto changePasswordDto)
         {
             var user = await _userRepository.GetByIdAsync(userId);
             if (user == null)
                 throw new Exception("Không tìm thấy thông tin người dùng");
 
-            // Xác minh mật khẩu cũ với phương thức mới
+            // Xác minh mật khẩu cũ
             if (!VerifyPassword(changePasswordDto.OldPassword, user.Password))
                 throw new Exception("Mật khẩu cũ không chính xác");
 
-            // Bằng dòng này để mã hóa mật khẩu:
+            // Băm và lưu mật khẩu mới
             user.Password = HashPasswordWithSHA256(changePasswordDto.NewPassword);
             await _userRepository.UpdateAsync(user);
         }
 
-        // Cập nhật thông tin cá nhân
+        // Phương thức cập nhật thông tin cá nhân
         public async Task<object> UpdateProfileAsync(int userId, UpdateProfileDto updateProfileDto)
         {
             var user = await _userRepository.GetByIdAsync(userId);
             if (user == null)
                 throw new Exception("Không tìm thấy thông tin người dùng");
 
-            // Cập nhật thông tin
+            // Cập nhật các thông tin nếu có
             if (!string.IsNullOrEmpty(updateProfileDto.FullName))
                 user.Full_Name = updateProfileDto.FullName;
 
@@ -257,15 +264,16 @@ namespace STP.Repository.Services
             if (!string.IsNullOrEmpty(updateProfileDto.Sex))
                 user.Sex = updateProfileDto.Sex;
 
-
             if (!string.IsNullOrEmpty(updateProfileDto.PhoneNumber))
                 user.Phone_Number = updateProfileDto.PhoneNumber;
 
             if (!string.IsNullOrEmpty(updateProfileDto.Address))
                 user.Address = updateProfileDto.Address;
 
+            // Lưu thay đổi vào DB
             await _userRepository.UpdateAsync(user);
 
+            // Trả về thông tin đã cập nhật
             return new
             {
                 UserId = user.User_ID,
@@ -279,7 +287,7 @@ namespace STP.Repository.Services
             };
         }
 
-        // Tạo JWT Token
+        // Phương thức tạo JWT Token cho xác thực
         private string GenerateJwtToken(User user)
         {
             var keyValue = _configuration["Jwt:Key"];
@@ -289,9 +297,13 @@ namespace STP.Repository.Services
                 throw new InvalidOperationException("JWT Key is missing in configuration");
             }
 
+            // Tạo key từ chuỗi bí mật
             var key = Encoding.ASCII.GetBytes(keyValue);
+
+            // Cấu hình token
             var tokenDescriptor = new SecurityTokenDescriptor
             {
+                // Thêm claims chứa thông tin người dùng
                 Subject = new ClaimsIdentity(new Claim[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.User_ID.ToString()),
@@ -299,7 +311,7 @@ namespace STP.Repository.Services
                     new Claim(ClaimTypes.Email, user.Email ?? ""),
                     new Claim(ClaimTypes.Role, user.Role ?? "Customer")
                 }),
-                Expires = DateTime.UtcNow.AddDays(1),
+                Expires = DateTime.UtcNow.AddDays(1), // Token hết hạn sau 1 ngày
                 SigningCredentials = new SigningCredentials(
                     new SymmetricSecurityKey(key),
                     SecurityAlgorithms.HmacSha256Signature),
@@ -307,12 +319,13 @@ namespace STP.Repository.Services
                 Audience = _configuration["Jwt:Audience"]
             };
 
+            // Tạo token từ mô tả
             var tokenHandler = new JwtSecurityTokenHandler();
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
         }
 
-        // Lấy thông tin người dùng
+        // Phương thức lấy thông tin người dùng
         public async Task<AuthResponseDto> GetUserProfileAsync(int userId)
         {
             var user = await _userRepository.GetByIdAsync(userId);
@@ -328,22 +341,24 @@ namespace STP.Repository.Services
             };
         }
 
-        // Thay đổi trạng thái tài khoản
+        // Phương thức thay đổi trạng thái tài khoản
         public async Task<bool> ChangeAccountStatusAsync(int userId, string status)
         {
             var user = await _userRepository.GetByIdAsync(userId);
             if (user == null)
                 throw new Exception("Không tìm thấy người dùng");
 
+            // Kiểm tra trạng thái hợp lệ
             if (status != "Active" && status != "Inactive" && status != "Locked")
                 throw new Exception("Trạng thái tài khoản không hợp lệ");
 
+            // Cập nhật trạng thái
             user.Account_Status = status;
             await _userRepository.UpdateAsync(user);
             return true;
         }
 
-        // Đặt lại mật khẩu
+        // Phương thức đặt lại mật khẩu
         public async Task<ResetPasswordResultDto> ResetPasswordAsync(string email)
         {
             _logger.LogInformation($"Resetting password for email: {email}");
@@ -359,11 +374,10 @@ namespace STP.Repository.Services
             string newPassword = GenerateRandomPassword();
             _logger.LogInformation($"Generated new password for user: {user.User_ID}");
 
-            // Lưu mật khẩu mới và mã hóa pass 
+            // Lưu mật khẩu mới đã băm
             user.Password = HashPasswordWithSHA256(newPassword);
             await _userRepository.UpdateAsync(user);
             _logger.LogInformation($"Updated password for user: {user.User_ID}");
-
 
             try
             {
@@ -384,12 +398,12 @@ namespace STP.Repository.Services
                 </body>
                 </html>";
 
-                // Gửi email
+                // Gửi email chứa mật khẩu mới
                 _logger.LogInformation($"Attempting to send password reset email to: {email}");
                 await _emailService.SendEmailAsync(email, subject, body);
                 _logger.LogInformation($"Password reset email sent successfully to: {email}");
 
-                // Trả về kết quả
+                // Trả về kết quả thành công
                 return new ResetPasswordResultDto
                 {
                     Message = "Đặt lại mật khẩu thành công, vui lòng kiểm tra email của bạn",
@@ -398,10 +412,13 @@ namespace STP.Repository.Services
             }
             catch (Exception ex)
             {
+                // Ghi log lỗi nếu không gửi được email
                 _logger.LogError(ex, $"Failed to send password reset email: {ex.Message}");
                 throw new Exception($"Đã đặt lại mật khẩu nhưng không thể gửi email: {ex.Message}");
             }
         }
+
+        // Phương thức đăng ký người dùng bởi admin
         public async Task<UserRegistrationResponseDto> RegisterUserByAdminAsync(AdminRegisterUserDto model, int adminId)
         {
             try
@@ -427,35 +444,37 @@ namespace STP.Repository.Services
                     };
                 }
 
-                // Tạo mật khẩu ngẫu nhiên
+                // Tạo mật khẩu ngẫu nhiên và băm
                 string randomPassword = GenerateRandomPassword();
                 string passwordHash = HashPasswordWithSHA256(randomPassword);
 
-                // Tạo người dùng mới
+                // Tạo đối tượng người dùng mới
                 var newUser = new User
                 {
                     Email = model.Email,
                     Password = passwordHash,
                     Full_Name = model.FullName,
                     Role = model.Role,
-                    Department = model.Department, 
+                    Department = model.Department,
                     Hire_Date = model.Hire_Date,
                     Date_Of_Birth = model.DateOfBirth,
                     Sex = model.Sex,
                     Phone_Number = model.PhoneNumber,
                     Address = model.Address,
                     Created_At = DateTime.UtcNow
-                    
                 };
 
+                // Thêm vào DB và lưu thay đổi
                 _context.Users.Add(newUser);
                 await _context.SaveChangesAsync();
 
-                // Gửi email thông báo mật khẩu
+                // Gửi email thông báo mật khẩu cho người dùng mới
                 await _emailService.SendPasswordNotificationEmailAsync(newUser.Email, newUser.Full_Name, randomPassword);
 
+                // Ghi log hành động của admin
                 _logger.LogInformation($"Admin ID {adminId} đã tạo tài khoản cho {model.Email} với vai trò {model.Role}");
 
+                // Trả về kết quả thành công
                 return new UserRegistrationResponseDto
                 {
                     Success = true,
@@ -465,6 +484,7 @@ namespace STP.Repository.Services
             }
             catch (Exception ex)
             {
+                // Ghi log lỗi và trả về thông báo thất bại
                 _logger.LogError($"Lỗi khi đăng ký người dùng: {ex.Message}");
                 return new UserRegistrationResponseDto
                 {
@@ -474,11 +494,13 @@ namespace STP.Repository.Services
             }
         }
 
+        // Kiểm tra vai trò hợp lệ
         private bool IsValidRole(string role)
         {
             string[] validRoles = { "Customer", "Staff", "Manager" };
             return Array.Exists(validRoles, r => r.Equals(role, StringComparison.OrdinalIgnoreCase));
         }
+
         // Tạo mật khẩu ngẫu nhiên
         private string GenerateRandomPassword(int length = 10)
         {
@@ -491,7 +513,6 @@ namespace STP.Repository.Services
             }
             return new string(result);
         }
+
     }
-
-
 }
