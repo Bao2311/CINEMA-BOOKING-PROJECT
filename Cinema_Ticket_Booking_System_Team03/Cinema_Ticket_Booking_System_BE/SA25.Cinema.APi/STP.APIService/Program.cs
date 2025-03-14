@@ -20,32 +20,32 @@ namespace STP.APIService
     {
         public static void Main(string[] args)
         {
+            // Khởi tạo builder cho ứng dụng web
             var builder = WebApplication.CreateBuilder(args);
-            
-            // Cấu hình CORS
+
+            // Cấu hình CORS để cho phép các nguồn khác nhau truy cập API
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("CinemaAPIPolicy", builder =>
                 {
-                    builder.AllowAnyOrigin()
-                           .AllowAnyMethod()
-                           .AllowAnyHeader();
+                    builder.AllowAnyOrigin()  // Cho phép tất cả các nguồn
+                           .AllowAnyMethod()  // Cho phép tất cả các phương thức HTTP (GET, POST, PUT, DELETE...)
+                           .AllowAnyHeader(); // Cho phép tất cả các header
                 });
             });
 
             // Đăng ký các dịch vụ Controllers và cấu hình chế độ serializing JSON
+            // ReferenceHandler.Preserve giúp xử lý các tham chiếu vòng tròn trong JSON
             builder.Services.AddControllers()
                 .AddJsonOptions(options =>
                 {
                     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
                 });
 
-            // Đăng ký DbContext
+            // Đăng ký DbContext với chuỗi kết nối từ cấu hình
             builder.Services.AddDbContext<CinemaDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
             );
-            // new function 
-            
 
             // Cấu hình JWT Authentication
             var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]);
@@ -56,16 +56,16 @@ namespace STP.APIService
             })
             .AddJwtBearer(x =>
             {
-                x.RequireHttpsMetadata = false;
-                x.SaveToken = true;
+                x.RequireHttpsMetadata = false; // Không yêu cầu HTTPS trong môi trường phát triển
+                x.SaveToken = true; // Lưu token trong HttpContext
                 x.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                    ValidAudience = builder.Configuration["Jwt:Audience"]
+                    ValidateIssuerSigningKey = true, // Xác thực khóa ký
+                    IssuerSigningKey = new SymmetricSecurityKey(key), // Khóa ký
+                    ValidateIssuer = true, // Xác thực người phát hành
+                    ValidateAudience = true, // Xác thực người nhận
+                    ValidIssuer = builder.Configuration["Jwt:Issuer"], // Người phát hành từ cấu hình
+                    ValidAudience = builder.Configuration["Jwt:Audience"] // Người nhận từ cấu hình
                 };
                 // Thêm xử lý sự kiện tùy chỉnh để tự động thêm prefix "Bearer"
                 x.Events = new JwtBearerEvents
@@ -85,32 +85,30 @@ namespace STP.APIService
                 };
             });
 
-
-            // Đăng ký các Repository và Services
-            // Trong phần đăng ký các Repository và Services
+            // Đăng ký các Repository và Services theo mô hình Dependency Injection
+            // Mỗi request sẽ tạo ra một instance mới của các service này
             builder.Services.AddScoped<UnitOfWork>();
             builder.Services.AddScoped<ShowtimeRepository>();
             builder.Services.AddScoped<ShowtimeService>();
             builder.Services.AddScoped<UserRepository>();
             builder.Services.AddScoped<AuthService>();
             builder.Services.AddScoped<EmailService>();
-
-            builder.Services.AddScoped<UnitOfWork>();
             builder.Services.AddScoped<IUserProfileService, UserProfileService>();
-
             builder.Services.AddScoped<MovieRepository>();
-            //builder.Services.AddScoped<TicketSellingRepository>();
-            //builder.Services.AddScoped<TicketSellingService>();
+
+            // Đăng ký dịch vụ bộ nhớ cache
             builder.Services.AddMemoryCache();
             builder.Services.AddScoped<AccountLockingService>();
 
+            // Cấu hình logging
             builder.Services.AddLogging(logging =>
             {
-                logging.ClearProviders();
-                logging.AddConsole();
-                logging.AddDebug();
+                logging.ClearProviders(); // Xóa tất cả các provider mặc định
+                logging.AddConsole(); // Thêm Console logger
+                logging.AddDebug(); // Thêm Debug logger
             });
-            // Cấu hình Swagger
+
+            // Cấu hình Swagger để tạo tài liệu API
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
@@ -142,31 +140,34 @@ namespace STP.APIService
                 });
             });
 
-            // Xây dựng ứng dụng
+            // Xây dựng ứng dụng từ cấu hình
             var app = builder.Build();
 
             // Cấu hình HTTP request pipeline
+            // Bật Swagger UI trong cả môi trường phát triển và sản xuất
             if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
             {
-                app.UseSwagger();
+                app.UseSwagger(); // Middleware để tạo JSON Swagger
                 app.UseSwaggerUI(c =>
                 {
                     c.SwaggerEndpoint("/swagger/v1/swagger.json", "STP Cinema API V1");
                 });
             }
 
-            // Sử dụng CORS
+            // Áp dụng chính sách CORS đã cấu hình
             app.UseCors("CinemaAPIPolicy");
-            
+
+            // Tự động chuyển hướng HTTP sang HTTPS
             app.UseHttpsRedirection();
 
-            // Thêm Authentication và Authorization
-            app.UseAuthentication();
-            app.UseAuthorization();
+            // Thêm middleware xác thực và phân quyền
+            app.UseAuthentication(); // Xác thực người dùng
+            app.UseAuthorization(); // Phân quyền người dùng
 
+            // Cấu hình routing cho controllers
             app.MapControllers();
 
-            // Chạy ứng dụng
+            // Khởi động ứng dụng
             app.Run();
         }
     }

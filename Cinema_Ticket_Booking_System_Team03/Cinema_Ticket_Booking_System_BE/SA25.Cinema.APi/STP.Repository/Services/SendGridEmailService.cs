@@ -7,24 +7,39 @@ using System.Threading.Tasks;
 
 namespace STP.Repository.Services
 {
+    /// <summary>
+    /// Dịch vụ xử lý việc gửi email trong hệ thống
+    /// </summary>
     public class EmailService
     {
-        private readonly IConfiguration _configuration;
-        private readonly ILogger<EmailService> _logger;
+        private readonly IConfiguration _configuration; // Cấu hình ứng dụng
+        private readonly ILogger<EmailService> _logger; // Logger ghi nhật ký
 
+        /// <summary>
+        /// Khởi tạo dịch vụ email với cấu hình và logger
+        /// </summary>
+        /// <param name="configuration">Cấu hình ứng dụng</param>
+        /// <param name="logger">Logger để ghi nhật ký</param>
         public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
         {
             _configuration = configuration;
             _logger = logger;
         }
 
+        /// <summary>
+        /// Gửi email đến người nhận với tiêu đề và nội dung được chỉ định
+        /// </summary>
+        /// <param name="toEmail">Địa chỉ email người nhận</param>
+        /// <param name="subject">Tiêu đề email</param>
+        /// <param name="body">Nội dung email (hỗ trợ HTML)</param>
+        /// <returns>True nếu gửi thành công, nếu không sẽ ném ra ngoại lệ</returns>
         public async Task<bool> SendEmailAsync(string toEmail, string subject, string body)
         {
             try
             {
                 _logger.LogInformation($"Preparing to send email to {toEmail}");
 
-                // Lấy cấu hình từ EmailSettings
+                // Lấy thông tin cấu hình SMTP từ cài đặt ứng dụng
                 var smtpServer = _configuration["EmailSettings:SmtpServer"];
                 var smtpPort = int.Parse(_configuration["EmailSettings:SmtpPort"]);
                 var senderEmail = _configuration["EmailSettings:SenderEmail"];
@@ -35,16 +50,19 @@ namespace STP.Repository.Services
 
                 _logger.LogInformation($"Using SMTP server: {smtpServer}:{smtpPort}");
 
+                // Tạo đối tượng email
                 var mailMessage = new MailMessage
                 {
                     From = new MailAddress(senderEmail, senderName),
                     Subject = subject,
                     Body = body,
-                    IsBodyHtml = true
+                    IsBodyHtml = true // Cho phép nội dung HTML
                 };
 
+                // Thêm người nhận
                 mailMessage.To.Add(toEmail);
 
+                // Khởi tạo client SMTP
                 using (var client = new SmtpClient(smtpServer, smtpPort))
                 {
                     // Cấu hình xác thực SMTP
@@ -53,6 +71,7 @@ namespace STP.Repository.Services
                     client.Credentials = new NetworkCredential(username, password);
                     client.DeliveryMethod = SmtpDeliveryMethod.Network;
 
+                    // Gửi email
                     _logger.LogInformation("Sending email with credentials...");
                     await client.SendMailAsync(mailMessage);
                     _logger.LogInformation("Email sent successfully");
@@ -62,10 +81,12 @@ namespace STP.Repository.Services
             }
             catch (Exception ex)
             {
+                // Ghi log lỗi và ném ngoại lệ
                 _logger.LogError(ex, $"Error sending email: {ex.Message}");
                 throw new Exception($"Không thể gửi email: {ex.Message}", ex);
             }
         }
+
         /// <summary>
         /// Gửi email thông báo tài khoản bị khóa tạm thời
         /// </summary>
@@ -78,6 +99,7 @@ namespace STP.Repository.Services
             {
                 _logger.LogInformation($"Preparing to send account locked notification to {email}");
 
+                // Chuẩn bị tiêu đề và nội dung email
                 var subject = "Thông báo tài khoản bị khóa tạm thời";
                 var body = $@"
             <html>
@@ -111,17 +133,18 @@ namespace STP.Repository.Services
             </html>
         ";
 
+                // Gửi email
                 await SendEmailAsync(email, subject, body);
                 _logger.LogInformation($"Account locked notification sent to {email}");
             }
             catch (Exception ex)
             {
+                // Ghi log lỗi và ném ngoại lệ
                 _logger.LogError(ex, $"Error sending account locked notification: {ex.Message}");
                 throw;
             }
         }
 
-        // Thêm vào EmailService.cs
         /// <summary>
         /// Gửi email thông báo mật khẩu cho người dùng mới
         /// </summary>
@@ -135,6 +158,7 @@ namespace STP.Repository.Services
             {
                 _logger.LogInformation($"Preparing to send password notification to {email}");
 
+                // Chuẩn bị tiêu đề và nội dung email
                 string subject = "Thông tin tài khoản mới của bạn";
                 string body = $@"
             <html>
@@ -173,15 +197,18 @@ namespace STP.Repository.Services
             </html>
         ";
 
+                // Gửi email
                 await SendEmailAsync(email, subject, body);
                 _logger.LogInformation($"Password notification email sent to {email}");
             }
             catch (Exception ex)
             {
+                // Ghi log lỗi và ném ngoại lệ
                 _logger.LogError(ex, $"Error sending password notification email: {ex.Message}");
                 throw new Exception($"Không thể gửi email thông báo mật khẩu: {ex.Message}", ex);
             }
         }
+
         /// <summary>
         /// Gửi email chào mừng cho khách hàng mới đăng ký
         /// </summary>
@@ -194,6 +221,7 @@ namespace STP.Repository.Services
             {
                 _logger.LogInformation($"Preparing to send welcome email to {email}");
 
+                // Chuẩn bị tiêu đề và nội dung email
                 string subject = "Chào mừng bạn đến với dịch vụ của chúng tôi";
                 string body = $@"
             <html>
@@ -234,15 +262,16 @@ namespace STP.Repository.Services
             </html>
         ";
 
+                // Gửi email
                 await SendEmailAsync(email, subject, body);
                 _logger.LogInformation($"Welcome email sent to {email}");
             }
             catch (Exception ex)
             {
+                // Ghi log lỗi và ném ngoại lệ
                 _logger.LogError(ex, $"Error sending welcome email: {ex.Message}");
                 throw new Exception($"Không thể gửi email chào mừng: {ex.Message}", ex);
             }
         }
-
     }
 }

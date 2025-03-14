@@ -1,27 +1,35 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System;
-using System.Linq;
-using System.Linq.Expressions;
-using STP.Repository.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using STP.Repository.Data;
+using STP.Repository.Models;
+
 namespace STP.Repository.Repositories
 {
+    /// <summary>
+    /// Repository để thao tác với dữ liệu Showtime (lịch chiếu) trong cơ sở dữ liệu.
+    /// Cung cấp các phương thức CRUD và các thao tác đặc biệt cho entity Showtime.
+    /// </summary>
     public class ShowtimeRepository
     {
         private readonly CinemaDbContext _context;
 
+        /// <summary>
+        /// Khởi tạo một instance mới của ShowtimeRepository.
+        /// </summary>
+        /// <param name="context">Database context để thao tác với cơ sở dữ liệu</param>
         public ShowtimeRepository(CinemaDbContext context)
         {
             _context = context;
         }
 
+        /// <summary>
+        /// Lấy tất cả các lịch chiếu kèm thông tin phim và phòng chiếu.
+        /// </summary>
+        /// <returns>Danh sách tất cả các lịch chiếu</returns>
         public async Task<IEnumerable<Showtime>> GetAllAsync()
         {
             return await _context.Showtimes
@@ -30,7 +38,11 @@ namespace STP.Repository.Repositories
                 .ToListAsync();
         }
 
-        // Thêm phương thức mới để lấy lịch chiếu theo trạng thái
+        /// <summary>
+        /// Lấy lịch chiếu theo trạng thái cụ thể.
+        /// </summary>
+        /// <param name="status">Trạng thái của lịch chiếu cần lấy</param>
+        /// <returns>Danh sách lịch chiếu có trạng thái tương ứng</returns>
         public async Task<IEnumerable<Showtime>> GetAllByStatusAsync(string status)
         {
             return await _context.Showtimes
@@ -40,7 +52,10 @@ namespace STP.Repository.Repositories
                 .ToListAsync();
         }
 
-        // Phương thức lấy tất cả lịch chiếu có trạng thái khác Hidden/Deleted
+        /// <summary>
+        /// Lấy tất cả lịch chiếu đang hoạt động (không bị ẩn hoặc xóa).
+        /// </summary>
+        /// <returns>Danh sách lịch chiếu đang hoạt động</returns>
         public async Task<IEnumerable<Showtime>> GetAllActiveAsync()
         {
             return await _context.Showtimes
@@ -49,7 +64,12 @@ namespace STP.Repository.Repositories
                 .Where(s => s.Status != "Hidden" && s.Status != "Deleted")
                 .ToListAsync();
         }
-   
+
+        /// <summary>
+        /// Tạo mới một lịch chiếu trong cơ sở dữ liệu.
+        /// </summary>
+        /// <param name="showtime">Đối tượng Showtime cần thêm vào cơ sở dữ liệu</param>
+        /// <returns>ID của lịch chiếu vừa được tạo</returns>
         public async Task<int> CreateAsync(Showtime showtime)
         {
             _context.Showtimes.Add(showtime);
@@ -57,7 +77,11 @@ namespace STP.Repository.Repositories
             return showtime.Showtime_ID;
         }
 
-        // Read
+        /// <summary>
+        /// Lấy một lịch chiếu theo ID kèm thông tin phòng chiếu.
+        /// </summary>
+        /// <param name="id">ID của lịch chiếu cần lấy</param>
+        /// <returns>Đối tượng Showtime nếu tìm thấy, null nếu không tìm thấy</returns>
         public async Task<Showtime> GetByIdAsync(int id)
         {
             return await _context.Showtimes
@@ -65,7 +89,11 @@ namespace STP.Repository.Repositories
                 .FirstOrDefaultAsync(s => s.Showtime_ID == id);
         }
 
-        // Get by condition
+        /// <summary>
+        /// Lấy danh sách lịch chiếu theo điều kiện cụ thể.
+        /// </summary>
+        /// <param name="predicate">Biểu thức điều kiện để lọc lịch chiếu</param>
+        /// <returns>Danh sách lịch chiếu thỏa mãn điều kiện</returns>
         public async Task<List<Showtime>> GetAsync(Expression<Func<Showtime, bool>> predicate)
         {
             return await _context.Showtimes
@@ -74,7 +102,11 @@ namespace STP.Repository.Repositories
                 .ToListAsync();
         }
 
-        // Update
+        /// <summary>
+        /// Cập nhật thông tin của một lịch chiếu.
+        /// </summary>
+        /// <param name="showtime">Đối tượng Showtime với thông tin đã được cập nhật</param>
+        /// <returns>Số bản ghi bị ảnh hưởng</returns>
         public async Task<int> UpdateAsync(Showtime showtime)
         {
             var tracker = _context.Attach(showtime);
@@ -82,7 +114,11 @@ namespace STP.Repository.Repositories
             return await _context.SaveChangesAsync();
         }
 
-        // Delete
+        /// <summary>
+        /// Xóa một lịch chiếu theo ID.
+        /// </summary>
+        /// <param name="id">ID của lịch chiếu cần xóa</param>
+        /// <returns>true nếu xóa thành công, false nếu không tìm thấy lịch chiếu</returns>
         public async Task<bool> RemoveAsync(int id)
         {
             var showtime = await GetByIdAsync(id);
@@ -94,6 +130,12 @@ namespace STP.Repository.Repositories
             return true;
         }
 
+        /// <summary>
+        /// Cập nhật thông tin của một lịch chiếu theo ID, giữ nguyên một số trường.
+        /// </summary>
+        /// <param name="id">ID của lịch chiếu cần cập nhật</param>
+        /// <param name="showtime">Đối tượng Showtime với thông tin đã được cập nhật</param>
+        /// <returns>true nếu cập nhật thành công, false nếu không tìm thấy lịch chiếu hoặc có lỗi</returns>
         public async Task<bool> UpdateAsync(int id, Showtime showtime)
         {
             try
@@ -118,7 +160,13 @@ namespace STP.Repository.Repositories
             }
         }
 
-        // Thêm phương thức cập nhật trạng thái
+        /// <summary>
+        /// Cập nhật trạng thái của một lịch chiếu.
+        /// </summary>
+        /// <param name="id">ID của lịch chiếu cần cập nhật</param>
+        /// <param name="status">Trạng thái mới</param>
+        /// <param name="updatedBy">ID của người dùng thực hiện cập nhật</param>
+        /// <returns>true nếu cập nhật thành công, false nếu không tìm thấy lịch chiếu hoặc có lỗi</returns>
         public async Task<bool> UpdateStatusAsync(int id, string status, int updatedBy)
         {
             try
@@ -129,9 +177,8 @@ namespace STP.Repository.Repositories
 
                 showtime.Status = status;
                 showtime.Updated_At = DateTime.Now;
-                  
 
-                await _context.SaveChangesAsync();  
+                await _context.SaveChangesAsync();
                 return true;
             }
             catch
@@ -140,7 +187,11 @@ namespace STP.Repository.Repositories
             }
         }
 
-        // Giữ nguyên phương thức DeleteAsync hiện tại cho trường hợp cần xóa hoàn toàn
+        /// <summary>
+        /// Xóa hoàn toàn một lịch chiếu và các dữ liệu liên quan.
+        /// </summary>
+        /// <param name="id">ID của lịch chiếu cần xóa</param>
+        /// <returns>true nếu xóa thành công, false nếu không tìm thấy lịch chiếu hoặc có lỗi</returns>
         public async Task<bool> DeleteAsync(int id)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -201,7 +252,12 @@ namespace STP.Repository.Repositories
             }
         }
 
-        // Thêm phương thức "soft delete" - thay đổi trạng thái thay vì xóa
+        /// <summary>
+        /// Thực hiện "xóa mềm" một lịch chiếu bằng cách thay đổi trạng thái.
+        /// </summary>
+        /// <param name="id">ID của lịch chiếu cần xóa mềm</param>
+        /// <param name="updatedBy">ID của người dùng thực hiện xóa</param>
+        /// <returns>true nếu xóa mềm thành công, false nếu không tìm thấy lịch chiếu hoặc có lỗi</returns>
         public async Task<bool> SoftDeleteAsync(int id, int updatedBy)
         {
             try
@@ -210,10 +266,9 @@ namespace STP.Repository.Repositories
                 if (showtime == null)
                     return false;
 
-                // Thay đổi trạng thái thành "Deleted" hoặc "Hidden"
+                // Thay đổi trạng thái thành "Hidden"
                 showtime.Status = "Hidden";
                 showtime.Updated_At = DateTime.Now;
-                
 
                 await _context.SaveChangesAsync();
                 return true;
@@ -224,7 +279,11 @@ namespace STP.Repository.Repositories
             }
         }
 
-        // Kiểm tra xem lịch chiếu đã có vé được đặt chưa
+        /// <summary>
+        /// Kiểm tra xem lịch chiếu đã có vé được đặt chưa.
+        /// </summary>
+        /// <param name="showtimeId">ID của lịch chiếu cần kiểm tra</param>
+        /// <returns>true nếu lịch chiếu đã có vé được đặt, false nếu chưa</returns>
         public async Task<bool> HasBookingsAsync(int showtimeId)
         {
             return await _context.TicketBookings
