@@ -114,38 +114,73 @@ namespace STP.APIService.Controllers
         /// - Cập nhật thời gian sửa đổi
         /// - Lưu vào database và trả về số dòng bị ảnh hưởng
         /// </summary>
-        [HttpPut]
-        public async Task<ActionResult<MovieResponseDTO>> UpdateMovie([FromBody] UpdateMovieDTO updateMovieDTO)
+        [HttpPut("{id}")]
+        public async Task<ActionResult<MovieResponseDTO>> UpdateMovie(int id, [FromBody] UpdateMovieDTO updateMovieDTO)
         {
+            if (id != updateMovieDTO.Movie_ID)
+            {
+                return BadRequest(new { message = "ID không khớp." });
+            }
+
             try
             {
-                // Khởi tạo đối tượng Movie từ DTO để cập nhật
-                var movie = new Movie()
+                // Kiểm tra phim có tồn tại không
+                var existingMovie = await _unitOfWork.MovieRepository.GetMovieWithDetailsAsync(id);
+                if (existingMovie == null)
                 {
-                    Movie_ID = updateMovieDTO.Movie_ID,
-                    Movie_Name = updateMovieDTO.Movie_Name,
-                    Release_Date = updateMovieDTO.Release_Date,
-                    End_Date = updateMovieDTO.End_Date,
-                    Production_Company = updateMovieDTO.Production_Company,
-                    Director = updateMovieDTO.Director,
-                    Cast = updateMovieDTO.Cast,
-                    Duration = updateMovieDTO.Duration,
-                    Genre = updateMovieDTO.Genre,
-                    Rating = updateMovieDTO.Rating,
-                    Language = updateMovieDTO.Language,
-                    Country = updateMovieDTO.Country,
-                    Synopsis = updateMovieDTO.Synopsis,
-                    Poster_URL = updateMovieDTO.Poster_URL,
-                    Trailer_Link = updateMovieDTO.Trailer_Link,
-                    Status = updateMovieDTO.Status,
-                    Created_By = updateMovieDTO.Created_By,
-                    Updated_At = DateTime.Now // Cập nhật thời gian sửa đổi
-                };
+                    return NotFound(new { message = $"Movie with ID {id} not found" });
+                }
+
+                // Cập nhật các thuộc tính của movie đã tồn tại
+                existingMovie.Movie_Name = updateMovieDTO.Movie_Name;
+                existingMovie.Release_Date = updateMovieDTO.Release_Date;
+                existingMovie.End_Date = updateMovieDTO.End_Date;
+                existingMovie.Production_Company = updateMovieDTO.Production_Company;
+                existingMovie.Director = updateMovieDTO.Director;
+                existingMovie.Cast = updateMovieDTO.Cast;
+                existingMovie.Duration = updateMovieDTO.Duration;
+                existingMovie.Genre = updateMovieDTO.Genre;
+                existingMovie.Rating = updateMovieDTO.Rating;
+                existingMovie.Language = updateMovieDTO.Language;
+                existingMovie.Country = updateMovieDTO.Country;
+                existingMovie.Synopsis = updateMovieDTO.Synopsis;
+                existingMovie.Poster_URL = updateMovieDTO.Poster_URL;
+                existingMovie.Trailer_Link = updateMovieDTO.Trailer_Link;
+                existingMovie.Status = updateMovieDTO.Status;
+                existingMovie.Updated_At = DateTime.Now; // Cập nhật thời gian sửa đổi
 
                 // Cập nhật phim trong database
-                int rowsAffected = await _unitOfWork.MovieRepository.UpdateAsync(movie);
+                int rowsAffected = await _unitOfWork.MovieRepository.UpdateAsync(existingMovie);
+                if (rowsAffected == 0)
+                {
+                    return StatusCode(500, new { message = "Failed to update the movie" });
+                }
 
-                return Ok(rowsAffected);
+                // Chuyển đổi thành DTO để trả về
+                var response = new MovieResponseDTO
+                {
+                    Movie_ID = existingMovie.Movie_ID,
+                    Movie_Name = existingMovie.Movie_Name,
+                    Release_Date = existingMovie.Release_Date,
+                    End_Date = existingMovie.End_Date,
+                    Production_Company = existingMovie.Production_Company,
+                    Director = existingMovie.Director,
+                    Cast = existingMovie.Cast,
+                    Duration = existingMovie.Duration,
+                    Genre = existingMovie.Genre,
+                    Rating = existingMovie.Rating,
+                    Language = existingMovie.Language,
+                    Country = existingMovie.Country,
+                    Synopsis = existingMovie.Synopsis,
+                    Poster_URL = existingMovie.Poster_URL,
+                    Trailer_Link = existingMovie.Trailer_Link,
+                    Status = existingMovie.Status,
+                    Created_By = existingMovie.Created_By,
+                    Created_At = existingMovie.Created_At,
+                    Updated_At = existingMovie.Updated_At
+                };
+
+                return Ok(response);
             }
             catch (Exception ex)
             {
@@ -254,7 +289,7 @@ namespace STP.APIService.Controllers
         /// - Truy vấn phim từ database theo ID
         /// - Chuyển đổi sang DTO để trả về client
         /// </summary>
-         [AllowAnonymous]
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<ActionResult<MovieResponseDTO>> GetMovieById(int id)
         {
