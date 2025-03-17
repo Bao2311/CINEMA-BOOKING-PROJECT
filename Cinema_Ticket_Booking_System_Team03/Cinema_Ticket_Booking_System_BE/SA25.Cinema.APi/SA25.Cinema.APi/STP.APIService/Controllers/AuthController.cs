@@ -259,7 +259,6 @@ namespace STP.APIService.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-
         /// <summary>
         /// API xác thực email - không yêu cầu xác thực
         /// </summary>
@@ -268,15 +267,20 @@ namespace STP.APIService.Controllers
         {
             try
             {
+                _logger.LogInformation($"Received email verification request with token: {token}");
+
                 if (string.IsNullOrEmpty(token))
                 {
+                    _logger.LogWarning("Token is null or empty");
                     return BadRequest(new { success = false, message = "Token không hợp lệ" });
                 }
 
-                bool verified = await _emailVerificationService.VerifyEmailAsync(token, _userRepository);
+                bool verified = await _emailVerificationService.VerifyEmailAsync(token);
 
                 if (verified)
                 {
+                    _logger.LogInformation("Email verification successful");
+
                     // Trả về trang HTML thông báo thành công
                     string htmlResponse = @"
             <!DOCTYPE html>
@@ -325,6 +329,7 @@ namespace STP.APIService.Controllers
                     <h1>Xác thực email thành công!</h1>
                     <p>Cảm ơn bạn đã xác thực email. Tài khoản của bạn đã được kích hoạt.</p>
                     <p>Bạn có thể đăng nhập và bắt đầu sử dụng dịch vụ của chúng tôi.</p>
+                    <a href=""http://localhost:5173/login"" class=""btn"">Đăng nhập ngay</a>
                 </div>
             </body>
             </html>";
@@ -333,6 +338,8 @@ namespace STP.APIService.Controllers
                 }
                 else
                 {
+                    _logger.LogWarning("Email verification failed");
+
                     // Trả về trang HTML thông báo thất bại
                     string htmlResponse = @"
             <!DOCTYPE html>
@@ -364,6 +371,15 @@ namespace STP.APIService.Controllers
                     h1 {
                         color: #dc3545;
                     }
+                    .btn {
+                        display: inline-block;
+                        background-color: #007bff;
+                        color: white;
+                        padding: 10px 20px;
+                        text-decoration: none;
+                        border-radius: 5px;
+                        margin-top: 20px;
+                    }
                 </style>
             </head>
             <body>
@@ -372,6 +388,7 @@ namespace STP.APIService.Controllers
                     <h1>Xác thực email thất bại</h1>
                     <p>Đường dẫn xác thực không hợp lệ hoặc đã hết hạn.</p>
                     <p>Vui lòng thử lại hoặc yêu cầu gửi lại email xác thực.</p>
+                    <a href='/resend-verification' class='btn'>Gửi lại email xác thực</a>
                 </div>
             </body>
             </html>";
@@ -381,11 +398,10 @@ namespace STP.APIService.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi khi xác thực email: {ex.Message}");
-                return BadRequest(new { success = false, message = "Đã xảy ra lỗi khi xác thực email" });
+                _logger.LogError(ex, $"Error in VerifyEmail: {ex.Message}");
+                return StatusCode(500, "Đã xảy ra lỗi khi xác thực email");
             }
         }
-
         /// <summary>
         /// API gửi lại email xác thực - không yêu cầu xác thực
         /// </summary>
@@ -394,28 +410,89 @@ namespace STP.APIService.Controllers
         {
             try
             {
+                _logger.LogInformation($"Received resend verification request for: {model.Email}");
+
+                if (string.IsNullOrEmpty(model.Email))
+                {
+                    _logger.LogWarning("Email is null or empty");
+                    return BadRequest(new { success = false, message = "Email không được để trống" });
+                }
+
                 var user = await _userRepository.GetByEmailAsync(model.Email);
                 if (user == null)
                 {
+                    _logger.LogWarning($"User not found with email: {model.Email}");
                     return NotFound(new { success = false, message = "Không tìm thấy tài khoản với email này" });
                 }
 
                 // Kiểm tra trạng thái tài khoản
                 if (user.Account_Status != "Pending")
                 {
+                    _logger.LogWarning($"User account is not in Pending status: {model.Email}, Status: {user.Account_Status}");
                     return BadRequest(new { success = false, message = "Tài khoản đã được xác thực hoặc không ở trạng thái chờ xác thực" });
                 }
 
                 // Tạo và gửi token xác thực mới
-                await _emailVerificationService.GenerateVerificationTokenAsync(user.Email, user.Full_Name);
+                bool emailSent = await _emailVerificationService.GenerateVerificationTokenAsync(user.Email, user.Full_Name);
 
-                return Ok(new { success = true, message = "Email xác thực đã được gửi lại" });
+                if (emailSent)
+                {
+                    _logger.LogInformation($"Verification email resent to: {model.Email}");
+                    return Ok(new { success = true, message = "Email xác thực đã được gửi lại. Vui lòng kiểm tra hộp thư của bạn." });
+                }
+                else
+                {
+                    _logger.LogWarning($"Failed to resend verification email to: {model.Email}");
+                    return StatusCode(500, new { success = false, message = "Không thể gửi lại email xác thực. Vui lòng thử lại sau." });
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi khi gửi lại email xác thực: {ex.Message}");
-                return BadRequest(new { success = false, message = "Đã xảy ra lỗi khi gửi lại email xác thực" });
+                _logger.LogError(ex, $"Error in ResendVerificationEmail: {ex.Message}");
+                return StatusCode(500, new { success = false, message = "Đã xảy ra lỗi khi gửi lại email xác thực" });
             }
         }
+        /// <summary>
+        /// API kiểm tra trạng thái xác thực email - không yêu cầu xác thực
+        /// </summary>
+        [HttpGet("check-verification")]
+        public async Task<IActionResult> CheckEmailVerification([FromQuery] string email)
+        {
+            try
+            {
+                _logger.LogInformation($"Checking email verification status for: {email}");
+
+                if (string.IsNullOrEmpty(email))
+                {
+                    return BadRequest(new { success = false, message = "Email không được để trống" });
+                }
+
+                var user = await _userRepository.GetByEmailAsync(email);
+                if (user == null)
+                {
+                    return NotFound(new { success = false, message = "Không tìm thấy tài khoản với email này" });
+                }
+
+                bool isVerified = user.Account_Status == "Active";
+
+                return Ok(new
+                {
+                    success = true,
+                    isVerified = isVerified,
+                    status = user.Account_Status,
+                    message = isVerified
+                        ? "Email đã được xác thực"
+                        : "Email chưa được xác thực"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error checking email verification status: {ex.Message}");
+                return StatusCode(500, new { success = false, message = "Đã xảy ra lỗi khi kiểm tra trạng thái xác thực email" });
+            }
+        }
+
     }
 }
+
+

@@ -14,6 +14,7 @@ namespace sa25.Repository.Data
     // và cung cấp quyền truy cập tập trung đến tất cả các repository
     public class UnitOfWork : IDisposable
     {
+        private readonly ILoggerFactory _loggerFactory;
         // Context cơ sở dữ liệu chính
         private readonly CinemaDbContext _context;
         // Logger để ghi lại các hoạt động
@@ -39,16 +40,17 @@ namespace sa25.Repository.Data
         private PointsRedemptionRepository _pointsRedemptionRepository;
 
         // Constructor - nhận database context và logger thông qua dependency injection
-        public UnitOfWork(CinemaDbContext context, ILogger<UnitOfWork> logger)
+        public UnitOfWork(CinemaDbContext context, ILogger<UnitOfWork> logger, ILoggerFactory loggerFactory)
         {
             _context = context;
             _logger = logger;
+            _loggerFactory = loggerFactory;
         }
 
         // Properties truy cập các repository - sử dụng mẫu singleton cho mỗi repository
         // Mỗi property sử dụng toán tử null-coalescing để khởi tạo repository chỉ khi cần
         public UserRepository UserRepository =>
-            _userRepository ??= new UserRepository(_context);
+            _userRepository ??= new UserRepository(_context, _loggerFactory.CreateLogger<UserRepository>());
 
         public MovieRepository MovieRepository =>
             _movieRepository ??= new MovieRepository(_context);
@@ -127,3 +129,6 @@ namespace sa25.Repository.Data
         }
     }
 }
+
+
+

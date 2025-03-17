@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PMS.Repository.Base;
 using STP.Repository.Data;
 using STP.Repository.Models;
@@ -15,12 +16,17 @@ namespace STP.Repositories
     /// </summary>
     public class UserRepository : GenericRepository<User>
     {
+        // Thêm logger
+        private readonly ILogger<UserRepository> _logger;
+
         /// <summary>
         /// Khởi tạo một instance mới của UserRepository.
         /// </summary>
         /// <param name="context">Database context để thao tác với cơ sở dữ liệu</param>
-        public UserRepository(CinemaDbContext context) : base(context)
+        /// <param name="logger">Logger để ghi log</param>
+        public UserRepository(CinemaDbContext context, ILogger<UserRepository> logger) : base(context)
         {
+            _logger = logger;
         }
 
         /// <summary>
@@ -62,5 +68,60 @@ namespace STP.Repositories
         {
             return await _context.Users.FirstOrDefaultAsync(u => u.Phone_Number == phoneNumber);
         }
+        public async Task<bool> IsPhoneNumberExistAsync(string phoneNumber, int? excludeUserId = null)
+        {
+            if (string.IsNullOrEmpty(phoneNumber))
+                return false;
+
+            if (excludeUserId.HasValue)
+            {
+                // Kiểm tra số điện thoại đã tồn tại nhưng loại trừ người dùng hiện tại (dùng khi cập nhật)
+                return await _context.Users.AnyAsync(u => u.Phone_Number == phoneNumber && u.User_ID != excludeUserId);
+            }
+            else
+            {
+                // Kiểm tra số điện thoại đã tồn tại (dùng khi đăng ký)
+                return await _context.Users.AnyAsync(u => u.Phone_Number == phoneNumber);
+            }
+        }
+        public async Task<User> GetByExactEmailAsync(string email)
+        {
+            _logger.LogInformation($"Searching for user with exact email: {email}");
+
+            // Sử dụng so sánh chính xác với email
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == email);
+
+            if (user == null)
+            {
+                _logger.LogWarning($"No user found with exact email: {email}");
+
+                // Log tất cả email tương tự để debug
+                var username = email.Split('@')[0]; // Tách phần username trước khi sử dụng trong LINQ
+                var similarEmails = await _context.Users
+                    .Where(u => u.Email.Contains(username))
+                    .Select(u => new { u.User_ID, u.Email })
+                    .ToListAsync();
+
+                if (similarEmails.Any())
+                {
+                    _logger.LogWarning($"Found {similarEmails.Count} similar emails:");
+                    foreach (var item in similarEmails)
+                    {
+                        _logger.LogWarning($"ID: {item.User_ID}, Email: {item.Email}");
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogInformation($"Found user with ID: {user.User_ID}, Email: {user.Email}");
+            }
+
+            return user;
+        }
+
     }
 }
+
+
+

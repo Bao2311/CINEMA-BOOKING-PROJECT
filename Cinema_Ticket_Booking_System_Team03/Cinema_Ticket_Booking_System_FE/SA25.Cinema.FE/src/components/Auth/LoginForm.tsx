@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
@@ -22,6 +20,7 @@ const LoginForm: React.FC = () => {
     // Validation
     if (!email || !password) {
       setError('Email and password are required');
+      toast.error('Email and password are required');
       return;
     }
 
@@ -42,8 +41,9 @@ const LoginForm: React.FC = () => {
     } catch (err: any) {
       // Hiển thị thông báo lỗi khi đăng nhập thất bại
       console.error('Login error:', err);
-      setError(err.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.');
-      toast.error('Đăng nhập thất bại!');
+      const errorMessage = err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false); // Tắt loading sau khi xử lý xong
     }

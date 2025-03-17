@@ -169,24 +169,86 @@ namespace STP.APIService.Controllers
                 if (user == null)
                     return NotFound(new { message = "Không tìm thấy người dùng" });
 
-                // Cập nhật thông tin cơ bản
-                var profileDto = new AdminUpdateUserDto
+                // Kiểm tra số điện thoại đã tồn tại (nếu có thay đổi)
+                if (!string.IsNullOrEmpty(updateDto.PhoneNumber) &&
+                    updateDto.PhoneNumber != user.Phone_Number)
                 {
-                    FullName = updateDto.FullName,
-                    DateOfBirth = updateDto.DateOfBirth,
-                    Sex = updateDto.Sex,
-                    PhoneNumber = updateDto.PhoneNumber,
-                    Address = updateDto.Address,
-                    Role = updateDto.Role
-                };
+                    bool phoneExists = await _userRepository.IsPhoneNumberExistAsync(updateDto.PhoneNumber, id);
+                    if (phoneExists)
+                    {
+                        return BadRequest(new { message = "Số điện thoại đã được sử dụng bởi tài khoản khác" });
+                    }
+                }
+
+                // Cập nhật thông tin người dùng
+                if (!string.IsNullOrEmpty(updateDto.FullName))
+                    user.Full_Name = updateDto.FullName;
+
+                if (updateDto.DateOfBirth.HasValue)
+                    user.Date_Of_Birth = updateDto.DateOfBirth.Value;
+
+                if (!string.IsNullOrEmpty(updateDto.Sex))
+                    user.Sex = updateDto.Sex;
+
+                if (!string.IsNullOrEmpty(updateDto.PhoneNumber))
+                    user.Phone_Number = updateDto.PhoneNumber;
+
+                if (!string.IsNullOrEmpty(updateDto.Address))
+                    user.Address = updateDto.Address;
+
+                if (!string.IsNullOrEmpty(updateDto.Role))
+                {
+                    // Kiểm tra vai trò hợp lệ
+                    string[] validRoles = { "Customer", "Staff", "Manager" };
+                    if (Array.Exists(validRoles, r => r.Equals(updateDto.Role, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        user.Role = updateDto.Role;
+                    }
+                    else
+                    {
+                        return BadRequest(new { message = "Vai trò không hợp lệ. Các vai trò hợp lệ: Customer, Staff, Manager" });
+                    }
+                }
 
                 // Cập nhật trạng thái tài khoản nếu có thay đổi
                 if (!string.IsNullOrEmpty(updateDto.AccountStatus) && user.Account_Status != updateDto.AccountStatus)
                 {
-                    await _authService.ChangeAccountStatusAsync(id, updateDto.AccountStatus);
+                    // Kiểm tra trạng thái hợp lệ
+                    string[] validStatuses = { "Active", "Inactive", "Locked", "Pending" };
+                    if (Array.Exists(validStatuses, s => s.Equals(updateDto.AccountStatus, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        // Gọi service để thay đổi trạng thái
+                        await _authService.ChangeAccountStatusAsync(id, updateDto.AccountStatus);
+
+                        // Cập nhật trạng thái trong đối tượng user (không cần thiết nếu ChangeAccountStatusAsync đã cập nhật)
+                        user.Account_Status = updateDto.AccountStatus;
+                    }
+                    else
+                    {
+                        return BadRequest(new { message = "Trạng thái tài khoản không hợp lệ. Các trạng thái hợp lệ: Active, Inactive, Locked, Pending" });
+                    }
                 }
 
-                return Ok(profileDto);
+                // Lưu thay đổi vào cơ sở dữ liệu
+                await _userRepository.UpdateAsync(user);
+
+                // Trả về thông tin đã cập nhật
+                var updatedUserDto = new
+                {
+                    user.User_ID,
+                    user.Full_Name,
+                    user.Email,
+                    user.Role,
+                    user.Date_Of_Birth,
+                    user.Sex,
+                    user.Phone_Number,
+                    user.Address,
+                    user.Account_Status,
+                    user.Created_At,
+                    user.Last_Login
+                };
+
+                return Ok(updatedUserDto);
             }
             catch (Exception ex)
             {

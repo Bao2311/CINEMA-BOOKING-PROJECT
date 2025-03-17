@@ -8,12 +8,15 @@ using System.Collections.Generic;
 using STP.Service.Services;
 using STP.Repository.DTOs;
 using STP.Repository.Models;
+using STP.Repository.Repositories;
+using STP.Repository.Services;
 
 namespace STP.API.Controllers
 {
     // Định nghĩa controller API và route
     [ApiController]
     [Route("api/[controller]")]
+    
     public class ShowtimesController : ControllerBase
     {
         // Khai báo các service và logger cần thiết
@@ -33,6 +36,7 @@ namespace STP.API.Controllers
         /// Lấy danh sách tất cả lịch chiếu
         /// </summary>
         [HttpGet]
+        [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<IEnumerable<ShowtimeDto>>> GetShowtimes()
@@ -72,7 +76,7 @@ namespace STP.API.Controllers
                 return Ok(showtime);
             }
             catch (Exception ex)
-            {
+            {   
                 // Ghi log lỗi và trả về mã lỗi 500
                 _logger.LogError(ex, $"Lỗi khi lấy lịch chiếu ID: {id}");
                 return StatusCode(500, "Lỗi hệ thống");
@@ -82,40 +86,42 @@ namespace STP.API.Controllers
         /// <summary>
         /// Tạo lịch chiếu mới
         /// </summary>
-        [HttpPost]
-        [Authorize(Roles = "Admin,Manager")] // Chỉ Admin và Manager mới có quyền tạo lịch chiếu
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<int>> CreateShowtime([FromBody] ShowtimeCreateDto showtimeDto)
-        {
-            try
-            {
-                // Kiểm tra tính hợp lệ của dữ liệu đầu vào
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
+         [HttpPost]
+          [Authorize(Roles = "Admin,Manager")] // Chỉ Admin và Manager mới có quyền tạo lịch chiếu
+          [ProducesResponseType(StatusCodes.Status201Created)]
+          [ProducesResponseType(StatusCodes.Status400BadRequest)]
+          [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+          public async Task<ActionResult<int>> CreateShowtime([FromBody] ShowtimeCreateDto showtimeDto)
+          {
+              try
+              {
+                  // Kiểm tra tính hợp lệ của dữ liệu đầu vào
+                  if (!ModelState.IsValid)
+                      return BadRequest(ModelState);
 
-                // Lấy ID người dùng từ token JWT
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-                // Gọi service để tạo lịch chiếu mới
-                var id = await _showtimeService.CreateShowtimeAsync(showtimeDto, userId);
+                  // Lấy ID người dùng từ token JWT
+                  var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                  // Gọi service để tạo lịch chiếu mới
+                  var id = await _showtimeService.CreateShowtimeAsync(showtimeDto, userId);
 
-                // Trả về kết quả với mã 201 Created và đường dẫn đến lịch chiếu mới
-                return CreatedAtAction(nameof(GetShowtime), new { id }, id);
-            }
-            catch (InvalidOperationException ex)
-            {
-                // Xử lý lỗi nghiệp vụ và trả về mã lỗi 400
-                _logger.LogWarning(ex, "Lỗi nghiệp vụ khi tạo lịch chiếu");
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                // Ghi log lỗi và trả về mã lỗi 500
-                _logger.LogError(ex, "Lỗi khi tạo lịch chiếu");
-                return StatusCode(500, "Lỗi hệ thống");
-            }
-        }
+                  // Trả về kết quả với mã 201 Created và đường dẫn đến lịch chiếu mới
+                  return CreatedAtAction(nameof(GetShowtime), new { id }, id);
+              }
+              catch (InvalidOperationException ex)
+              {
+                  // Xử lý lỗi nghiệp vụ và trả về mã lỗi 400
+                  _logger.LogWarning(ex, "Lỗi nghiệp vụ khi tạo lịch chiếu");
+                  return BadRequest(ex.Message);
+              }
+              catch (Exception ex)
+              {
+                  // Ghi log lỗi và trả về mã lỗi 500
+                  _logger.LogError(ex, "Lỗi khi tạo lịch chiếu");
+                  return StatusCode(500, "Lỗi hệ thống");
+              }
+          }
+
+        
 
         /// <summary>
         /// Cập nhật thông tin lịch chiếu

@@ -4,7 +4,6 @@ using sa25.Repository.Data;
 using STP.APIService.Controllers.DTOs;
 using STP.Repository.Models;
 using System.Security.Claims;
-using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
 
 namespace STP.APIService.Controllers
 {
@@ -14,24 +13,28 @@ namespace STP.APIService.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin,Staff")]
+    //[Authorize(Roles = "Admin,Staff")]
+    [AllowAnonymous]
     public class MovieController : ControllerBase
     {
         private readonly UnitOfWork _unitOfWork;
+        private readonly CloudinaryService _cloudinaryService;
 
-        public MovieController(UnitOfWork unitOfWork)
+        public MovieController(UnitOfWork unitOfWork, CloudinaryService cloudinaryService)
         {
             _unitOfWork = unitOfWork;
+            _cloudinaryService = cloudinaryService;
         }
 
         /// <summary>
         /// API thêm phim mới vào hệ thống
         /// - Xác thực người dùng qua token JWT
         /// - Kiểm tra ngày phát hành phải trong tương lai
+        /// - Upload poster nếu có
         /// - Lưu thông tin phim và trả về kết quả
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult<MovieResponseDTO>> CreateMovie([FromBody] CreateMovieDTO createMovieDTO)
+        public async Task<ActionResult<MovieResponseDTO>> CreateMovie([FromForm] CreateMovieDTO createMovieDTO)
         {
             try
             {
@@ -50,6 +53,26 @@ namespace STP.APIService.Controllers
                     return BadRequest(new { message = "Release date must be in the future" });
                 }
 
+                // Khởi tạo posterUrl là null hoặc chuỗi rỗng
+                string posterUrl = null;
+
+                // Xử lý upload poster nếu có file
+                if (createMovieDTO.posterFile != null && createMovieDTO.posterFile.Length > 0)
+                {
+                    try
+                    {
+                        posterUrl = await _cloudinaryService.UploadPoster(createMovieDTO.posterFile);
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        return BadRequest(new { message = ex.Message });
+                    }
+                    catch (Exception ex)
+                    {
+                        return StatusCode(500, new { message = $"Error uploading poster: {ex.Message}" });
+                    }
+                }
+
                 // Khởi tạo đối tượng Movie từ DTO
                 var movie = new Movie
                 {
@@ -65,7 +88,7 @@ namespace STP.APIService.Controllers
                     Language = createMovieDTO.Language,
                     Country = createMovieDTO.Country,
                     Synopsis = createMovieDTO.Synopsis,
-                    Poster_URL = createMovieDTO.Poster_URL,
+                    Poster_URL = posterUrl, // Sử dụng posterUrl đã được xử lý
                     Trailer_Link = createMovieDTO.Trailer_Link,
                     Status = createMovieDTO.Status,
                     Created_By = userId,
@@ -100,7 +123,7 @@ namespace STP.APIService.Controllers
                     Updated_At = movie.Updated_At
                 };
 
-                return CreatedAtAction(nameof(CreateMovie), new { id = movie.Movie_ID }, response);
+                return CreatedAtAction(nameof(GetMovieById), new { id = movie.Movie_ID }, response);
             }
             catch (Exception ex)
             {
@@ -114,24 +137,39 @@ namespace STP.APIService.Controllers
         /// - Cập nhật thời gian sửa đổi
         /// - Lưu vào database và trả về số dòng bị ảnh hưởng
         /// </summary>
-        [HttpPut("{id}")]
-        public async Task<ActionResult<MovieResponseDTO>> UpdateMovie(int id, [FromBody] UpdateMovieDTO updateMovieDTO)
+        [HttpPut]
+        public async Task<ActionResult<MovieResponseDTO>> UpdateMovie([FromForm] UpdateMovieDTO updateMovieDTO)
         {
-            if (id != updateMovieDTO.Movie_ID)
-            {
-                return BadRequest(new { message = "ID không khớp." });
-            }
-
             try
             {
                 // Kiểm tra phim có tồn tại không
-                var existingMovie = await _unitOfWork.MovieRepository.GetMovieWithDetailsAsync(id);
+                var existingMovie = await _unitOfWork.MovieRepository.GetByIdAsync(updateMovieDTO.Movie_ID);
                 if (existingMovie == null)
                 {
-                    return NotFound(new { message = $"Movie with ID {id} not found" });
+                    return NotFound(new { message = $"Movie with ID {updateMovieDTO.Movie_ID} not found" });
                 }
 
-                // Cập nhật các thuộc tính của movie đã tồn tại
+                // Giữ nguyên Poster_URL cũ nếu không có file mới
+                string posterUrl = existingMovie.Poster_URL;
+
+                // Xử lý upload poster nếu có file mới
+                if (updateMovieDTO.posterFile != null && updateMovieDTO.posterFile.Length > 0)
+                {
+                    try
+                    {
+                        posterUrl = await _cloudinaryService.UploadPoster(updateMovieDTO.posterFile);
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        return BadRequest(new { message = ex.Message });
+                    }
+                    catch (Exception ex)
+                    {
+                        return StatusCode(500, new { message = $"Error uploading poster: {ex.Message}" });
+                    }
+                }
+
+                // Cập nhật thông tin phim
                 existingMovie.Movie_Name = updateMovieDTO.Movie_Name;
                 existingMovie.Release_Date = updateMovieDTO.Release_Date;
                 existingMovie.End_Date = updateMovieDTO.End_Date;
@@ -144,17 +182,13 @@ namespace STP.APIService.Controllers
                 existingMovie.Language = updateMovieDTO.Language;
                 existingMovie.Country = updateMovieDTO.Country;
                 existingMovie.Synopsis = updateMovieDTO.Synopsis;
-                existingMovie.Poster_URL = updateMovieDTO.Poster_URL;
+                existingMovie.Poster_URL = posterUrl; // Sử dụng posterUrl đã được xử lý
                 existingMovie.Trailer_Link = updateMovieDTO.Trailer_Link;
                 existingMovie.Status = updateMovieDTO.Status;
-                existingMovie.Updated_At = DateTime.Now; // Cập nhật thời gian sửa đổi
+                existingMovie.Updated_At = DateTime.Now;
 
-                // Cập nhật phim trong database
-                int rowsAffected = await _unitOfWork.MovieRepository.UpdateAsync(existingMovie);
-                if (rowsAffected == 0)
-                {
-                    return StatusCode(500, new { message = "Failed to update the movie" });
-                }
+                // Lưu thay đổi vào database
+                await _unitOfWork.MovieRepository.UpdateAsync(existingMovie);
 
                 // Chuyển đổi thành DTO để trả về
                 var response = new MovieResponseDTO
@@ -200,30 +234,29 @@ namespace STP.APIService.Controllers
             try
             {
                 // Kiểm tra phim có tồn tại không
-                var movie = await _unitOfWork.MovieRepository.GetMovieWithDetailsAsync(id);
+                var movie = await _unitOfWork.MovieRepository.GetByIdAsync(id);
                 if (movie == null)
                 {
                     return NotFound(new { message = $"Movie with ID {id} not found" });
                 }
 
+                // Lấy chi tiết phim để kiểm tra các ràng buộc
+                var movieWithDetails = await _unitOfWork.MovieRepository.GetMovieWithDetailsAsync(id);
+
                 // Kiểm tra phim có suất chiếu liên kết không
-                if (movie.Showtimes != null && movie.Showtimes.Any())
+                if (movieWithDetails.Showtimes != null && movieWithDetails.Showtimes.Any())
                 {
                     return BadRequest(new { message = "Cannot delete a movie that has associated showtimes" });
                 }
 
                 // Kiểm tra phim có đánh giá từ người dùng không
-                if (movie.MovieRatings != null && movie.MovieRatings.Any())
+                if (movieWithDetails.MovieRatings != null && movieWithDetails.MovieRatings.Any())
                 {
                     return BadRequest(new { message = "Cannot delete a movie that has user ratings" });
                 }
 
-                // Thực hiện xóa phim
-                var result = await _unitOfWork.MovieRepository.RemoveAsyncid(id);
-                if (!result)
-                {
-                    return StatusCode(500, new { message = "Failed to delete the movie" });
-                }
+                // Thực hiện xóa phim - truyền entity thay vì chỉ truyền ID
+                await _unitOfWork.MovieRepository.DeleteAsync(movie);
 
                 return Ok(new { message = $"Movie with ID {id} was successfully deleted" });
             }
@@ -238,7 +271,6 @@ namespace STP.APIService.Controllers
         /// - Truy vấn tất cả phim từ database
         /// - Chuyển đổi sang DTO để trả về client
         /// </summary>
-        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<MovieResponseDTO>>> GetAllMovies()
         {
@@ -289,14 +321,13 @@ namespace STP.APIService.Controllers
         /// - Truy vấn phim từ database theo ID
         /// - Chuyển đổi sang DTO để trả về client
         /// </summary>
-        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<ActionResult<MovieResponseDTO>> GetMovieById(int id)
         {
             try
             {
                 // Lấy thông tin phim từ database theo ID
-                var movie = await _unitOfWork.MovieRepository.GetMovieWithDetailsAsync(id);
+                var movie = await _unitOfWork.MovieRepository.GetByIdAsync(id);
 
                 if (movie == null)
                 {

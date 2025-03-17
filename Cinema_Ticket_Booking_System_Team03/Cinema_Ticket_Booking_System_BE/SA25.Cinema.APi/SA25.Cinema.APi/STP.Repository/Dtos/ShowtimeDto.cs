@@ -111,5 +111,8 @@ namespace STP.Repository.DTOs
         // Số lượng ghế còn trống - phải là số nguyên dương
         [Range(0, int.MaxValue)]
         public int Capacity_Available { get; set; }
+        [Required]
+        [RegularExpression("^(Hidden|Scheduled)$", ErrorMessage = "Status must be either 'Hidden' or 'Scheduled'")]
+        public string Status { get; set; }
     }
 }

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthState } from '../types';
 import api from '../config/axios'; // Import file cấu hình axios API
+import { toast } from 'react-toastify';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -84,15 +85,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Login function
   const login = async (email: string, password: string) => {
     setAuthState(prevState => ({ ...prevState, isLoading: true }));
+  
     try {
       const response = await api.post('/Auth/login', { email, password });
-
+  
       const { token, userId, fullName, email: userEmail, tokenExpiration, role } = response.data;
-
+  
       if (!token) {
         throw new Error('Token is null or undefined');
       }
-
+  
       // Store user information in localStorage
       localStorage.setItem('token', token);
       localStorage.setItem('userId', userId.toString());
@@ -100,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('email', userEmail);
       localStorage.setItem('tokenExpiration', tokenExpiration);
       localStorage.setItem('role', role);
-
+  
       setAuthState(prevState => ({
         ...prevState,
         user: response.data,
@@ -109,13 +111,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading: false,
         error: null,
       }));
+  
     } catch (error: any) {
       console.error('Login Error:', error);
       setAuthState(prevState => ({
         ...prevState,
-        error: error?.response?.data?.messageFF || 'Invalid credentials',
+        error: error?.response?.data?.message || 'Invalid credentials',
         isLoading: false,
       }));
+  
+      // Hiển thị thông báo lỗi cho người dùng
+      if (error.response?.data?.message) {
+        toast.error(error.response?.data?.message);  // Hiển thị thông báo lỗi trả về từ server
+      } else {
+        toast.error('Tài khoản hoặc mật khẩu sai. Vui lòng thử lại.');
+      }
+      throw error; // Re-throw the error to be caught in LoginForm
     }
   };
 

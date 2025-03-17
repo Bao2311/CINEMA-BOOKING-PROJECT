@@ -186,7 +186,7 @@ namespace STP.Repository.Dtos
         public string FullName { get; set; }
 
         // Ngày sinh - có thể cập nhật
-        public DateTime DateOfBirth { get; set; }
+        public DateTime? DateOfBirth { get; set; }
 
         // Giới tính - có thể cập nhật
         public string Sex { get; set; }
