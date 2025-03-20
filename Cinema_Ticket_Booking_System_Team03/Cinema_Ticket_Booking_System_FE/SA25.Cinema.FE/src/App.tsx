@@ -39,7 +39,8 @@ function App() {
             <Route path="/movie/:id" element={<MovieDetailPage />} />
             <Route path="/showtimes" element={<ShowtimesPage />} />
             <Route path="/showtimes/:movieId" element={<ShowtimesPage />} />
-            <Route path="/cinema-room" element={<CinemaRoomPage />} /> {/* Thêm route cho CinemaRoomPage */}
+            <Route path="/cinema-room" element={<CinemaRoomPage />} />
+            <Route path="/cinema-room/:showtimeId/:movieId" element={<CinemaRoomPage />} />
 
             {/* Catch-all route */}
             <Route path="*" element={<div>Page not found</div>} />
