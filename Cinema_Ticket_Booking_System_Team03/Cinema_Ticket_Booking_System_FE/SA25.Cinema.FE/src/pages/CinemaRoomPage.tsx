@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
+import axios from 'axios';
 import styled, { keyframes, css, createGlobalStyle } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -16,14 +18,39 @@ interface SeatType {
 
 
 interface MovieDetails {
-  title: string;
-  duration: string;
-  showtime: string;
-  basePrice: number;
-  image: string;
-  rating: string;
+  movie_ID: number;
+  movie_Name: string;
+  release_Date: string;
+  end_Date: string;
+  production_Company: string;
+  director: string;
+  cast: string;
+  duration: number;
   genre: string;
+  rating: string;
   language: string;
+  country: string;
+  synopsis: string;
+  poster_URL: string;
+  trailer_Link: string;
+  status: string;
+  created_By: number;
+  created_At: string;
+  updated_At: string;
+}
+
+
+interface ShowtimeDetails {
+  showtime_ID: number;
+  movie_ID: number;
+  cinema_Room_ID: number;
+  room_Name: string;
+  show_Date: string;
+  start_Time: string;
+  end_Time: string;
+  price_Tier: string;
+  base_Price: number;
+  status: string;
 }
 
 
@@ -1015,6 +1042,13 @@ const Seat: React.FC<{
  
   // Main cinema room page component
   const CinemaRoomPage: React.FC = () => {
+    const { showtimeId } = useParams<{ showtimeId: string }>();
+    const query = new URLSearchParams(useLocation().search);
+    const movieId = query.get('movieId');
+
+    console.log("Showtime ID:", showtimeId);
+    console.log("Movie ID:", movieId);
+
     const [selectedSeats, setSelectedSeats] = useState<SeatType[]>([]);
     const [seats, setSeats] = useState<SeatType[]>([]);
     const [totalPrice, setTotalPrice] = useState(0);
@@ -1027,20 +1061,51 @@ const Seat: React.FC<{
     const [expiry, setExpiry] = useState('');
     const [cvv, setCvv] = useState('');
     const [errors, setErrors] = useState<{[key: string]: string}>({});
+    const [movieDetails, setMovieDetails] = useState<MovieDetails | null>(null);
+    const [showtimeDetails, setShowtimeDetails] = useState<ShowtimeDetails | null>(null);
    
     // Ref for scroll to view
     const screenRef = useRef<HTMLDivElement>(null);
    
-    const movieDetails: MovieDetails = {
-      title: "Nhà Gia Tiên",
-      duration: "2h 15m",
-      showtime: "19:30, 18/03/2025",
-      basePrice: 100,
-      image: "https://m.media-amazon.com/images/M/MV5BMTc5MDE2ODcwNV5BMl5BanBnXkFtZTgwMzI2NzQ2NzM@._V1_.jpg",
-      rating: "P",
-      genre: "Hài",
-      language: "Tiếng Việt"
-    };
+    // Gọi API để lấy thông tin phim
+    useEffect(() => {
+      const fetchMovieDetails = async () => {
+        setIsLoading(true);
+        try {
+          const response = await axios.get(`https://localhost:7168/api/Movie/${movieId}`);
+          setMovieDetails(response.data);
+        } catch (error) {
+          console.error("Error fetching movie details:", error);
+          alert("Không thể tải thông tin phim. Vui lòng thử lại sau.");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      if (movieId) {
+        fetchMovieDetails();
+      }
+    }, [movieId]);
+   
+    // Gọi API để lấy thông tin suất chiếu
+    useEffect(() => {
+      const fetchShowtimeDetails = async () => {
+        setIsLoading(true);
+        try {
+          const response = await axios.get(`https://localhost:7168/api/Showtimes/${showtimeId}`);
+          setShowtimeDetails(response.data);
+        } catch (error) {
+          console.error("Error fetching showtime details:", error);
+          alert("Không thể tải thông tin suất chiếu. Vui lòng thử lại sau.");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      if (showtimeId) {
+        fetchShowtimeDetails();
+      }
+    }, [showtimeId]);
    
     // Initialize seats with enhanced data
     useEffect(() => {
@@ -1288,17 +1353,26 @@ const Seat: React.FC<{
                 >
                   <MovieInfoCard>
                     <MovieInfoContent>
-                      <MoviePoster src={movieDetails.image} alt={movieDetails.title} />
-                      <MovieDetails>
-                        <h2>{movieDetails.title}</h2>
-                        <MovieMetaInfo>
-                          <MetaItem><MetaLabel>Thể loại:</MetaLabel> {movieDetails.genre}</MetaItem>
-                          <MetaItem><MetaLabel>Thời lượng:</MetaLabel> {movieDetails.duration}</MetaItem>
-                          <MetaItem><MetaLabel>Ngôn ngữ:</MetaLabel> {movieDetails.language}</MetaItem>
-                          <MetaItem><MetaLabel>Xếp hạng:</MetaLabel> {movieDetails.rating}</MetaItem>
-                          <MetaItem><MetaLabel>Suất chiếu:</MetaLabel> {movieDetails.showtime}</MetaItem>
-                        </MovieMetaInfo>
-                      </MovieDetails>
+                      {isLoading ? (
+                        <LoadingContainer>
+                          <LoadingSpinner />
+                          <LoadingText>Đang tải thông tin phim...</LoadingText>
+                        </LoadingContainer>
+                      ) : (
+                        <>
+                          <MoviePoster src={movieDetails?.poster_URL} alt={movieDetails?.movie_Name} />
+                          <MovieDetails>
+                            <h2>{movieDetails?.movie_Name}</h2>
+                            <MovieMetaInfo>
+                              <MetaItem><MetaLabel>Thể loại:</MetaLabel> {movieDetails?.genre}</MetaItem>
+                              <MetaItem><MetaLabel>Thời gian:</MetaLabel> {movieDetails?.duration} phút</MetaItem>
+                              <MetaItem><MetaLabel>Ngôn ngữ:</MetaLabel> {movieDetails?.language}</MetaItem>
+                              <MetaItem><MetaLabel>Xếp hạng:</MetaLabel> {movieDetails?.rating}</MetaItem>
+                              <MetaItem><MetaLabel>Suất chiếu:</MetaLabel> {showtimeDetails?.room_Name} - {showtimeDetails?.start_Time}</MetaItem>
+                            </MovieMetaInfo>
+                          </MovieDetails>
+                        </>
+                      )}
                     </MovieInfoContent>
                   </MovieInfoCard>
                  
@@ -1420,11 +1494,11 @@ const Seat: React.FC<{
                         <SummaryTitle>Thông tin đặt vé</SummaryTitle>
                         <SummaryItem>
                           <span>Phim</span>
-                          <span>{movieDetails.title}</span>
+                          <span>{movieDetails?.movie_Name}</span>
                         </SummaryItem>
                         <SummaryItem>
                           <span>Suất chiếu</span>
-                          <span>{movieDetails.showtime}</span>
+                          <span>{showtimeDetails?.room_Name} - {showtimeDetails?.start_Time}</span>
                         </SummaryItem>
                         <SummaryItem>
                           <span>Ghế</span>
@@ -1566,11 +1640,11 @@ const Seat: React.FC<{
                         </QRCode>
                       </TicketHeader>
                       <TicketBody>
-                        <TicketMovie>{movieDetails.title}</TicketMovie>
+                        <TicketMovie>{movieDetails?.movie_Name}</TicketMovie>
                         <TicketDetails>
                           <TicketDetail>
                             <TicketDetailLabel>Suất chiếu</TicketDetailLabel>
-                            <TicketDetailValue>{movieDetails.showtime}</TicketDetailValue>
+                            <TicketDetailValue>{showtimeDetails?.room_Name} - {showtimeDetails?.start_Time}</TicketDetailValue>
                           </TicketDetail>
                           <TicketDetail>
                             <TicketDetailLabel>Ghế</TicketDetailLabel>

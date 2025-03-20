@@ -16,6 +16,7 @@ import ShowtimesPage from './pages/ShowtimesPage';
 import ManageShowtimesPage from './pages/ManageShowtimesPage';
 import ForgotPassword from './pages/ForgotPassword';
 import CinemaRoomPage from './pages/CinemaRoomPage'; // Sửa lỗi import
+import { useLocation } from 'react-router-dom';
 
 function App() {
   return (
@@ -40,7 +41,7 @@ function App() {
             <Route path="/showtimes" element={<ShowtimesPage />} />
             <Route path="/showtimes/:movieId" element={<ShowtimesPage />} />
             <Route path="/cinema-room" element={<CinemaRoomPage />} />
-            <Route path="/cinema-room/:showtimeId/:movieId" element={<CinemaRoomPage />} />
+            <Route path="/cinema-room/:showtimeId" element={<CinemaRoomPage />} />
 
             {/* Catch-all route */}
             <Route path="*" element={<div>Page not found</div>} />
