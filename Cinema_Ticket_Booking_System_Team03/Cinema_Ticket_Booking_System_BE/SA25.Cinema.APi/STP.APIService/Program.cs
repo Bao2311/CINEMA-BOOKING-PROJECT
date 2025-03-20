@@ -98,6 +98,7 @@ namespace STP.APIService
             builder.Services.AddScoped<IUserProfileService, UserProfileService>();
             builder.Services.AddScoped<MovieRepository>();
             builder.Services.AddScoped<EmailVerificationService>();
+            builder.Services.AddScoped<BookingService>();
             // Đăng ký dịch vụ bộ nhớ cache
             builder.Services.AddMemoryCache();
             builder.Services.AddScoped<AccountLockingService>();

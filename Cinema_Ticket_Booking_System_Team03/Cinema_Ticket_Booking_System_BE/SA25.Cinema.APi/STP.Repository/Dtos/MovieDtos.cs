@@ -220,5 +220,16 @@ namespace STP.APIService.Controllers.DTOs
             }
             return false;
         }
+
     }
+    public class MovieInfoDTO
+    {
+        public int Movie_ID { get; set; }
+        public string Movie_Name { get; set; }
+        public int Duration { get; set; }
+        public string Rating { get; set; }
+        public string Poster_URL { get; set; }
+    }
+
+
 }
