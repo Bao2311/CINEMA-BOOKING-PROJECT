@@ -231,7 +231,7 @@ const MovieDetailPage: React.FC = () => {
   }
 
   return (
-    <Layout>
+    <div>
       {/* Hero Section with Movie Backdrop */}
       <div className="relative w-full h-[500px] overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent z-10"></div>
@@ -915,7 +915,7 @@ const MovieDetailPage: React.FC = () => {
             scrollbar-width: none;
           }
         `}</style>
-      </Layout>
+      </div>
     );
   };
   

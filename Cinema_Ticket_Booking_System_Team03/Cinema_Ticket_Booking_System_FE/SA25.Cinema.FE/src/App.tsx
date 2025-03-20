@@ -15,6 +15,7 @@ import ManageMoviesPage from './pages/ManageMoviesPage';
 import ShowtimesPage from './pages/ShowtimesPage';
 import ManageShowtimesPage from './pages/ManageShowtimesPage';
 import ForgotPassword from './pages/ForgotPassword';
+import CinemaRoomPage from './pages/CinemaRoomPage'; // Sửa lỗi import
 
 function App() {
   return (
@@ -27,19 +28,18 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/booking/:id" element={<BookingPage />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />  
-            
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+
             {/* Route chính AdminDashboardPage với các route con */}
-            
-              <Route path="manage-accounts" element={<ManageEmployeesPage />} />
-              <Route path="manage-movies" element={<ManageMoviesPage />} />
-              <Route path="manage-showtimes" element={<ManageShowtimesPage />} />
-           
+            <Route path="/manage-accounts" element={<ManageEmployeesPage />} />
+            <Route path="/manage-movies" element={<ManageMoviesPage />} />
+            <Route path="/manage-showtimes" element={<ManageShowtimesPage />} />
 
             <Route path="/movies" element={<MoviesPage />} />
             <Route path="/movie/:id" element={<MovieDetailPage />} />
             <Route path="/showtimes" element={<ShowtimesPage />} />
             <Route path="/showtimes/:movieId" element={<ShowtimesPage />} />
+            <Route path="/cinema-room" element={<CinemaRoomPage />} /> {/* Thêm route cho CinemaRoomPage */}
 
             {/* Catch-all route */}
             <Route path="*" element={<div>Page not found</div>} />

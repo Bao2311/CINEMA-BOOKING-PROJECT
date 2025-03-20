@@ -461,9 +461,9 @@ const ShowtimesPage = () => {
     setSelectedDate(newDate);
   };
 
-  const handleShowtimeClick = (showtimeId: number) => {
-    navigate(`/booking/${showtimeId}`);
-  };
+  const handleShowtimeClick = (showtimeId: number, movieId: number) => {
+    navigate(`/cinema-room/${showtimeId}?movieId=${movieId}`);
+};
 
   const handlePrevMonth = () => {
     const newMonth = new Date(currentMonth);
@@ -698,7 +698,7 @@ const ShowtimesPage = () => {
                         {sortedShowtimes.map((showtime) => (
                           <button
                             key={showtime.showtime_ID}
-                            onClick={() => handleShowtimeClick(showtime.showtime_ID)}
+                            onClick={() => handleShowtimeClick(showtime.showtime_ID, parseInt(movieId))}
                             className="px-4 py-2 rounded-md text-center min-w-16 bg-purple-700 text-white hover:bg-purple-800 transition-all duration-200"
                           >
                             {showtime.start_Time}
