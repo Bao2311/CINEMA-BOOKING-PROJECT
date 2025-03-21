@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using sa25.Repository.Data;
-using STP.APIService.Controllers.DTOs;
+using STP.Repository.Dtos;
 using STP.Repository.Models;
 using System.Security.Claims;
 

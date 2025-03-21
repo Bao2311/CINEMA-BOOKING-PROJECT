@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Security.Claims;
 using System.Collections.Generic;
 using STP.Service.Services;
-using STP.Repository.DTOs;
+using STP.Repository.Dtos;
 using STP.Repository.Models;
 using STP.Repository.Repositories;
 using STP.Repository.Services;

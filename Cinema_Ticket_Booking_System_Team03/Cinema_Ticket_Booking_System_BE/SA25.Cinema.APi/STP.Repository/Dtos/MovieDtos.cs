@@ -2,8 +2,127 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace STP.APIService.Controllers.DTOs
+namespace STP.Repository.Dtos
 {
+    public class MovieInfoDTO
+    {
+        public int Movie_ID { get; set; }
+        public string Movie_Name { get; set; }
+        public int Duration { get; set; }
+        public string Rating { get; set; }
+        public string Poster_URL { get; set; }
+    }
+    /// <summary>
+    /// DTO hiển thị thông tin cơ bản của phim cho danh sách phim
+    /// </summary>
+    public class MovieListItemDTO
+    {
+        /// <summary>
+        /// ID của phim
+        /// </summary>
+        public int Movie_ID { get; set; }
+
+        /// <summary>
+        /// Tên phim
+        /// </summary>
+        public string Movie_Name { get; set; }
+
+        /// <summary>
+        /// Thể loại phim
+        /// </summary>
+        public string Genre { get; set; }
+
+        /// <summary>
+        /// Thời lượng phim (phút)
+        /// </summary>
+        public int Duration { get; set; }
+
+        /// <summary>
+        /// Xếp hạng độ tuổi
+        /// </summary>
+        public string Rating { get; set; }
+
+        /// <summary>
+        /// URL hình ảnh poster
+        /// </summary>
+        public string Poster_URL { get; set; }
+
+        /// <summary>
+        /// Tóm tắt nội dung phim
+        /// </summary>
+        public string Synopsis { get; set; }
+    }
+
+    /// <summary>
+    /// DTO hiển thị thông tin chi tiết của phim
+    /// </summary>
+    public class MovieDetailDTO
+    {
+        /// <summary>
+        /// ID của phim
+        /// </summary>
+        public int Movie_ID { get; set; }
+
+        /// <summary>
+        /// Tên phim
+        /// </summary>
+        public string Movie_Name { get; set; }
+
+        /// <summary>
+        /// Thể loại phim
+        /// </summary>
+        public string Genre { get; set; }
+
+        /// <summary>
+        /// Thời lượng phim (phút)
+        /// </summary>
+        public int Duration { get; set; }
+
+        /// <summary>
+        /// Xếp hạng độ tuổi
+        /// </summary>
+        public string Rating { get; set; }
+
+        /// <summary>
+        /// URL hình ảnh poster
+        /// </summary>
+        public string Poster_URL { get; set; }
+
+        /// <summary>
+        /// Tóm tắt nội dung phim
+        /// </summary>
+        public string Synopsis { get; set; }
+
+        /// <summary>
+        /// Đạo diễn phim
+        /// </summary>
+        public string Director { get; set; }
+
+        /// <summary>
+        /// Diễn viên tham gia
+        /// </summary>
+        public string Cast { get; set; }
+
+        /// <summary>
+        /// Ngày phát hành phim
+        /// </summary>
+        public DateTime Release_Date { get; set; }
+
+        /// <summary>
+        /// Ngôn ngữ chính của phim
+        /// </summary>
+        public string Language { get; set; }
+
+        /// <summary>
+        /// Quốc gia sản xuất
+        /// </summary>
+        public string Country { get; set; }
+
+        /// <summary>
+        /// Link trailer của phim
+        /// </summary>
+        public string Trailer_Link { get; set; }
+    }
     /// <summary>
     /// DTO dùng cho vi?c t?o m?i m?t b? phim.
     /// Ch?a các thông tin c?n thi?t ?? t?o m?t b? phim m?i trong h? th?ng.
@@ -99,8 +218,35 @@ namespace STP.APIService.Controllers.DTOs
 
         public IFormFile posterFile { get; set; }
     }
+    public class MovieCreateDto
+    {
+        public string Movie_Name { get; set; }
+        public DateTime Release_Date { get; set; }
+        public DateTime? End_Date { get; set; }
+        public string Production_Company { get; set; }
+        public string Director { get; set; }
+        public string Cast { get; set; }
+        public int Duration { get; set; }
+        public string Genre { get; set; }
+        public string Rating { get; set; }
+        public string Language { get; set; }
+        public string Country { get; set; }
+        public string Synopsis { get; set; }
+        public string Poster_URL { get; set; }
+        public IFormFile PosterFile { get; set; } // Thêm để hỗ trợ upload file
+        public string Trailer_Link { get; set; }
+        public string Status { get; set; }
+    }
+    public class MovieUpdateDto : MovieCreateDto
+    {
+        public int Movie_ID { get; set; }
+    }
 
-
+    public class MovieRatingDto
+    {
+        public int Rating { get; set; }
+        public string Comment { get; set; }
+    }
     /// <summary>
     /// DTO dùng ?? tr? v? thông tin c?a m?t b? phim.
     /// </summary>
@@ -220,16 +366,7 @@ namespace STP.APIService.Controllers.DTOs
             }
             return false;
         }
-
     }
-    public class MovieInfoDTO
-    {
-        public int Movie_ID { get; set; }
-        public string Movie_Name { get; set; }
-        public int Duration { get; set; }
-        public string Rating { get; set; }
-        public string Poster_URL { get; set; }
-    }
-
-
 }
+
+

@@ -1,7 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using STP.APIService.Controllers.DTOs;
 using STP.Repository.Dtos;
-using STP.Repository.DTOs;
 using System;
 using System.Collections.Generic;
 
