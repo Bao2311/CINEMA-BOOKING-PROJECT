@@ -1,6 +1,6 @@
-﻿
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+﻿using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using STP.APIService.Controllers.DTOs;
+using STP.Repository.Dtos;
 using STP.Repository.DTOs;
 using System;
 using System.Collections.Generic;
@@ -660,7 +660,22 @@ namespace STP.Repository.Dtos
         /// </summary>
         public string Payment_Method { get; set; }
     }
-
+    public class BookingSearchResponseDTO
+    {
+        public int Booking_ID { get; set; }
+        public string CustomerName { get; set; }
+        public string CustomerEmail { get; set; }
+        public string CustomerPhone { get; set; }
+        public string MovieName { get; set; }
+        public DateTime ShowDate { get; set; }
+        public TimeSpan StartTime { get; set; }
+        public string RoomName { get; set; }
+        public decimal Amount { get; set; }
+        public string Status { get; set; }
+        public DateTime BookingDate { get; set; }
+        public string PaymentMethod { get; set; }
+        public string Seats { get; set; }
+    }
 }
 
 

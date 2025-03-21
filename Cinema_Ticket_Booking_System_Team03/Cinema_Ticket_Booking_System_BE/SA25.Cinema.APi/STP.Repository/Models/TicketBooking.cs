@@ -115,5 +115,7 @@ namespace STP.Repository.Models
         /// </summary>
         [InverseProperty("TicketBooking")]
         public virtual ICollection<PromotionUsage> PromotionUsages { get; set; }
+        [InverseProperty("TicketBooking")]
+        public virtual ICollection<Seat> Seats { get; set; }
     }
 }

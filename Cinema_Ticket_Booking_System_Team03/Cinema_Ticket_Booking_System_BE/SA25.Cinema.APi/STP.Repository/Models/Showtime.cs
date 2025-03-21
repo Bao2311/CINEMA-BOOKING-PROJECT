@@ -97,12 +97,6 @@ namespace STP.Repository.Models
         public virtual User CreatedBy { get; set; }
 
         /// <summary>
-        /// Danh sách các ghế trong suất chiếu này
-        /// </summary>
-        [InverseProperty("Showtime")]
-        public virtual ICollection<Seat> Seats { get; set; }
-
-        /// <summary>
         /// Danh sách các đơn đặt vé cho suất chiếu này
         /// </summary>
         [InverseProperty("Showtime")]
