@@ -89,6 +89,7 @@ namespace STP.APIService
 
             // Đăng ký các Repository và Services theo mô hình Dependency Injection
             // Mỗi request sẽ tạo ra một instance mới của các service này
+            builder.Services.AddHttpClient();
             builder.Services.AddScoped<UnitOfWork>();
             builder.Services.AddScoped<ShowtimeRepository>();
             builder.Services.AddScoped<ShowtimeService>();
@@ -100,6 +101,11 @@ namespace STP.APIService
             builder.Services.AddScoped<EmailVerificationService>();
             builder.Services.AddScoped<BookingService>();
             builder.Services.AddHostedService<BookingExpirationService>();
+            builder.Services.AddScoped<MemberService>();
+            builder.Services.AddScoped<SmsService>();
+            builder.Services.AddScoped<TicketService>();
+            builder.Services.AddScoped<QRCodeGenerator>();
+            builder.Services.AddScoped<PdfGenerator>();
             // Đăng ký dịch vụ bộ nhớ cache
             builder.Services.AddMemoryCache();
             builder.Services.AddScoped<AccountLockingService>();
