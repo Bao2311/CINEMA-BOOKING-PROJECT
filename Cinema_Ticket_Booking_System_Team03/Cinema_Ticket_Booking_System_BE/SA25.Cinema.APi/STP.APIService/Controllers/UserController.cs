@@ -9,7 +9,6 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Security.Claims;
-using STP.APIService.Controllers.DTOs;
 
 namespace STP.APIService.Controllers
 {

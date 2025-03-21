@@ -1,9 +1,8 @@
-﻿using System;
+﻿using STP.Repository.Dtos;
+using System;
 using System.ComponentModel.DataAnnotations;
-using STP.APIService.Controllers.DTOs;
-using STP.Repository.Dtos;
 
-namespace STP.Repository.DTOs
+namespace STP.Repository.Dtos
 {
     // DTO hiển thị thông tin chi tiết của một lịch chiếu phim
     public class ShowtimeDto
@@ -37,6 +36,92 @@ namespace STP.Repository.DTOs
 
         // Trạng thái của lịch chiếu (Active, Canceled, Completed, etc.)
         public string Status { get; set; }
+        public RoomDTO Room { get; set; }
+        public int TotalSeats { get; set; }
+        public int AvailableSeats { get; set; }
+        public MovieInfoDTO Movie { get; set; }
+
+    }
+    public class ShowtimeInfoDto
+    {
+        public int ShowtimeId { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public string MovieName { get; set; }
+        public string MoviePoster { get; set; }
+        public string CinemaName { get; set; }
+        public string RoomName { get; set; }
+    }
+    /// <summary>
+    /// DTO hiển thị thông tin chi tiết của một lịch chiếu phim
+    /// </summary>
+    public class ShowtimeDetailDTO
+    {
+        /// <summary>
+        /// ID định danh duy nhất của lịch chiếu
+        /// </summary>
+        public int Showtime_ID { get; set; }
+
+        /// <summary>
+        /// Ngày chiếu phim (năm-tháng-ngày)
+        /// </summary>
+        public DateTime Show_Date { get; set; }
+
+        /// <summary>
+        /// Thời gian bắt đầu chiếu phim
+        /// </summary>
+        public TimeSpan Start_Time { get; set; }
+
+        /// <summary>
+        /// Thời gian kết thúc chiếu phim
+        /// </summary>
+        public TimeSpan End_Time { get; set; }
+
+        /// <summary>
+        /// Cấp độ giá vé (Regular hoặc VIP)
+        /// </summary>
+        public string Price_Tier { get; set; }
+
+        /// <summary>
+        /// Giá vé cơ bản của lịch chiếu
+        /// </summary>
+        public decimal Base_Price { get; set; }
+
+        /// <summary>
+        /// Thông tin chi tiết về bộ phim
+        /// </summary>
+        public MovieInfoDTO Movie { get; set; }
+
+        /// <summary>
+        /// Tổng số ghế trong phòng chiếu
+        /// </summary>
+        public int TotalSeats { get; set; }
+
+        /// <summary>
+        /// Số ghế còn trống
+        /// </summary>
+        public int AvailableSeats { get; set; }
+
+        /// <summary>
+        /// Thông tin về phòng chiếu
+        /// </summary>
+        public RoomDTO Room { get; set; }
+    }
+
+    /// <summary>
+    /// DTO yêu cầu lấy lịch chiếu theo ngày
+    /// </summary>
+    public class ShowtimeRequestDTO
+    {
+        /// <summary>
+        /// ID của phim
+        /// </summary>
+        public int MovieId { get; set; }
+
+        /// <summary>
+        /// Ngày chiếu (tùy chọn)
+        /// </summary>
+        public DateTime? Date { get; set; }
     }
 
     // DTO dùng để tạo mới một lịch chiếu phim
@@ -117,72 +202,20 @@ namespace STP.Repository.DTOs
         [RegularExpression("^(Hidden|Scheduled)$", ErrorMessage = "Status must be either 'Hidden' or 'Scheduled'")]
         public string Status { get; set; }
     }
-    public class ShowtimeInfoDto
+    public class ShowtimeListItemDTO
     {
-        public int ShowtimeId { get; set; }
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
-        public string MovieName { get; set; }
-        public string MoviePoster { get; set; }
-        public string CinemaName { get; set; }
-        public string RoomName { get; set; }
-    }
-
-    /// <summary>
-    /// DTO hiển thị thông tin chi tiết của một lịch chiếu phim
-    /// </summary>
-    public class ShowtimeDetailDTO
-    {
-        /// <summary>
-        /// ID định danh duy nhất của lịch chiếu
-        /// </summary>
         public int Showtime_ID { get; set; }
-
-        /// <summary>
-        /// Ngày chiếu phim (năm-tháng-ngày)
-        /// </summary>
+        public string Movie_Name { get; set; }
         public DateTime Show_Date { get; set; }
-
-        /// <summary>
-        /// Thời gian bắt đầu chiếu phim
-        /// </summary>
         public TimeSpan Start_Time { get; set; }
-
-        /// <summary>
-        /// Thời gian kết thúc chiếu phim
-        /// </summary>
         public TimeSpan End_Time { get; set; }
-
-        /// <summary>
-        /// Cấp độ giá vé (Regular hoặc VIP)
-        /// </summary>
-        public string Price_Tier { get; set; }
-
-        /// <summary>
-        /// Giá vé cơ bản của lịch chiếu
-        /// </summary>
-        public decimal Base_Price { get; set; }
-
-        /// <summary>
-        /// Thông tin chi tiết về bộ phim
-        /// </summary>
-        public MovieInfoDTO Movie { get; set; }
-
-        /// <summary>
-        /// Tổng số ghế trong phòng chiếu
-        /// </summary>
-        public int TotalSeats { get; set; }
-
-        /// <summary>
-        /// Số ghế còn trống
-        /// </summary>
-        public int AvailableSeats { get; set; }
-
-        /// <summary>
-        /// Thông tin về phòng chiếu
-        /// </summary>
-        public RoomDTO Room { get; set; }
     }
 
-
+    public class ShowtimeCountDTO
+    {
+        public DateTime Date { get; set; }
+        public int ShowtimeCount { get; set; }
+    }
 }
+
+

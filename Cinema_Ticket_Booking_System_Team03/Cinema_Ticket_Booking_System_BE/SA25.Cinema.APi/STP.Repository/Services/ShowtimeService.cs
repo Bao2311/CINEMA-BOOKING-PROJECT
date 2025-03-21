@@ -590,10 +590,10 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
 using STP.Repository.Models;
-using STP.Repository.DTOs;
 using STP.Repository.Repositories;
 using STP.Repository.Data;
 using Microsoft.Extensions.Logging;
+using STP.Repository.Dtos;
 
 namespace STP.Service.Services
 {

@@ -14,6 +14,7 @@ using STP.Repository.Repositories;
 using STP.Service.Services;
 using sa25.Repository.Data;
 using CloudinaryDotNet;
+using STP.APIService.Services;
 
 
 namespace STP.APIService
@@ -106,6 +107,12 @@ namespace STP.APIService
             builder.Services.AddScoped<TicketService>();
             builder.Services.AddScoped<QRCodeGenerator>();
             builder.Services.AddScoped<PdfGenerator>();
+            builder.Services.AddScoped<CinemaRoomService>();
+            builder.Services.AddScoped<SeatService>();
+            builder.Services.AddScoped<SeatLayoutService>();
+            builder.Services.AddScoped<SeatTypeService>();
+
+
             // Đăng ký dịch vụ bộ nhớ cache
             builder.Services.AddMemoryCache();
             builder.Services.AddScoped<AccountLockingService>();

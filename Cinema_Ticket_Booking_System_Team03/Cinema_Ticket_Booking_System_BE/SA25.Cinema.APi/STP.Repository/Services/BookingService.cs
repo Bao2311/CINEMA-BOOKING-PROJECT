@@ -1,10 +1,8 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using STP.APIService.Controllers.DTOs;
 using STP.Repository.Data;
 using STP.Repository.Dtos;
-using STP.Repository.DTOs;
 using STP.Repository.Models;
 using System;
 using System.Collections.Generic;
