@@ -37,6 +37,7 @@ namespace STP.Repository.Data
         public DbSet<MovieRating> MovieRatings { get; set; }
         public DbSet<PointsRedemption> PointsRedemptions { get; set; }
         public DbSet<FailedLogin> FailedLogins { get; set; }
+        public DbSet<TicketPricing> TicketPricings { get; set; }
 
         /// <summary>
         /// Lấy chuỗi kết nối từ tệp cấu hình appsettings.json
@@ -90,6 +91,7 @@ namespace STP.Repository.Data
             modelBuilder.Entity<PromotionUsage>().ToTable("Promotion_Usage");
             modelBuilder.Entity<MovieRating>().ToTable("Movie_Ratings");
             modelBuilder.Entity<PointsRedemption>().ToTable("Points_Redemption");
+            modelBuilder.Entity<TicketPricing>().ToTable("Ticket_Pricing");
 
             // Cấu hình khóa duy nhất
             modelBuilder.Entity<Ticket>()
@@ -214,13 +216,13 @@ namespace STP.Repository.Data
                 .HasForeignKey(s => s.Layout_ID)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // 5. Showtime Relationships
-            // Showtime - Seat
+            // 5. TicketBooking - Seat Relationship (MỚI)
             modelBuilder.Entity<Seat>()
-                .HasOne(s => s.Showtime)
-                .WithMany(st => st.Seats)
-                .HasForeignKey(s => s.Showtime_ID)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasOne(s => s.TicketBooking)
+                .WithMany(tb => tb.Seats)
+                .HasForeignKey(s => s.Booking_ID)
+                .IsRequired(false)  // Cho phép null vì ghế có thể chưa được đặt
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Showtime - TicketBooking
             modelBuilder.Entity<TicketBooking>()
@@ -288,6 +290,10 @@ namespace STP.Repository.Data
 
             modelBuilder.Entity<FailedLogin>()
                 .HasIndex(fl => fl.AttemptTime);
+
+            modelBuilder.Entity<TicketPricing>()
+                .HasIndex(p => new { p.Room_Type, p.Seat_Type })
+                .IsUnique();
         }
     }
 }

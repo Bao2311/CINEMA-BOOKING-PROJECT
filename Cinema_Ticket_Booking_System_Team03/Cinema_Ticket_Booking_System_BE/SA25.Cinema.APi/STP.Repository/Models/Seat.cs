@@ -6,9 +6,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace STP.Repository.Models
 {
     /// <summary>
-    /// Đại diện cho một ghế ngồi trong một suất chiếu cụ thể tại rạp phim.
+    /// Đại diện cho một ghế ngồi trong một đơn đặt vé cụ thể tại rạp phim.
     /// Lưu trữ thông tin về trạng thái ghế (có sẵn, đã đặt, đã bán) và
-    /// kết nối với bố cục ghế và suất chiếu.
+    /// kết nối với bố cục ghế và đơn đặt vé.
     /// </summary>
     [Table("Seats")]
     public class Seat
@@ -25,9 +25,9 @@ namespace STP.Repository.Models
         public int Layout_ID { get; set; }
 
         /// <summary>
-        /// ID của suất chiếu mà ghế này thuộc về
+        /// ID của đơn đặt vé mà ghế này thuộc về
         /// </summary>
-        public int Showtime_ID { get; set; }
+        public int? Booking_ID { get; set; }
 
         /// <summary>
         /// Trạng thái hiện tại của ghế (ví dụ: "Available", "Reserved", "Sold", "Maintenance")
@@ -46,10 +46,10 @@ namespace STP.Repository.Models
         public virtual SeatLayout SeatLayout { get; set; }
 
         /// <summary>
-        /// Suất chiếu mà ghế này thuộc về
+        /// Đơn đặt vé mà ghế này thuộc về
         /// </summary>
-        [ForeignKey("Showtime_ID")]
-        public virtual Showtime Showtime { get; set; }
+        [ForeignKey("Booking_ID")]
+        public virtual TicketBooking TicketBooking { get; set; }
 
         /// <summary>
         /// Danh sách các vé đã được bán cho ghế này

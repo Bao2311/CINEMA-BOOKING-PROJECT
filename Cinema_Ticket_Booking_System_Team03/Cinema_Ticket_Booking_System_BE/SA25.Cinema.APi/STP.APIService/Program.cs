@@ -99,6 +99,7 @@ namespace STP.APIService
             builder.Services.AddScoped<MovieRepository>();
             builder.Services.AddScoped<EmailVerificationService>();
             builder.Services.AddScoped<BookingService>();
+            builder.Services.AddHostedService<BookingExpirationService>();
             // Đăng ký dịch vụ bộ nhớ cache
             builder.Services.AddMemoryCache();
             builder.Services.AddScoped<AccountLockingService>();
