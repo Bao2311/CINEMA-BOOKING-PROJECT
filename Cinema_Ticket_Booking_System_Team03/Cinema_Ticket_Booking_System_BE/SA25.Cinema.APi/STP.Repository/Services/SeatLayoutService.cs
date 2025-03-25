@@ -326,6 +326,98 @@ namespace STP.Repository.Services
                 seat_types = seatTypes
             };
         }
+
+        /// <summary>
+        /// Thực hiện xóa mềm một hoặc nhiều ghế trong sơ đồ
+        /// </summary>
+        /// <param name="model">Danh sách các Layout ID cần xóa</param>
+        /// <returns>Kết quả xóa mềm</returns>
+        public async Task<object> SoftDeleteSeatLayoutsAsync(BulkDeleteSeatsDto model)
+        {
+            if (model.LayoutIds == null || !model.LayoutIds.Any())
+                throw new ArgumentException("Danh sách ghế cần xóa không được trống");
+
+            // Kiểm tra xem có ghế nào đang được sử dụng trong đặt vé không
+            var usedLayoutIds = await _context.Seats
+                .Where(s => model.LayoutIds.Contains(s.Layout_ID) && s.Booking_ID != null)
+                .Select(s => s.Layout_ID)
+                .ToListAsync();
+
+            if (usedLayoutIds.Any())
+                return new
+                {
+                    success = false,
+                    message = "Một số ghế đã được sử dụng trong đặt vé và không thể xóa",
+                    used_seats = usedLayoutIds
+                };
+
+            // Lấy các SeatLayout cần xóa mềm
+            var seatLayouts = await _context.SeatLayouts
+                .Where(sl => model.LayoutIds.Contains(sl.Layout_ID))
+                .ToListAsync();
+
+            if (!seatLayouts.Any())
+                throw new KeyNotFoundException("Không tìm thấy ghế nào cần xóa");
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // Cập nhật is_active = false thay vì xóa cứng
+                foreach (var layout in seatLayouts)
+                {
+                    layout.Is_Active = false;
+                }
+
+                // Cập nhật trạng thái seat tương ứng thành Unavailable
+                var layoutIds = seatLayouts.Select(sl => sl.Layout_ID).ToList();
+                var seats = await _context.Seats
+                    .Where(s => layoutIds.Contains(s.Layout_ID))
+                    .ToListAsync();
+
+                foreach (var seat in seats)
+                {
+                    seat.Seat_Status = "Unavailable";
+                    seat.Last_Updated = DateTime.Now;
+                }
+
+                // Cập nhật tổng số ghế trong phòng nếu xóa hết ghế một hàng
+                if (seatLayouts.Any())
+                {
+                    var roomId = seatLayouts.First().Cinema_Room_ID;
+                    var activeSeatsCount = await _context.SeatLayouts
+                        .Where(sl => sl.Cinema_Room_ID == roomId && sl.Is_Active)
+                        .CountAsync();
+
+                    var cinemaRoom = await _context.CinemaRooms.FindAsync(roomId);
+                    if (cinemaRoom != null)
+                    {
+                        cinemaRoom.Seat_Quantity = activeSeatsCount;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return new
+                {
+                    success = true,
+                    message = $"Đã xóa mềm {seatLayouts.Count} ghế thành công",
+                    deleted_count = seatLayouts.Count,
+                    deleted_seats = seatLayouts.Select(sl => new
+                    {
+                        layout_id = sl.Layout_ID,
+                        row_label = sl.Row_Label,
+                        column_number = sl.Column_Number
+                    }).ToList()
+                };
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Lỗi khi xóa mềm ghế: {Message}", ex.Message);
+                throw;
+            }
+        }
     }
 }
 
