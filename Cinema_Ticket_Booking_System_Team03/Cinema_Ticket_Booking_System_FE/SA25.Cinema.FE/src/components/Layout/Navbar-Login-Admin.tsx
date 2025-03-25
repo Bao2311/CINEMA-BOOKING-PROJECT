@@ -75,9 +75,6 @@ const NavbarLoginAdmin: React.FC = () => {
             <Link to="/manage-accounts" className="px-3 py-2 rounded-md hover:bg-indigo-800">
               Manage Accounts
             </Link>
-            <Link to="/cinema-room" className="px-3 py-2 rounded-md hover:bg-indigo-800">
-              Cinema Room
-            </Link>
 
             {isAuthenticated && user && (
               <Dropdown overlay={adminMenu} trigger={['click']} placement="bottomRight">
