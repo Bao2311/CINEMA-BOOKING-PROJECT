@@ -23,6 +23,7 @@ namespace STP.Web.Controllers
         }
 
         [HttpGet("room/{roomId}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetSeatLayout(int roomId)
         {
             try

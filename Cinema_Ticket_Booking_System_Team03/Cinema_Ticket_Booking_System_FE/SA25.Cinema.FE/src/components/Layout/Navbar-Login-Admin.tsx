@@ -63,8 +63,8 @@ const NavbarLoginAdmin: React.FC = () => {
             <Link to="/showtimes" className="px-3 py-2 rounded-md hover:bg-indigo-800">
               Showtimes
             </Link>
-            <Link to="/promotions" className="px-3 py-2 rounded-md hover:bg-indigo-800">
-              Promotions
+            <Link to="/manage-promotion" className="px-3 py-2 rounded-md hover:bg-indigo-800">
+              Manage Promotions
             </Link>
             <Link to="/manage-movies" className="px-3 py-2 rounded-md hover:bg-indigo-800">
               Manage Movies
@@ -74,6 +74,9 @@ const NavbarLoginAdmin: React.FC = () => {
             </Link>
             <Link to="/manage-accounts" className="px-3 py-2 rounded-md hover:bg-indigo-800">
               Manage Accounts
+            </Link>
+            <Link to="/manage-cinemaroom" className="px-3 py-2 rounded-md hover:bg-indigo-800">
+             Manage Cinema Room
             </Link>
 
             {isAuthenticated && user && (
