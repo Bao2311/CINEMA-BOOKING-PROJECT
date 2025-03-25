@@ -111,6 +111,7 @@ namespace STP.APIService
             builder.Services.AddScoped<SeatService>();
             builder.Services.AddScoped<SeatLayoutService>();
             builder.Services.AddScoped<SeatTypeService>();
+            builder.Services.AddScoped<PromotionService>();
 
 
             // Đăng ký dịch vụ bộ nhớ cache
