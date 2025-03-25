@@ -137,6 +137,8 @@ namespace STP.Repository.Dtos
         /// Thông tin chi tiết về suất chiếu
         /// </summary>
         public ShowtimeInfoDTO Showtime { get; set; }
+
+        public int User_ID { get; set; }
     }
 
     /// <summary>

@@ -16,13 +16,86 @@ namespace STP.Repository.Services
     {
         private readonly CinemaDbContext _context;
         private readonly ILogger<BookingService> _logger;
-
-        public BookingService(CinemaDbContext context, ILogger<BookingService> logger)
+        private readonly PayOSNugetService _payosService;
+        public BookingService(CinemaDbContext context, ILogger<BookingService> logger, PayOSNugetService payosService)
         {
             _context = context;
             _logger = logger;
+            _payosService = payosService;
         }
 
+        public async Task<IEnumerable<BookingHistoryDTO>> GetAllBookings()
+        {
+            try
+            {
+                // Lấy danh sách tất cả các đơn đặt vé, bao gồm thông tin liên quan
+                var bookings = await _context.TicketBookings
+                    .Include(b => b.Showtime)
+                        .ThenInclude(s => s.Movie)
+                    .Include(b => b.Showtime)
+                        .ThenInclude(s => s.CinemaRoom)
+                    .Include(b => b.Payments)
+                    .Include(b => b.BookingHistories)
+                    .OrderByDescending(b => b.Booking_Date) // Sắp xếp theo ngày đặt vé (mới nhất trước)
+                    .ToListAsync();
+
+                var result = new List<BookingHistoryDTO>();
+
+                foreach (var booking in bookings)
+                {
+                    // Lấy thông tin thanh toán mới nhất (nếu có)
+                    var latestPayment = booking.Payments.OrderByDescending(p => p.Transaction_Date).FirstOrDefault();
+
+                    // Lấy thông tin về việc hủy đơn (nếu có)
+                    var cancellation = booking.BookingHistories
+                        .Where(h => h.Status == "Cancelled")
+                        .OrderByDescending(h => h.Date)
+                        .FirstOrDefault();
+
+                    // Tạo đối tượng DTO
+                    var bookingHistoryDto = new BookingHistoryDTO
+                    {
+                        Booking_ID = booking.Booking_ID,
+                        Booking_Date = booking.Booking_Date,
+                        Total_Amount = booking.Total_Amount,
+                        Status = booking.Status,
+                        Payment_Method = latestPayment?.Payment_Method, // Phương thức thanh toán
+                        Payment_Date = latestPayment?.Transaction_Date, // Ngày thanh toán
+                        Cancellation_Date = cancellation?.Date, // Ngày hủy (nếu có)
+                        User_ID = booking.User_ID, // User ID của người đặt
+                        Showtime = new ShowtimeInfoDTO // Thông tin suất chiếu
+                        {
+                            Showtime_ID = booking.Showtime.Showtime_ID,
+                            Show_Date = booking.Showtime.Show_Date,
+                            Start_Time = booking.Showtime.Start_Time,
+                            Movie = new MovieInfoDTO
+                            {
+                                Movie_ID = booking.Showtime.Movie.Movie_ID,
+                                Movie_Name = booking.Showtime.Movie.Movie_Name,
+                                Duration = booking.Showtime.Movie.Duration,
+                                Rating = booking.Showtime.Movie.Rating,
+                                Poster_URL = booking.Showtime.Movie.Poster_URL
+                            },
+                            Room = new RoomDTO
+                            {
+                                Cinema_Room_ID = booking.Showtime.CinemaRoom.Cinema_Room_ID,
+                                Room_Name = booking.Showtime.CinemaRoom.Room_Name,
+                                Room_Type = booking.Showtime.CinemaRoom.Room_Type
+                            }
+                        }
+                    };
+
+                    result.Add(bookingHistoryDto);
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy danh sách tất cả đơn đặt vé");
+                throw; // Re-throw để xử lý ở tầng cao hơn
+            }
+        }
         public async Task<BookingResponseDTO> CreateBooking(BookingRequestDTO request, int userId)
         {
             try
@@ -803,214 +876,6 @@ namespace STP.Repository.Services
                 _logger.LogError(ex, $"Error auto-cancelling booking for ID: {bookingId}");
                 throw;
             }
-        }
-        /// <summary>
-        /// Tính toán và xử lý hoàn tiền đơn đặt vé (Task 7.3)
-        /// </summary>
-        public async Task<RefundResponseDTO> ProcessRefund(int bookingId, RefundRequestDTO request, int processedBy)
-        {
-            _logger.LogInformation($"Xử lý hoàn tiền cho đơn đặt vé {bookingId}, lý do: {request.Reason}");
-
-            try
-            {
-                // Lấy thông tin đơn đặt vé kèm các thông tin liên quan
-                var booking = await _context.TicketBookings
-                    .Include(b => b.Showtime)
-                        .ThenInclude(s => s.Movie)
-                    .Include(b => b.Showtime)
-                        .ThenInclude(s => s.CinemaRoom)
-                    .Include(b => b.Payments.Where(p => p.Payment_Status == "Completed"))
-                    .Include(b => b.User)
-                    .Include(b => b.Tickets)
-                    .Include(b => b.Seats)
-                    .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
-
-                if (booking == null)
-                    throw new KeyNotFoundException($"Không tìm thấy đơn đặt vé có ID {bookingId}");
-
-                if (booking.Status == "Cancelled")
-                    throw new InvalidOperationException("Đơn đặt vé đã bị hủy trước đó");
-
-                if (booking.Status != "Confirmed")
-                    throw new InvalidOperationException($"Chỉ có thể hoàn tiền cho đơn đặt vé đã xác nhận thanh toán, trạng thái hiện tại: {booking.Status}");
-
-                // Kiểm tra xem vé đã được check-in chưa
-                var checkedInTickets = booking.Tickets.Where(t => t.Is_Checked_In).ToList();
-                if (checkedInTickets.Any())
-                    throw new InvalidOperationException("Không thể hoàn tiền cho đơn đặt vé đã có vé check-in");
-
-                // Kiểm tra thời gian suất chiếu
-                var showDateTime = booking.Showtime.Show_Date.Add(booking.Showtime.Start_Time);
-                if (DateTime.Now > showDateTime)
-                    throw new InvalidOperationException("Không thể hoàn tiền cho đơn đặt vé sau khi suất chiếu đã bắt đầu");
-
-                // Lấy thanh toán gần nhất
-                var payment = booking.Payments.OrderByDescending(p => p.Transaction_Date).FirstOrDefault();
-                if (payment == null)
-                    throw new InvalidOperationException("Không tìm thấy thanh toán cho đơn đặt vé này");
-
-                // Tính số tiền hoàn lại dựa trên chính sách hoàn tiền
-                var (refundAmount, refundPercentage, refundPolicy) = CalculateRefundAmount(booking, showDateTime);
-
-                // Sử dụng transaction để đảm bảo tính nhất quán của dữ liệu
-                using var transaction = await _context.Database.BeginTransactionAsync();
-                try
-                {
-                    // Cập nhật thanh toán
-                    var refundPayment = new Payment
-                    {
-                        Booking_ID = bookingId,
-                        Amount = -refundAmount, // Số tiền âm để biểu thị hoàn tiền
-                        Payment_Method = payment.Payment_Method,
-                        Payment_Reference = $"REFUND-{Guid.NewGuid().ToString().Substring(0, 8)}",
-                        Transaction_Date = DateTime.Now,
-                        Payment_Status = "Refunded",
-                        Processor_Response = "Refund processed successfully",
-                        Refund_Amount = refundAmount,
-                        Refund_Date = DateTime.Now,
-                        Refund_Reason = request.Reason,
-                        Processed_By = processedBy
-                    };
-
-                    _context.Payments.Add(refundPayment);
-
-                    // Cập nhật trạng thái đơn đặt vé
-                    booking.Status = "Cancelled";
-
-                    // Cập nhật trạng thái ghế (đặt lại là Available)
-                    foreach (var seat in booking.Seats)
-                    {
-                        seat.Seat_Status = "Available";
-                        seat.Last_Updated = DateTime.Now;
-                        seat.Booking_ID = null; // Xóa liên kết với đơn đặt vé
-                    }
-
-                    // Thêm lịch sử đơn đặt vé
-                    var bookingHistory = new BookingHistory
-                    {
-                        Booking_ID = bookingId,
-                        Status = "Cancelled",
-                        Date = DateTime.Now
-                    };
-
-                    _context.BookingHistories.Add(bookingHistory);
-
-                    // Xử lý điểm thưởng nếu có
-                    if (booking.Points_Earned > 0)
-                    {
-                        // Trừ điểm đã thưởng
-                        var scoreDeduction = new Score
-                        {
-                            User_ID = booking.User_ID,
-                            Points_Added = 0,
-                            Points_Used = booking.Points_Earned,
-                            Date = DateTime.Now
-                        };
-
-                        _context.Scores.Add(scoreDeduction);
-                    }
-
-                    if (booking.Points_Used > 0)
-                    {
-                        // Hoàn lại điểm đã sử dụng
-                        var scoreRefund = new Score
-                        {
-                            User_ID = booking.User_ID,
-                            Points_Added = booking.Points_Used,
-                            Points_Used = 0,
-                            Date = DateTime.Now
-                        };
-
-                        _context.Scores.Add(scoreRefund);
-                    }
-
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-
-                    // Tạo đối tượng phản hồi
-                    var formattedSeats = await GetFormattedSeatPositions(bookingId);
-
-                    var response = new RefundResponseDTO
-                    {
-                        Booking_ID = booking.Booking_ID,
-                        Original_Amount = payment.Amount,
-                        Refund_Amount = refundAmount,
-                        Refund_Percentage = refundPercentage,
-                        Refund_Policy = refundPolicy,
-                        Refund_Date = DateTime.Now,
-                        Refund_Reason = request.Reason,
-                        Status = "Cancelled",
-                        MovieName = booking.Showtime.Movie.Movie_Name,
-                        Show_Date = booking.Showtime.Show_Date,
-                        Start_Time = booking.Showtime.Start_Time,
-                        RoomName = booking.Showtime.CinemaRoom.Room_Name,
-                        Seats = formattedSeats
-                    };
-
-                    return response;
-                }
-                catch (Exception ex)
-                {
-                    await transaction.RollbackAsync();
-                    _logger.LogError(ex, $"Lỗi khi xử lý hoàn tiền cho đơn đặt vé {bookingId}");
-                    throw;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Lỗi khi xử lý hoàn tiền cho đơn đặt vé {bookingId}");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Tính toán số tiền hoàn lại dựa trên chính sách hoàn tiền
-        /// </summary>
-        private (decimal refundAmount, int refundPercentage, string refundPolicy) CalculateRefundAmount(TicketBooking booking, DateTime showDateTime)
-        {
-            // Tính thời gian giữa thời điểm hiện tại và thời điểm suất chiếu
-            TimeSpan timeUntilShow = showDateTime - DateTime.Now;
-            double hoursUntilShow = timeUntilShow.TotalHours;
-
-            int refundPercentage;
-            string refundPolicy;
-
-            // Chính sách hoàn tiền:
-            // > 48 giờ: hoàn 100%
-            // 24-48 giờ: hoàn 75%
-            // 12-24 giờ: hoàn 50%
-            // 6-12 giờ: hoàn 25%
-            // < 6 giờ: không hoàn tiền
-            if (hoursUntilShow > 48)
-            {
-                refundPercentage = 100;
-                refundPolicy = "Hoàn tiền 100% cho hủy trước 48 giờ";
-            }
-            else if (hoursUntilShow > 24)
-            {
-                refundPercentage = 75;
-                refundPolicy = "Hoàn tiền 75% cho hủy trước 24-48 giờ";
-            }
-            else if (hoursUntilShow > 12)
-            {
-                refundPercentage = 50;
-                refundPolicy = "Hoàn tiền 50% cho hủy trước 12-24 giờ";
-            }
-            else if (hoursUntilShow > 6)
-            {
-                refundPercentage = 25;
-                refundPolicy = "Hoàn tiền 25% cho hủy trước 6-12 giờ";
-            }
-            else
-            {
-                refundPercentage = 0;
-                refundPolicy = "Không hoàn tiền cho hủy trong vòng 6 giờ trước suất chiếu";
-            }
-
-            // Tính số tiền hoàn lại
-            decimal refundAmount = booking.Total_Amount * refundPercentage / 100;
-
-            return (refundAmount, refundPercentage, refundPolicy);
         }
     }
 }
