@@ -113,7 +113,6 @@ namespace STP.APIService
             builder.Services.AddScoped<SeatTypeService>();
             builder.Services.AddScoped<PromotionService>();
 
-
             // Đăng ký dịch vụ bộ nhớ cache
             builder.Services.AddMemoryCache();
             builder.Services.AddScoped<AccountLockingService>();
