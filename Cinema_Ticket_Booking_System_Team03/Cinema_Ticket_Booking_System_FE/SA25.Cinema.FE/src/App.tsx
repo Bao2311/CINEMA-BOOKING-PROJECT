@@ -17,6 +17,9 @@ import ManageShowtimesPage from './pages/ManageShowtimesPage';
 import ForgotPassword from './pages/ForgotPassword';
 import CinemaRoomPage from './pages/CinemaRoomPage'; // Sửa lỗi import
 import { useLocation } from 'react-router-dom';
+import ManageCinemaRoomPage from './pages/ManageCinemaRoomPage';
+import ManagePromotionPage from './pages/ManagePromotionPage';
+import UserPromotionsPage from './pages/PromotionPage';
 
 function App() {
   return (
@@ -30,7 +33,7 @@ function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/booking/:id" element={<BookingPage />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
-
+            <Route path="/promotion" element={<UserPromotionsPage />} />
             {/* Route chính AdminDashboardPage với các route con */}
             <Route path="/manage-accounts" element={<ManageEmployeesPage />} />
             <Route path="/manage-movies" element={<ManageMoviesPage />} />
@@ -42,7 +45,8 @@ function App() {
             <Route path="/showtimes/:movieId" element={<ShowtimesPage />} />
             <Route path="/cinema-room" element={<CinemaRoomPage />} />
             <Route path="/cinema-room/:showtimeId" element={<CinemaRoomPage />} />
-
+            <Route path="/manage-promotion" element={<ManagePromotionPage />} />
+            <Route path="/manage-cinemaroom" element={<ManageCinemaRoomPage />} />
             {/* Catch-all route */}
             <Route path="*" element={<div>Page not found</div>} />
           </Routes>
