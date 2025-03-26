@@ -12,12 +12,12 @@ namespace STP.APIService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ShowtimeController : ControllerBase
+    public class ShowtimesController : ControllerBase
     {
         private readonly ShowtimeService _showtimeService;
-        private readonly ILogger<ShowtimeController> _logger;
+        private readonly ILogger<ShowtimesController> _logger;
 
-        public ShowtimeController(ShowtimeService showtimeService, ILogger<ShowtimeController> logger)
+        public ShowtimesController(ShowtimeService showtimeService, ILogger<ShowtimesController> logger)
         {
             _showtimeService = showtimeService;
             _logger = logger;
