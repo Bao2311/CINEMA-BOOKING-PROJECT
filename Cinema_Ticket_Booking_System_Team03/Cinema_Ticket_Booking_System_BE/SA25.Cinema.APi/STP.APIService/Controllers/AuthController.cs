@@ -4,12 +4,11 @@ using STP.Repository.Dtos;
 using STP.Repository.Services;
 using System;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using System.Net.Mail;
 using System.Net;
 using STP.Repositories;
 
-namespace STP.APIService.Controllers
+namespace STP.Repository.DTOs
 {
     /// <summary>
     /// Controller quản lý xác thực và tài khoản người dùng
@@ -406,7 +405,7 @@ namespace STP.APIService.Controllers
         /// API gửi lại email xác thực - không yêu cầu xác thực
         /// </summary>
         [HttpPost("resend-verification")]
-        public async Task<IActionResult> ResendVerificationEmail([FromBody] ResendVerificationDto model)
+        public async Task<IActionResult> ResendVerificationEmail([FromBody] ResendVerificationDtos model)
         {
             try
             {

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace STP.Repository.Dtos
 {
-    public class ResendVerificationDto
+    public class ResendVerificationDtos
     {
         [Required]
         [EmailAddress]

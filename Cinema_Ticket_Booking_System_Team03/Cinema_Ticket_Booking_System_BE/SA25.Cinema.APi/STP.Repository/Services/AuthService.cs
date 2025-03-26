@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Org.BouncyCastle.Crypto.Generators;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace STP.Repository.Services
 {
@@ -27,8 +28,10 @@ namespace STP.Repository.Services
         private readonly AccountLockingService _accountLockingService; // Dịch vụ khóa tài khoản
         private readonly ILogger<AuthService> _logger; // Logger ghi nhật ký
         private readonly EmailVerificationService _emailVerificationService;
+        private readonly IMemoryCache _cache; // Thêm cache
+        private const string TempPasswordCachePrefix = "TempPassword_"; // Prefix cho cache key
         // Constructor với dependency injection
-        public AuthService(CinemaDbContext context, IConfiguration configuration, UserRepository userRepository, EmailService emailService, ILogger<AuthService> logger, AccountLockingService accountLockingService, EmailVerificationService emailVerificationService)
+        public AuthService(CinemaDbContext context, IConfiguration configuration, UserRepository userRepository, EmailService emailService, ILogger<AuthService> logger, AccountLockingService accountLockingService, EmailVerificationService emailVerificationService, IMemoryCache cache)
         {
             _context = context;
             _configuration = configuration;
@@ -37,6 +40,7 @@ namespace STP.Repository.Services
             _logger = logger;
             _accountLockingService = accountLockingService;
             _emailVerificationService = emailVerificationService;
+            _cache = cache;
         }
 
         // Phương thức băm mật khẩu sử dụng thuật toán SHA256
@@ -167,13 +171,15 @@ namespace STP.Repository.Services
                 };
             }
         }
+
         // Phương thức đăng nhập
         public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto)
         {
             if (loginDto == null)
                 throw new ArgumentNullException(nameof(loginDto), "Dữ liệu đăng nhập không thể trống");
 
-            Console.WriteLine($"Đang thử đăng nhập với email: {loginDto.Email}");
+            _logger.LogInformation($"Đang thử đăng nhập với email: {loginDto.Email}");
+
             // Kiểm tra xem tài khoản có bị khóa không
             if (await _accountLockingService.IsAccountLockedAsync(loginDto.Email))
             {
@@ -187,24 +193,49 @@ namespace STP.Repository.Services
             // Kiểm tra người dùng tồn tại
             if (user == null)
             {
-                Console.WriteLine("Không tìm thấy người dùng");
                 _logger.LogWarning($"Đăng nhập thất bại với email không tồn tại: {loginDto.Email}");
                 throw new Exception("Tài khoản hoặc mật khẩu sai");
             }
 
-            if (user.Account_Status == "Pending")
+            _logger.LogInformation($"Đã tìm thấy người dùng với ID: {user.User_ID}, Email: {user.Email}");
+
+            // Kiểm tra xem đây có phải là mật khẩu tạm thời không
+            string cacheKey = $"{TempPasswordCachePrefix}{loginDto.Email}";
+            bool isTempPassword = false;
+            bool isPasswordValid = false;
+
+            // Kiểm tra trong cache trước
+            if (_cache.TryGetValue(cacheKey, out string cachedHashedPassword))
+            {
+                string hashedInputPassword = HashPasswordWithSHA256(loginDto.Password);
+                isTempPassword = (hashedInputPassword == cachedHashedPassword);
+                _logger.LogInformation($"Kiểm tra mật khẩu tạm thời: {isTempPassword}");
+
+                if (isTempPassword)
+                {
+                    isPasswordValid = true;
+                    _logger.LogInformation("Đăng nhập bằng mật khẩu tạm thời thành công");
+
+                    // Nếu tài khoản đang ở trạng thái Pending, kích hoạt nó
+                    if (user.Account_Status == "Pending")
+                    {
+                        user.Account_Status = "Active";
+                        _logger.LogInformation($"Tự động kích hoạt tài khoản {user.Email} khi đăng nhập bằng mật khẩu tạm thời");
+                        await _userRepository.UpdateAsync(user);
+                    }
+                }
+            }
+
+            // Nếu không phải mật khẩu tạm thời, kiểm tra trạng thái tài khoản
+            if (!isTempPassword && user.Account_Status == "Pending")
             {
                 throw new Exception("Tài khoản của bạn chưa được xác thực. Vui lòng kiểm tra email để xác thực tài khoản.");
             }
 
-            Console.WriteLine($"Đã tìm thấy người dùng với ID: {user.User_ID}, Email: {user.Email}");
-            Console.WriteLine($"Mật khẩu từ DB: {user.Password?.Length ?? 0} ký tự");
-            Console.WriteLine($"Mật khẩu nhập vào: {loginDto.Password?.Length ?? 0} ký tự");
-
-            // Xác thực mật khẩu
-            if (!VerifyPassword(loginDto.Password, user.Password))
+            // Nếu không phải mật khẩu tạm thời, kiểm tra mật khẩu thông thường
+            if (!isPasswordValid && !VerifyPassword(loginDto.Password, user.Password))
             {
-                Console.WriteLine("Xác thực mật khẩu thất bại");
+                _logger.LogWarning("Xác thực mật khẩu thất bại");
 
                 // Ghi nhận đăng nhập thất bại và kiểm tra khóa tài khoản
                 bool isLocked = await _accountLockingService.RecordFailedAttemptAsync(loginDto.Email);
@@ -230,7 +261,7 @@ namespace STP.Repository.Services
                 throw new Exception($"Tài khoản hoặc mật khẩu sai. Bạn còn {remainingAttempts} lần thử trước khi tài khoản bị khóa.");
             }
 
-            Console.WriteLine("Xác thực mật khẩu thành công");
+            _logger.LogInformation("Xác thực mật khẩu thành công");
 
             // Đặt lại số lần đăng nhập sai khi đăng nhập thành công
             await _accountLockingService.ResetFailedAttemptsAsync(loginDto.Email);
@@ -240,19 +271,24 @@ namespace STP.Repository.Services
             await _userRepository.UpdateAsync(user);
 
             // Tạo và trả về token
-            Console.WriteLine("Đang tạo JWT token");
+            _logger.LogInformation("Đang tạo JWT token");
             var token = GenerateJwtToken(user);
 
-            // Trả về thông tin đăng nhập thành công
-            return new AuthResponseDto
+            // Tạo response
+            var response = new AuthResponseDto
             {
                 UserId = user.User_ID,
                 FullName = user.Full_Name,
                 Email = user.Email,
                 Token = token,
                 TokenExpiration = DateTime.UtcNow.AddDays(1),
-                Role = user.Role
+                Role = user.Role,
+                RequiresPasswordChange = isTempPassword // Đặt dựa trên kết quả kiểm tra mật khẩu tạm thời
             };
+
+            _logger.LogInformation($"Login response RequiresPasswordChange: {response.RequiresPasswordChange}");
+
+            return response;
         }
 
         // Phương thức mở khóa tài khoản
@@ -280,6 +316,11 @@ namespace STP.Repository.Services
             // Băm và lưu mật khẩu mới
             user.Password = HashPasswordWithSHA256(changePasswordDto.NewPassword);
             await _userRepository.UpdateAsync(user);
+            _logger.LogInformation($"Người dùng {userId} đã đổi mật khẩu thành công");
+
+            // Xóa cache nếu tồn tại
+            _cache.Remove($"{TempPasswordCachePrefix}{user.Email}");
+            _logger.LogInformation($"Đã xóa cache mật khẩu tạm thời cho người dùng: {user.Email}");
         }
 
         // Phương thức cập nhật thông tin cá nhân
@@ -406,59 +447,73 @@ namespace STP.Repository.Services
         // Phương thức đặt lại mật khẩu
         public async Task<ResetPasswordResultDto> ResetPasswordAsync(string email)
         {
-            _logger.LogInformation($"Resetting password for email: {email}");
+            _logger.LogInformation($"Đang đặt lại mật khẩu cho email: {email}");
 
             var user = await _userRepository.GetByEmailAsync(email);
             if (user == null)
             {
-                _logger.LogWarning($"User not found with email: {email}");
+                _logger.LogWarning($"Không tìm thấy người dùng với email: {email}");
                 throw new Exception("Không tìm thấy tài khoản với email này");
             }
 
             // Tạo mật khẩu mới ngẫu nhiên
             string newPassword = GenerateRandomPassword();
-            _logger.LogInformation($"Generated new password for user: {user.User_ID}");
+            _logger.LogInformation($"Đã tạo mật khẩu mới cho người dùng: {user.User_ID}");
 
-            // Lưu mật khẩu mới đã băm
-            user.Password = HashPasswordWithSHA256(newPassword);
+            // Băm mật khẩu mới
+            string hashedPassword = HashPasswordWithSHA256(newPassword);
+
+            // Lưu mật khẩu mới đã băm vào DB
+            user.Password = hashedPassword;
             await _userRepository.UpdateAsync(user);
-            _logger.LogInformation($"Updated password for user: {user.User_ID}");
+
+            // Lưu mật khẩu vào cache với thời hạn 24 giờ
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(TimeSpan.FromHours(24));
+
+            _cache.Set($"{TempPasswordCachePrefix}{email}", hashedPassword, cacheEntryOptions);
+            _logger.LogInformation($"Đã lưu mật khẩu tạm thời vào cache cho: {email}");
 
             try
             {
                 // Tạo nội dung email
                 string subject = "Đặt lại mật khẩu - STP Cinema";
                 string body = $@"
-                    <html>
-                    <body style='font-family: Arial, sans-serif;'>
-                        <div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
-                            <h2 style='color: #e50914;'>Đặt lại mật khẩu tại STP Cinema</h2>
-                            <p>Xin chào {user.Full_Name},</p>
-                            <p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
-                            <p>Mật khẩu mới của bạn là: <strong>{newPassword}</strong></p>
-                            <p>Vui lòng đổi mật khẩu này ngay sau khi đăng nhập để đảm bảo an toàn cho tài khoản.</p>
-                            <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này hoặc liên hệ với chúng tôi.</p>
-                            <p>Trân trọng,<br>Đội ngũ STP Cinema</p>
-                        </div>
-                    </body>
-                    </html>";
+        <html>
+        <body style='font-family: Arial, sans-serif;'>
+            <div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+                <h2 style='color: #e50914;'>Đặt lại mật khẩu tại STP Cinema</h2>
+                <p>Xin chào {user.Full_Name},</p>
+                <p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
+                <p>Mật khẩu mới của bạn là: <strong>{newPassword}</strong></p>
+                <p>Lưu ý:</p>
+                <ul>
+                    <li>Mật khẩu này chỉ có hiệu lực trong vòng 24 giờ.</li>
+                    <li>Hệ thống sẽ yêu cầu bạn đổi mật khẩu ngay khi đăng nhập thành công.</li>
+                </ul>
+                <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này hoặc liên hệ với chúng tôi.</p>
+                <p>Trân trọng,<br>Đội ngũ STP Cinema</p>
+            </div>
+        </body>
+        </html>";
 
                 // Gửi email chứa mật khẩu mới
-                _logger.LogInformation($"Attempting to send password reset email to: {email}");
+                _logger.LogInformation($"Đang gửi email đặt lại mật khẩu đến: {email}");
                 await _emailService.SendEmailAsync(email, subject, body);
-                _logger.LogInformation($"Password reset email sent successfully to: {email}");
+                _logger.LogInformation($"Đã gửi email đặt lại mật khẩu thành công đến: {email}");
 
                 // Trả về kết quả thành công
                 return new ResetPasswordResultDto
                 {
-                    Message = "Đặt lại mật khẩu thành công, vui lòng kiểm tra email của bạn",
-                    NewPassword = newPassword // Trong production, nên bỏ dòng này
+                    Message = "Đặt lại mật khẩu thành công, vui lòng kiểm tra email của bạn. Mật khẩu này chỉ có hiệu lực trong vòng 24 giờ.",
+                    NewPassword = newPassword, // Trong production, nên bỏ dòng này
+                    ExpiresAt = DateTime.UtcNow.AddHours(24)
                 };
             }
             catch (Exception ex)
             {
                 // Ghi log lỗi nếu không gửi được email
-                _logger.LogError(ex, $"Failed to send password reset email: {ex.Message}");
+                _logger.LogError(ex, $"Không thể gửi email đặt lại mật khẩu: {ex.Message}");
                 throw new Exception($"Đã đặt lại mật khẩu nhưng không thể gửi email: {ex.Message}");
             }
         }

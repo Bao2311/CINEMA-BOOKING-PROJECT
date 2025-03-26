@@ -150,6 +150,8 @@ namespace STP.Repository.Dtos
 
         // Vai trò của người dùng
         public string Role { get; set; }
+
+        public bool RequiresPasswordChange { get; set; }
     }
 
     // DTO dùng để thay đổi trạng thái tài khoản
@@ -177,6 +179,8 @@ namespace STP.Repository.Dtos
 
         // Mật khẩu mới (nếu được tạo tự động)
         public string NewPassword { get; set; }
+
+        public DateTime ExpiresAt { get; set; }
     }
 
     // DTO dùng cho admin cập nhật thông tin người dùng
