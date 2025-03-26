@@ -1,5 +1,27 @@
 ﻿namespace STP.Repository.Dtos
 {
+
+    public class PromotionSummaryDto
+    {
+        public int Promotion_ID { get; set; }
+        public string Title { get; set; }
+        public string Promotion_Code { get; set; }
+        public DateTime Start_Date { get; set; }
+        public DateTime End_Date { get; set; }
+        public string Discount_Type { get; set; }
+        public decimal Discount_Value { get; set; }
+        public decimal Minimum_Purchase { get; set; }
+        public decimal? Maximum_Discount { get; set; }
+        public string Applicable_For { get; set; }
+        public int? Usage_Limit { get; set; }
+        public int Current_Usage { get; set; }
+        public string Status { get; set; }
+        public string Promotion_Detail { get; set; }
+        public DateTime Created_At { get; set; }
+        public string Created_By { get; set; }
+        public bool Is_Expired { get; set; } // Vẫn tính toán để biết trạng thái
+        public bool Is_Active { get; set; }  // Vẫn tính toán để biết trạng thái
+    }
     public class PromotionCreateDto
     {
         public string Title { get; set; }

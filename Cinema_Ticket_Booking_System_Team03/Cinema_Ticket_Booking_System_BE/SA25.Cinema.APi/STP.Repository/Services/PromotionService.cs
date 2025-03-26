@@ -20,40 +20,54 @@ namespace STP.Repository.Services
             _logger = logger;
         }
 
-        public async Task<object> GetAllPromotionsAsync(bool includeInactive = false)
+        /// <summary>
+        /// Lấy TOÀN BỘ danh sách các khuyến mãi (bao gồm active, inactive, expired,...).
+        /// Trạng thái thực tế (Is_Active, Is_Expired) được tính toán cho từng khuyến mãi.
+        /// </summary>
+        /// <returns>Danh sách tất cả các PromotionSummaryDto.</returns>
+        public async Task<List<PromotionSummaryDto>> GetAllPromotionsAsync() // Bỏ tham số includeInactive
         {
-            var query = _context.Promotions.AsQueryable();
+            _logger.LogInformation("Fetching ALL promotions.");
+            var now = DateTime.Now; // Lấy thời gian hiện tại một lần
 
-            if (!includeInactive)
+            try
             {
-                query = query.Where(p => p.Status == "Active");
-            }
+                // Không còn lọc theo includeInactive nữa, lấy tất cả từ Promotions
+                var promotions = await _context.Promotions
+                    .Include(p => p.CreatedBy) // Nạp thông tin người tạo (User)
+                    .OrderByDescending(p => p.Created_At) // Sắp xếp (ví dụ: mới nhất lên đầu)
+                    .Select(p => new PromotionSummaryDto // Ánh xạ sang DTO
+                    {
+                        Promotion_ID = p.Promotion_ID,
+                        Title = p.Title,
+                        Promotion_Code = p.Promotion_Code,
+                        Start_Date = p.Start_Date,
+                        End_Date = p.End_Date,
+                        Discount_Type = p.Discount_Type,
+                        Discount_Value = p.Discount_Value,
+                        Minimum_Purchase = p.Minimum_Purchase,
+                        Maximum_Discount = p.Maximum_Discount,
+                        Applicable_For = p.Applicable_For,
+                        Usage_Limit = p.Usage_Limit,
+                        Current_Usage = p.Current_Usage,
+                        Status = p.Status, // Giữ nguyên Status gốc từ DB
+                        Promotion_Detail = p.Promotion_Detail,
+                        Created_At = p.Created_At,
+                        Created_By = p.CreatedBy != null ? p.CreatedBy.Full_Name : "Không xác định",
+                        // Tính toán trạng thái thực tế dựa trên thời gian hiện tại và Status
+                        Is_Expired = p.End_Date < now,
+                        Is_Active = p.Status == "Active" && p.Start_Date <= now && p.End_Date >= now
+                    })
+                    .ToListAsync(); // Lấy danh sách kết quả
 
-            return await query
-                .Include(p => p.CreatedBy)
-                .OrderByDescending(p => p.Created_At)
-                .Select(p => new
-                {
-                    p.Promotion_ID,
-                    p.Title,
-                    p.Promotion_Code,
-                    p.Start_Date,
-                    p.End_Date,
-                    p.Discount_Type,
-                    p.Discount_Value,
-                    p.Minimum_Purchase,
-                    p.Maximum_Discount,
-                    p.Applicable_For,
-                    p.Usage_Limit,
-                    p.Current_Usage,
-                    p.Status,
-                    p.Promotion_Detail,
-                    p.Created_At,
-                    Created_By = p.CreatedBy.Full_Name,
-                    Is_Expired = p.End_Date < DateTime.Now,
-                    Is_Active = p.Status == "Active" && p.Start_Date <= DateTime.Now && p.End_Date >= DateTime.Now
-                })
-                .ToListAsync();
+                _logger.LogInformation("Successfully fetched {Count} total promotions.", promotions.Count);
+                return promotions;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching all promotions.");
+                throw; // Ném lại lỗi
+            }
         }
 
         public async Task<object> GetPromotionAsync(int id)

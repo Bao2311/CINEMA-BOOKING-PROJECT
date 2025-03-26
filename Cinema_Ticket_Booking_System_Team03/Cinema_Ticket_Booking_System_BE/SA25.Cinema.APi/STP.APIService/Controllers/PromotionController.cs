@@ -21,19 +21,30 @@ namespace STP.Web.Controllers
             _logger = logger;
         }
 
-        [HttpGet]
-        //[Authorize(Roles = "Admin,Staff")]
-        public async Task<IActionResult> GetAllPromotions([FromQuery] bool includeInactive = false)
+        /// <summary>
+        /// Lấy toàn bộ danh sách các khuyến mãi (active, inactive, expired...).
+        /// </summary>
+        /// <returns>Danh sách các khuyến mãi.</returns>
+        [HttpGet] // Giữ nguyên HTTP method là GET
+                  //[Authorize(Roles = "Admin,Staff")] // Bạn có thể quyết định bật lại dòng này nếu cần xác thực/phân quyền
+        public async Task<IActionResult> GetAllPromotions() // Bỏ tham số [FromQuery] bool includeInactive
         {
             try
             {
-                var promotions = await _promotionService.GetAllPromotionsAsync(includeInactive);
-                return Ok(promotions);
+                _logger.LogInformation("API: Attempting to get all promotions.");
+                // Gọi service method không cần tham số
+                var promotions = await _promotionService.GetAllPromotionsAsync();
+                _logger.LogInformation("API: Successfully retrieved {Count} promotions.", promotions.Count);
+                return Ok(promotions); // Trả về danh sách với status 200 OK
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting promotions");
-                return StatusCode(500, new { message = "Có lỗi xảy ra khi lấy danh sách khuyến mãi" });
+                // Log lỗi chi tiết ở đây
+                _logger.LogError(ex, "API: Error getting all promotions.");
+                // Trả về lỗi 500 Internal Server Error với thông báo chung
+                return StatusCode(500, new { message = "Đã xảy ra lỗi máy chủ nội bộ khi lấy danh sách khuyến mãi." });
+                // Cân nhắc trả về thông báo lỗi cụ thể hơn nếu an toàn
+                // return BadRequest(new { message = ex.Message }); // Nếu lỗi do input (ít khả năng ở đây)
             }
         }
 
