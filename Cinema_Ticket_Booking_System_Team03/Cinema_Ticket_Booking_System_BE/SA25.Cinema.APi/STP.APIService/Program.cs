@@ -11,10 +11,10 @@ using PMS.Repository.Base;
 using STP.Repository.Services;
 using STP.Repositories;
 using STP.Repository.Repositories;
-using STP.Service.Services;
 using sa25.Repository.Data;
 using CloudinaryDotNet;
 using STP.APIService.Services;
+using STP.Service.Services;
 
 
 namespace STP.APIService
@@ -99,6 +99,7 @@ namespace STP.APIService
             builder.Services.AddScoped<EmailService>();
             builder.Services.AddScoped<IUserProfileService, UserProfileService>();
             builder.Services.AddScoped<MovieRepository>();
+            builder.Services.AddScoped<MovieService>();
             builder.Services.AddScoped<EmailVerificationService>();
             builder.Services.AddScoped<BookingService>();
             builder.Services.AddHostedService<BookingExpirationService>();
@@ -111,8 +112,6 @@ namespace STP.APIService
             builder.Services.AddScoped<SeatService>();
             builder.Services.AddScoped<SeatLayoutService>();
             builder.Services.AddScoped<SeatTypeService>();
-
-
             // Đăng ký dịch vụ bộ nhớ cache
             builder.Services.AddMemoryCache();
             builder.Services.AddScoped<AccountLockingService>();
