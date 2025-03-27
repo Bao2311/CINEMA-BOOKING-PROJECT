@@ -1,23 +1,32 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using STP.Repository.Data;
-using STP.Repository.Dtos;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Linq;
 using STP.Repository.Models;
 using STP.Repository.Repositories;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using STP.Repository.Data;
+using Microsoft.Extensions.Logging;
+using STP.Repository.Dtos;
+using Microsoft.EntityFrameworkCore;
 
-namespace STP.Repository.Services
+namespace STP.Service.Services
 {
+    /// <summary>
+    /// Dịch vụ quản lý lịch chiếu phim
+    /// </summary>
     public class ShowtimeService
     {
-        private readonly ShowtimeRepository _showtimeRepository;
-        private readonly CinemaDbContext _context;
-        private readonly ILogger<ShowtimeService> _logger;
+        private readonly ShowtimeRepository _showtimeRepository; // Repository xử lý dữ liệu lịch chiếu
+        private readonly CinemaDbContext _context; // Context database
+        private readonly ILogger<ShowtimeService> _logger; // Logger ghi nhật ký
 
-        public ShowtimeService(ShowtimeRepository showtimeRepository,CinemaDbContext context, ILogger<ShowtimeService> logger)
+        /// <summary>
+        /// Khởi tạo dịch vụ quản lý lịch chiếu
+        /// </summary>
+        /// <param name="showtimeRepository">Repository xử lý dữ liệu lịch chiếu</param>
+        /// <param name="context">Context database</param>
+        /// <param name="logger">Logger ghi nhật ký</param>
+        public ShowtimeService(ShowtimeRepository showtimeRepository, CinemaDbContext context, ILogger<ShowtimeService> logger)
         {
             _showtimeRepository = showtimeRepository;
             _context = context;
@@ -95,86 +104,76 @@ namespace STP.Repository.Services
                 throw;
             }
         }
-
         /// <summary>
         /// Tạo lịch chiếu mới
         /// </summary>
         /// <param name="showtimeDto">Thông tin lịch chiếu cần tạo</param>
         /// <param name="createdBy">ID người tạo</param>
         /// <returns>ID lịch chiếu mới</returns>
-        public async Task<int> CreateShowtimeAsync(ShowtimeCreateDto showtimeDto, int createdBy)
+        public async Task<ShowtimeDto> CreateShowtimeAsync(ShowtimeCreateDto model, int userId)
         {
-            try
+            if (model == null)
+                throw new ArgumentException("Dữ liệu không hợp lệ");
+
+            var movie = await _context.Movies.FindAsync(model.Movie_ID);
+            if (movie == null)
+                throw new ArgumentException($"Không tìm thấy phim có ID {model.Movie_ID}");
+
+            var cinemaRoom = await _context.CinemaRooms.FindAsync(model.Cinema_Room_ID);
+            if (cinemaRoom == null)
+                throw new ArgumentException($"Không tìm thấy phòng chiếu có ID {model.Cinema_Room_ID}");
+
+            if (cinemaRoom.Status != "Active")
+                throw new ArgumentException("Phòng chiếu không hoạt động");
+
+            if (model.Show_Date.Date < DateTime.Today)
+                throw new ArgumentException("Ngày chiếu phải từ hôm nay trở đi");
+
+            // Tính toán thời gian kết thúc đề xuất
+            TimeSpan suggestedEndTime = model.Start_Time.Add(TimeSpan.FromMinutes(movie.Duration + 15));
+
+            // Ghi log thời gian kết thúc đề xuất để tham khảo
+            _logger.LogInformation($"Thời gian kết thúc đề xuất cho suất chiếu: {suggestedEndTime}. " +
+                                   $"Dựa trên thời lượng phim {movie.Duration} phút + thêm 15 phút");
+
+            TimeSpan endTime = suggestedEndTime;
+            var conflictingShowtimes = await _context.Showtimes
+                .Where(s => s.Cinema_Room_ID == model.Cinema_Room_ID &&
+                           s.Show_Date.Date == model.Show_Date.Date &&
+                           ((s.Start_Time <= model.Start_Time && s.End_Time > model.Start_Time) ||
+                            (s.Start_Time < endTime && s.End_Time >= endTime) ||
+                            (s.Start_Time >= model.Start_Time && s.End_Time <= endTime)))
+                .ToListAsync();
+
+            if (conflictingShowtimes.Any())
+                throw new InvalidOperationException("Suất chiếu bị trùng lịch với suất chiếu khác trong cùng phòng");
+
+            var showtime = new Showtime
             {
-                _logger.LogInformation($"Creating new showtime for movie ID: {showtimeDto.Movie_ID}, room ID: {showtimeDto.Cinema_Room_ID}");
+                Movie_ID = model.Movie_ID,
+                Cinema_Room_ID = model.Cinema_Room_ID,
+                Show_Date = model.Show_Date,
+                Start_Time = model.Start_Time,
+                End_Time = endTime,
+                Price_Tier = model.Price_Tier,
+                Base_Price = model.Base_Price,
+                Status = "Scheduled",
+                Capacity_Available = cinemaRoom.Seat_Quantity,
+                Created_By = userId,
+                Created_At = DateTime.Now,
+                Updated_At = DateTime.Now
+            };
 
-                // Lấy thông tin thời lượng phim từ database
-                var movie = await _context.Movies.FindAsync(showtimeDto.Movie_ID);
-                if (movie == null)
-                {
-                    throw new InvalidOperationException("Phim không tồn tại.");
-                }
+            _context.Showtimes.Add(showtime);
+            await _context.SaveChangesAsync();
 
-                // Kiểm tra thời gian kết thúc có hợp lệ không
-                if (!IsEndTimeValid(showtimeDto.Start_Time, showtimeDto.End_Time, movie.Duration))
-                {
-                    throw new InvalidOperationException("Thời gian kết thúc không hợp lệ. Vui lòng đảm bảo thời gian chiếu đủ thời lượng phim và thêm 15 phút nghỉ.");
-                }
-
-                // Kiểm tra khung giờ trong cùng phòng chiếu
-                bool isRoomAvailable = await IsShowtimeAvailableAsync(
-                    showtimeDto.Cinema_Room_ID,
-                    showtimeDto.Show_Date,
-                    showtimeDto.Start_Time,
-                    showtimeDto.End_Time);
-
-                if (!isRoomAvailable)
-                {
-                    _logger.LogWarning("Showtime creation failed: Time slot is already occupied in this room");
-                    throw new InvalidOperationException("Thời gian chiếu đã trùng với lịch chiếu khác trong phòng này.");
-                }
-
-                // Kiểm tra xem phim này đã có lịch chiếu trùng thời gian ở phòng khác chưa
-                bool isMovieAvailable = await IsMovieAvailableAtTimeAsync(
-                    showtimeDto.Movie_ID,
-                    showtimeDto.Cinema_Room_ID, // Loại trừ phòng hiện tại
-                    showtimeDto.Show_Date,
-                    showtimeDto.Start_Time,
-                    showtimeDto.End_Time);
-
-                if (!isMovieAvailable)
-                {
-                    _logger.LogWarning("Showtime creation failed: Movie already has a showtime at this time in another room");
-                    throw new InvalidOperationException("Phim này đã có lịch chiếu trùng thời gian ở phòng khác.");
-                }
-
-                // Chuyển từ DTO sang entity
-                var showtime = new Showtime
-                {
-                    Movie_ID = showtimeDto.Movie_ID,
-                    Cinema_Room_ID = showtimeDto.Cinema_Room_ID,
-                    Show_Date = EnsureSqlDateTimeCompatible(showtimeDto.Show_Date),
-                    Start_Time = showtimeDto.Start_Time,
-                    End_Time = showtimeDto.End_Time,
-                    Price_Tier = showtimeDto.Price_Tier,
-                    Base_Price = showtimeDto.Base_Price,
-                    Capacity_Available = showtimeDto.Capacity_Available,
-                    Created_By = createdBy,
-                    Created_At = EnsureSqlDateTimeCompatible(DateTime.Now),
-                    Status = "Scheduled",
-                    Updated_At = EnsureSqlDateTimeCompatible(DateTime.Now)
-                };
-
-                // Lưu vào database
-                int newId = await _showtimeRepository.CreateAsync(showtime);
-                _logger.LogInformation($"Created new showtime with ID: {newId}");
-                return newId;
-            }
-            catch (Exception ex)
+            if (movie.Status == "Coming Soon" && model.Show_Date.Date <= DateTime.Today)
             {
-                _logger.LogError(ex, "Error creating new showtime");
-                throw;
+                movie.Status = "Now Showing";
+                await _context.SaveChangesAsync();
             }
+
+            return MapToShowtimeDto(showtime, cinemaRoom.Room_Name);
         }
 
         /// <summary>
@@ -254,7 +253,6 @@ namespace STP.Repository.Services
                 throw;
             }
         }
-
         /// <summary>
         /// Ẩn lịch chiếu bằng cách đổi trạng thái thành Hidden
         /// </summary>
@@ -335,7 +333,6 @@ namespace STP.Repository.Services
 
             return date;
         }
-
         /// <summary>
         /// Kiểm tra xem khung giờ chiếu có khả dụng không trong phòng chiếu cụ thể
         /// và phải cách nhau tối thiểu 15 phút so với các lịch chiếu khác
@@ -590,240 +587,6 @@ namespace STP.Repository.Services
             }
 
             return true;
-        }
-
-    public async Task<object> GetShowtimesAsync(DateTime? date = null, int? movieId = null, int? roomId = null)
-        {
-            DateTime queryDate = date?.Date ?? DateTime.Today;
-            var query = _context.Showtimes.AsQueryable();
-
-            query = query.Where(s => s.Show_Date.Date == queryDate);
-            if (movieId.HasValue)
-                query = query.Where(s => s.Movie_ID == movieId.Value);
-            if (roomId.HasValue)
-                query = query.Where(s => s.Cinema_Room_ID == roomId.Value);
-
-            query = query.OrderBy(s => s.Start_Time);
-
-            var showtimes = await query
-                .Include(s => s.Movie)
-                .Include(s => s.CinemaRoom)
-                .Select(s => new
-                {
-                    s.Showtime_ID,
-                    s.Show_Date,
-                    s.Start_Time,
-                    s.End_Time,
-                    s.Price_Tier,
-                    s.Base_Price,
-                    s.Status,
-                    s.Capacity_Available,
-                    Movie = new { s.Movie.Movie_ID, s.Movie.Movie_Name, s.Movie.Duration, s.Movie.Rating, s.Movie.Poster_URL, s.Movie.Genre },
-                    Room = new { s.CinemaRoom.Cinema_Room_ID, s.CinemaRoom.Room_Name, s.CinemaRoom.Room_Type }
-                }).ToListAsync();
-
-            return new
-            {
-                date = queryDate.ToString("yyyy-MM-dd"),
-                showtimes_count = showtimes.Count,
-                showtimes = showtimes
-            };
-        }
-
-        public async Task<object> GetShowtimeAsync(int id)
-        {
-            var showtime = await _context.Showtimes
-                .Include(s => s.Movie)
-                .Include(s => s.CinemaRoom)
-                .Include(s => s.CreatedBy)
-                .FirstOrDefaultAsync(s => s.Showtime_ID == id);
-
-            if (showtime == null)
-                throw new KeyNotFoundException($"Không tìm thấy suất chiếu có ID {id}");
-
-            var seats = await _context.Seats
-                .Where(seat => seat.SeatLayout.Cinema_Room_ID == showtime.Cinema_Room_ID)
-                .GroupBy(seat => seat.Booking_ID.HasValue)
-                .Select(group => new { IsBooked = group.Key, Count = group.Count() })
-                .ToListAsync();
-
-            var bookedSeats = seats.FirstOrDefault(s => s.IsBooked)?.Count ?? 0;
-            var availableSeats = seats.FirstOrDefault(s => !s.IsBooked)?.Count ?? 0;
-            bool canModify = showtime.Show_Date > DateTime.Today || (showtime.Show_Date == DateTime.Today && showtime.Start_Time > DateTime.Now.TimeOfDay);
-
-            return new
-            {
-                showtime.Showtime_ID,
-                showtime.Show_Date,
-                showtime.Start_Time,
-                showtime.End_Time,
-                showtime.Price_Tier,
-                showtime.Base_Price,
-                showtime.Status,
-                showtime.Capacity_Available,
-                showtime.Created_At,
-                showtime.Updated_At,
-                Created_By = showtime.CreatedBy?.Full_Name,
-                Movie = new { showtime.Movie.Movie_ID, showtime.Movie.Movie_Name, showtime.Movie.Duration, showtime.Movie.Rating, showtime.Movie.Poster_URL, showtime.Movie.Genre },
-                Room = new { showtime.CinemaRoom.Cinema_Room_ID, showtime.CinemaRoom.Room_Name, showtime.CinemaRoom.Room_Type, showtime.CinemaRoom.Seat_Quantity },
-                Booking_Stats = new
-                {
-                    Total_Capacity = showtime.CinemaRoom.Seat_Quantity,
-                    Booked_Seats = bookedSeats,
-                    Available_Seats = availableSeats,
-                    Occupancy_Rate = showtime.CinemaRoom.Seat_Quantity > 0 ? (double)bookedSeats / showtime.CinemaRoom.Seat_Quantity * 100 : 0
-                },
-                Can_Modify = canModify
-            };
-        }
-
-        public async Task<object> UpdateShowtimeAsync(int id, ShowtimeUpdateDto model)
-        {
-            if (model == null)
-                throw new ArgumentException("Dữ liệu không hợp lệ");
-
-            var showtime = await _context.Showtimes.Include(s => s.Movie).FirstOrDefaultAsync(s => s.Showtime_ID == id);
-            if (showtime == null)
-                throw new KeyNotFoundException($"Không tìm thấy suất chiếu có ID {id}");
-
-            var showDateTime = showtime.Show_Date.Add(showtime.Start_Time);
-            if (showDateTime <= DateTime.Now)
-                throw new ArgumentException("Không thể cập nhật suất chiếu đã diễn ra");
-
-            bool hasBookings = await _context.TicketBookings.AnyAsync(b => b.Showtime_ID == id && b.Status != "Cancelled");
-            if (hasBookings)
-            {
-                showtime.Status = model.Status;
-                showtime.Updated_At = DateTime.Now;
-                await _context.SaveChangesAsync();
-
-                return new
-                {
-                    showtime.Showtime_ID,
-                    showtime.Status,
-                    showtime.Updated_At,
-                    limited_update = true,
-                    message = "Suất chiếu đã có đặt vé, chỉ có thể cập nhật trạng thái"
-                };
-            }
-
-            var cinemaRoom = await _context.CinemaRooms.FindAsync(model.Cinema_Room_ID);
-            if (cinemaRoom == null)
-                throw new ArgumentException($"Không tìm thấy phòng chiếu có ID {model.Cinema_Room_ID}");
-
-            TimeSpan endTime = model.Start_Time.Add(TimeSpan.FromMinutes(showtime.Movie.Duration + 15));
-            var conflictingShowtimes = await _context.Showtimes
-                .Where(s => s.Cinema_Room_ID == model.Cinema_Room_ID &&
-                           s.Showtime_ID != id &&
-                           s.Show_Date.Date == model.Show_Date.Date &&
-                           ((s.Start_Time <= model.Start_Time && s.End_Time > model.Start_Time) ||
-                            (s.Start_Time < endTime && s.End_Time >= endTime) ||
-                            (s.Start_Time >= model.Start_Time && s.End_Time <= endTime)))
-                .ToListAsync();
-
-            if (conflictingShowtimes.Any())
-                throw new InvalidOperationException("Suất chiếu bị trùng lịch với suất chiếu khác trong cùng phòng");
-
-            showtime.Cinema_Room_ID = model.Cinema_Room_ID;
-            showtime.Show_Date = model.Show_Date;
-            showtime.Start_Time = model.Start_Time;
-            showtime.End_Time = endTime;
-            showtime.Price_Tier = model.Price_Tier;
-            showtime.Base_Price = model.Base_Price;
-            showtime.Status = model.Status;
-            showtime.Capacity_Available = cinemaRoom.Seat_Quantity;
-            showtime.Updated_At = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-
-            return new
-            {
-                showtime.Showtime_ID,
-                showtime.Cinema_Room_ID,
-                showtime.Show_Date,
-                showtime.Start_Time,
-                showtime.End_Time,
-                showtime.Price_Tier,
-                showtime.Base_Price,
-                showtime.Status,
-                showtime.Updated_At,
-                limited_update = false
-            };
-        }
-
-        public async Task<object> CancelShowtimeAsync(int id)
-        {
-            var showtime = await _context.Showtimes.FindAsync(id);
-            if (showtime == null)
-                throw new KeyNotFoundException($"Không tìm thấy suất chiếu có ID {id}");
-
-            var showDateTime = showtime.Show_Date.Add(showtime.Start_Time);
-            if (showDateTime <= DateTime.Now)
-                throw new ArgumentException("Không thể hủy suất chiếu đã diễn ra");
-
-            var bookings = await _context.TicketBookings
-                .Where(b => b.Showtime_ID == id && b.Status != "Cancelled")
-                .ToListAsync();
-
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                if (bookings.Any())
-                {
-                    foreach (var booking in bookings)
-                    {
-                        booking.Status = "Cancelled";
-                        _context.BookingHistories.Add(new BookingHistory
-                        {
-                            Booking_ID = booking.Booking_ID,
-                            Status = "Cancelled",
-                            Date = DateTime.Now
-                        });
-
-                        var seats = await _context.Seats
-                            .Where(s => s.Booking_ID == booking.Booking_ID)
-                            .ToListAsync();
-                        foreach (var seat in seats)
-                        {
-                            seat.Booking_ID = null;
-                            seat.Seat_Status = "Available";
-                            seat.Last_Updated = DateTime.Now;
-                        }
-
-                        var payment = await _context.Payments
-                            .Where(p => p.Booking_ID == booking.Booking_ID && p.Payment_Status == "Completed")
-                            .FirstOrDefaultAsync();
-                        if (payment != null)
-                        {
-                            payment.Payment_Status = "Refunded";
-                            payment.Refund_Amount = payment.Amount;
-                            payment.Refund_Date = DateTime.Now;
-                            payment.Refund_Reason = "Suất chiếu bị hủy";
-                        }
-                    }
-                }
-
-                showtime.Status = "Canceled";
-                showtime.Updated_At = DateTime.Now;
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return new
-                {
-                    showtime_id = showtime.Showtime_ID,
-                    status = "canceled",
-                    affected_bookings = bookings.Count,
-                    message = bookings.Any()
-                        ? $"Suất chiếu đã bị hủy và {bookings.Count} đơn đặt vé đã được hoàn tiền"
-                        : "Suất chiếu đã bị hủy"
-                };
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, $"Error cancelling showtime {id}");
-                throw;
-            }
         }
 
         public async Task<object> GetShowtimesByMovieAsync(int movieId)

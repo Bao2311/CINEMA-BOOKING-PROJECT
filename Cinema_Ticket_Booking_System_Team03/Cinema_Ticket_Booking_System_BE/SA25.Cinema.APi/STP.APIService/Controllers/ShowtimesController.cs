@@ -9,6 +9,7 @@ using STP.Repository.Dtos;
 using STP.Repository.Models;
 using STP.Repository.Repositories;
 using STP.Repository.Services;
+using STP.Service.Services;
 
 namespace STP.API.Controllers
 {
@@ -204,7 +205,6 @@ namespace STP.API.Controllers
                 return StatusCode(500, "Lỗi hệ thống");
             }
         }
-
 
         [HttpGet("movie/{movieId}")]
         [AllowAnonymous]

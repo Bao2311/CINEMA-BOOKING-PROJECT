@@ -14,6 +14,7 @@ using STP.Repository.Repositories;
 using sa25.Repository.Data;
 using CloudinaryDotNet;
 using STP.APIService.Services;
+using STP.Service.Services;
 
 
 namespace STP.APIService
