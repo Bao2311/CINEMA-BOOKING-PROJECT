@@ -1,1149 +1,1739 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+  Table, Button, Input, Select, DatePicker, Space, 
+  Tag, Modal, Form, Spin, message, Tooltip, Card,
+  Tabs, Typography, Row, Col, Divider, Steps, 
+  Radio, Checkbox, Avatar, Alert
+} from 'antd';
+import { 
+  CalendarOutlined, LeftOutlined, RightOutlined,
+  UserOutlined, CreditCardOutlined, SearchOutlined,
+  CheckCircleOutlined, CloseCircleOutlined, TeamOutlined,
+  PlusOutlined, ShoppingCartOutlined, BarcodeOutlined,
+  PercentageOutlined, DollarOutlined, QrcodeOutlined
+} from '@ant-design/icons';
 import axios from 'axios';
-import {
-    FaUsers, FaUserPlus, FaSearch, FaEdit, FaTrash, FaEye,
-    FaSort, FaSortUp, FaSortDown, FaFilter, FaDownload,
-    FaUpload, FaUserShield, FaCheck, FaTimes, FaEnvelope,
-    FaSyncAlt, FaExclamationCircle
-  } from 'react-icons/fa';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import { debounce } from 'lodash';
+import moment from 'moment';
+import { useAuth } from '../context/AuthContext';
+import Layout from '../components/Layout/Layout';
+import { QRCode } from 'antd';
+import styled from 'styled-components';
+import { motion } from 'framer-motion';
 
+const { Option } = Select;
+const { Title, Text, Paragraph } = Typography;
+const { Step } = Steps;
+const { TabPane } = Tabs;
 
-// Types
-interface User {
+// Define interfaces
+interface Movie {
+  movie_ID: number;
+  movie_Name: string;
+  director: string;
+  genre: string;
+  cast: string;
+  poster_URL: string;
+  duration: number;
+  rating: string;
+}
+
+interface PayosPaymentResponse {
+  success: boolean;
+  message: string;
+  paymentUrl: string;
+  qrCodeUrl: string;
+  orderCode: string;
+  amount: number;
+}
+
+interface Room {
+  cinema_Room_ID: number;
+  room_Name: string;
+  room_Type: string;
+}
+
+interface Showtime {
+  showtime_ID: number;
+  movie_ID: number;
+  cinema_Room_ID: number;
+  room_Name: string;
+  show_Date: string;
+  start_Time: string;
+  end_Time: string;
+  price_Tier: string;
+  base_Price: number;
+  status: string;
+  movie?: Movie;
+  room?: Room;
+}
+
+interface Seat {
+  seat_ID: number;
+  row_Name: string;
+  seat_Number: number;
+  seat_Type: string;
+  price: number;
+  seat_Status: string;
+  layout_ID: number;
+}
+
+interface ShowtimeSeatsResponse {
+  showtime_ID: number;
+  movie_Title: string;
+  cinema_Room: string;
+  show_Date: string;
+  start_Time: string;
+  end_Time: string;
+  seats: {
+    $values: Seat[];
+  };
+}
+
+interface Member {
   user_ID: number;
-  username: string;
-  email: string;
   full_Name: string;
-  role: string;
-  phone_Number?: string;
-  created_At: string;
-  account_Status: string;
-  avatar_URL?: string;
-  date_Of_Birth?: string;
-  sex?: string;
-  address?: string;
-  last_Login?: string;
-}
-
-
-interface SortConfig {
-  key: keyof User | null;
-  direction: 'asc' | 'desc';
-}
-
-
-interface RegisterUserData {
-  username: string;
   email: string;
-  password: string;
-  confirmPassword: string;
-  full_Name: string;
-  phone_Number?: string;
-  role: string;
-  date_Of_Birth?: string;
-  sex?: string;
-  address?: string;
+  phone_Number: string;
+  currentPoints: number;
+  isVip: boolean;
+  membershipStatus: string;
 }
 
-
-interface FormErrors {
-  username?: string;
-  email?: string;
-  password?: string;
-  confirmPassword?: string;
-  full_Name?: string;
-  phone_Number?: string;
+interface Promotion {
+  promotion_ID: number;
+  promotion_Code: string;
+  promotion_Detail: string;
+  discount_Type: string;
+  discount_Value: number;
+  start_Date: string;
+  end_Date: string;
+  status: string;
+  is_Active: boolean;
 }
 
+interface Customer {
+  name: string;
+  phone: string;
+  email: string;
+}
 
-// Main component
-const StaffPage: React.FC = () => {
-  // State management
-  const [users, setUsers] = useState<User[]>([]);
+interface AppliedPromotion {
+  promotion_ID: number;
+  code: string;
+  name: string;
+  discount_Value: number;
+  discount_Amount: number;
+}
+
+interface PaymentMethod {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+}
+
+interface BookingSummary {
+  subtotal: number;
+  discounts: number;
+  memberDiscount: number;
+  promotionDiscount: number;
+  total: number;
+}
+
+// Styled components for seat layout display
+const Screen = styled.div`
+  width: 90%;
+  height: 50px;
+  background: linear-gradient(to bottom, #e5e7eb, #ffffff);
+  border-radius: 8px;
+  margin: 0 auto 3rem;
+  transform: perspective(500px) rotateX(-20deg);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  border: 2px solid #d1d5db;
+
+  &:after {
+    content: '';
+    position: absolute;
+    bottom: -25px;
+    left: 5%;
+    width: 90%;
+    height: 25px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.15), transparent);
+    border-radius: 8px;
+  }
+`;
+
+const ScreenText = styled.div`
+  color: #4b5563;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+`;
+
+const SeatingArea = styled.div`
+  display: grid;
+  grid-template-columns: 40px 1fr 40px; /* Row label, seats section, row label */
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 900px;
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  position: relative;
+`;
+
+const RowContainer = styled(motion.div)`
+  display: contents; /* Use CSS Grid for layout */
+`;
+
+const RowLabel = styled.div`
+  width: 40px;
+  height: 40px;
+  text-align: center;
+  font-weight: 600;
+  color: #374151;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.75rem;
+  border-radius: 6px;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: #d1d5db;
+    transform: scale(1.05);
+  }
+`;
+
+const ColumnHeader = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  grid-column: 2 / 3; /* Position in the middle column of the grid */
+  margin-bottom: 0.5rem;
+`;
+
+const ColumnFooter = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  grid-column: 2 / 3; /* Position in the middle column of the grid */
+  margin-top: 0.5rem;
+`;
+
+const ColumnLabel = styled.div`
+  width: 40px;
+  height: 40px;
+  text-align: center;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.75rem;
+  border-radius: 6px;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: #d1d5db;
+    transform: scale(1.05);
+  }
+`;
+
+const SeatsSection = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  grid-column: 2 / 3; /* Position in the middle column of the grid */
+`;
+
+const SeatButtonWrapper = styled.div`
+  position: relative;
+  display: inline-block;
+`;
+
+const SeatButton = styled(motion.button)<{ seatType: string; seatStatus: string; isSelected: boolean }>`
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: ${props => props.isSelected ? '3px solid #22c55e' : '1px solid #d1d5db'};
+  box-shadow: ${props => props.isSelected ? '0 0 10px rgba(34, 197, 94, 0.5)' : '0 2px 4px rgba(0, 0, 0, 0.1)'};
+  background-color: ${props => {
+    if (props.seatStatus === 'Booked' || props.seatStatus === 'Reserved') return '#9ca3af'; // Booked or Reserved seats
+    switch (props.seatType) {
+      case 'VIP':
+        return '#ef4444'; // VIP seats
+      case 'Regular':
+      default:
+        return '#3b82f6'; // Regular seats
+    }
+  }};
+  color: white;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: ${props => (props.seatStatus === 'Booked' || props.seatStatus === 'Reserved') ? 'not-allowed' : 'pointer'};
+  position: relative;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: ${props => (props.seatStatus === 'Booked' || props.seatStatus === 'Reserved') ? 'none' : 'translateY(-2px)'};
+    box-shadow: ${props => (props.seatStatus === 'Booked' || props.seatStatus === 'Reserved') ? 'none' : '0 4px 8px rgba(0, 0, 0, 0.15)'};
+  }
+`;
+
+const SeatNumber = styled.div`
+  font-size: 0.8rem;
+  font-weight: 600;
+`;
+
+const SeatTooltip = styled.div`
+  visibility: hidden;
+  background-color: #1f2937;
+  color: #ffffff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 6px 10px;
+  position: absolute;
+  z-index: 10;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+  &:after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #1f2937 transparent transparent transparent;
+  }
+
+  ${SeatButtonWrapper}:hover & {
+    visibility: visible;
+  }
+`;
+
+const SeatLegend = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 2.5rem;
+  flex-wrap: wrap;
+  background: #ffffff;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+`;
+
+const LegendItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: #4b5563;
+  font-weight: 500;
+`;
+
+const ColorBox = styled.div<{ color: string }>`
+  width: 20px;
+  height: 20px;
+  background-color: ${props => props.color};
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+`;
+
+const PromotionList = styled.div`
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+
+const PromotionTag = styled(Tag)`
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 14px;
+  border-radius: 4px;
+  background-color: #e6f7ff;
+  border-color: #91d5ff;
+  color: #1890ff;
+  &:hover {
+    background-color: #bae7ff;
+  }
+`;
+
+const ManageBookings: React.FC = () => {
+  const { user } = useAuth();
+  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [showtimes, setShowtimes] = useState<Showtime[]>([]);
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [seats, setSeats] = useState<Seat[]>([]);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [selectedShowtime, setSelectedShowtime] = useState<Showtime | null>(null);
+  const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
+  const [selectedDate, setSelectedDate] = useState<moment.Moment | null>(null);
+  const [member, setMember] = useState<Member | null>(null);
+  const [memberLookupValue, setMemberLookupValue] = useState<string>('');
+  const [memberLookupType, setMemberLookupType] = useState<'phone' | 'email'>('phone');
+  const [memberDiscountAmount, setMemberDiscountAmount] = useState<number>(0);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [appliedPromotion, setAppliedPromotion] = useState<AppliedPromotion | null>(null);
+  const [promotionCode, setPromotionCode] = useState<string>('');
+  const [customer, setCustomer] = useState<Customer>({ name: '', phone: '', email: '' });
+  const [paymentMethod, setPaymentMethod] = useState<string>('Cash');
+  const [sendConfirmation, setSendConfirmation] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [error, setError] = useState<string | null>(null);
-  const [formErrors, setFormErrors] = useState<FormErrors>({});
- 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
- 
-  // Sort state
-  const [sortConfig, setSortConfig] = useState<SortConfig>({
-    key: null,
-    direction: 'asc'
-  });
- 
-  // Modal states
-  const [showUserModal, setShowUserModal] = useState<boolean>(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [modalMode, setModalMode] = useState<'view' | 'edit' | 'add'>('view');
-  const [userToDelete, setUserToDelete] = useState<User | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
- 
-  // User registration state
-  const [registerData, setRegisterData] = useState<RegisterUserData>({
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    full_Name: '',
-    phone_Number: '',
-    role: 'customer', // Mặc định là customer cho nhân viên
-    date_Of_Birth: '',
-    sex: 'male',
-    address: ''
+  const [lookupLoading, setLookupLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+  const [searchValue, setSearchValue] = useState<string>('');
+  const [newUserModalVisible, setNewUserModalVisible] = useState<boolean>(false);
+  const [paymentQrVisible, setPaymentQrVisible] = useState<boolean>(false);
+  const [paymentData, setPaymentData] = useState<PayosPaymentResponse | null>(null);
+  const [bookingSummary, setBookingSummary] = useState<BookingSummary>({
+    subtotal: 0,
+    discounts: 0,
+    memberDiscount: 0,
+    promotionDiscount: 0,
+    total: 0
   });
 
+  const [customerForm] = Form.useForm();
+  const [membershipForm] = Form.useForm();
+  const [newUserForm] = Form.useForm();
 
-  // API Base URL
-  const API_BASE_URL = 'https://localhost:7168/api';
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
- 
-  // Debounced search function
-  const debouncedSearch = useMemo(
-    () =>
-      debounce((query: string) => {
-        setSearchQuery(query);
-        setCurrentPage(1); // Reset về trang đầu tiên khi tìm kiếm
-      }, 300),
-    []
-  );
- 
-  // Fetch users
-  const fetchUsers = async () => {
-    setLoading(true);
-    setError(null);
-   
+  useEffect(() => {
+    fetchNowShowingMovies();
+    fetchPromotions();
+  }, []);
+
+  // Get token from storage
+  const getAuthToken = () => {
+    return localStorage.getItem('token') || sessionStorage.getItem('token');
+  };
+
+  // Fetch movies that are now showing
+  const fetchNowShowingMovies = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/User`, {
+      setLoading(true);
+      const token = getAuthToken();
+      const response = await axios.get('https://localhost:7168/api/Movie/now-showing', {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: token ? `Bearer ${token}` : undefined,
         },
       });
-
-
-      if (response.data && response.data.$values && Array.isArray(response.data.$values)) {
-        setUsers(response.data.$values);
-      } else if (Array.isArray(response.data)) {
-        setUsers(response.data);
-      } else {
-        console.error('API response is not an array:', response.data);
-        setUsers([]);
-        setError('Định dạng dữ liệu không hợp lệ');
+      if (response.data.$values) {
+        setMovies(response.data.$values);
       }
     } catch (error) {
-      console.error('Error fetching users:', error);
-      setUsers([]);
-      setError(error.response?.data?.message || 'Không thể tải danh sách người dùng');
+      console.error('Error fetching movies:', error);
+      setError('Không thể tải danh sách phim đang chiếu');
     } finally {
       setLoading(false);
     }
   };
- 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
- 
-  // Form validation
-  const validateForm = (): FormErrors => {
-    const errors: FormErrors = {};
-   
-    if (!registerData.username.trim()) errors.username = 'Tên đăng nhập không được để trống';
-    if (!registerData.email.trim()) errors.email = 'Email không được để trống';
-    if (!/\S+@\S+\.\S+/.test(registerData.email)) errors.email = 'Email không hợp lệ';
-    if (!registerData.password) errors.password = 'Mật khẩu không được để trống';
-    if (registerData.password.length < 6) errors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
-    if (registerData.password !== registerData.confirmPassword) errors.confirmPassword = 'Mật khẩu không khớp';
-    if (!registerData.full_Name.trim()) errors.full_Name = 'Họ tên không được để trống';
-   
-    return errors;
+
+  // Fetch promotions from API
+  const fetchPromotions = async () => {
+    try {
+      const token = getAuthToken();
+      const response = await axios.get('https://localhost:7168/api/Promotion?includeInactive=false', {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+      });
+      if (response.data.$values) {
+        // Filter promotions with status 'active' and is_Active true
+        const activePromotions = response.data.$values.filter(
+          (promo: Promotion) => promo.status.toLowerCase() === 'active' && promo.is_Active
+        );
+        setPromotions(activePromotions);
+      }
+    } catch (error) {
+      console.error('Error fetching promotions:', error);
+      message.error('Không thể tải danh sách mã khuyến mãi');
+    }
   };
- 
-  // Handle user registration
-  const handleRegisterUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-   
-    // Validate form
-    const errors = validateForm();
-    setFormErrors(errors);
-   
-    if (Object.keys(errors).length > 0) {
-      // Hiển thị lỗi đầu tiên
-      toast.error(Object.values(errors)[0]);
+
+  // Handle clicking on a promotion code
+  const handlePromotionClick = (code: string) => {
+    if (!appliedPromotion) {
+      setPromotionCode(code);
+    }
+  };
+
+  // Fetch available dates for a movie
+  const fetchAvailableDates = async (movieId: number) => {
+    try {
+      const token = getAuthToken();
+      const response = await axios.get(`https://localhost:7168/api/Showtimes/movie/${movieId}/dates`, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+      });
+      if (response.data.$values) {
+        setAvailableDates(response.data.$values);
+        if (response.data.$values.length > 0) {
+          setSelectedDate(moment(response.data.$values[0]));
+          fetchShowtimes(movieId, moment(response.data.$values[0]).format('YYYY-MM-DD'));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching available dates:', error);
+      message.error('Không thể tải danh sách ngày có suất chiếu');
+    }
+  };
+
+  const fetchShowtimes = async (movieId: number, date?: string) => {
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+      let url = date 
+        ? `https://localhost:7168/api/Showtimes/movie/${movieId}/date/${date}` 
+        : `https://localhost:7168/api/Showtimes/movie/${movieId}`;
+      
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+      });
+      if (response.data.$values) {
+        setShowtimes(response.data.$values);
+      } else {
+        setShowtimes([]);
+      }
+    } catch (error) {
+      console.error('Error fetching showtimes:', error);
+      setError('Không thể tải danh sách suất chiếu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSeats = async (showtimeId: number) => {
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+      const response = await axios.get<ShowtimeSeatsResponse>(`https://localhost:7168/api/Seat/showtime/${showtimeId}`, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+      });
+      
+      if (response.data && response.data.seats && response.data.seats.$values) {
+        const seatsWithIds = response.data.seats.$values.map((seat, index) => ({
+          ...seat,
+          seat_ID: seat.seat_ID === 0 ? seat.layout_ID : seat.seat_ID
+        }));
+        
+        setSeats(seatsWithIds);
+      } else {
+        setSeats([]);
+      }
+    } catch (error) {
+      console.error('Error fetching seats:', error);
+      setError('Không thể tải danh sách ghế');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Lookup member by phone or email
+  const lookupMember = async (value: string, type: 'phone' | 'email') => {
+    if (!value) return;
+    
+    try {
+      setLookupLoading(true);
+      const token = getAuthToken();
+      const endpoint = type === 'phone' 
+        ? `https://localhost:7168/api/Member/lookup/phone/${encodeURIComponent(value)}`
+        : `https://localhost:7168/api/Member/lookup/email/${encodeURIComponent(value)}`;
+      
+      const response = await axios.get(endpoint, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+      });
+      if (response.data) {
+        // Map API response to Member interface
+        const memberData: Member = {
+          user_ID: response.data.user_ID,
+          full_Name: response.data.full_Name,
+          email: response.data.email,
+          phone_Number: response.data.phone_Number,
+          currentPoints: response.data.currentPoints,
+          isVip: response.data.isVip,
+          membershipStatus: response.data.membershipStatus,
+        };
+        setMember(memberData);
+        customerForm.setFieldsValue({
+          name: response.data.full_Name,
+          phone: response.data.phone_Number,
+          email: response.data.email
+        });
+        setCustomer({
+          name: response.data.full_Name,
+          phone: response.data.phone_Number,
+          email: response.data.email
+        });
+        
+        fetchMemberDiscount(response.data.membershipStatus);
+        message.success('Tìm thấy thông tin thành viên!');
+      } else {
+        setMember(null);
+        message.info('Không tìm thấy thành viên với thông tin cung cấp');
+      }
+    } catch (error) {
+      console.error('Error looking up member:', error);
+      message.error('Lỗi khi tìm kiếm thành viên');
+      setMember(null);
+    } finally {
+      setLookupLoading(false);
+    }
+  };
+
+  // Fetch member discount based on membership level
+  const fetchMemberDiscount = async (membershipLevel: string) => {
+    try {
+      const token = getAuthToken();
+      const response = await axios.get(`https://localhost:7168/api/Member/discount/${membershipLevel.toLowerCase()}`, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+      });
+      if (response.data) {
+        setMemberDiscountAmount(response.data);
+        updateBookingSummary(selectedSeats, response.data, appliedPromotion?.discount_Amount || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching member discount:', error);
+      setMemberDiscountAmount(0);
+    }
+  };
+
+  // Apply promotion code
+  const applyPromotionCode = async () => {
+    if (!promotionCode) {
+      message.warning('Vui lòng nhập mã khuyến mãi');
       return;
     }
-   
-    setIsSubmitting(true);
+    
     try {
-      const postData = {
-        email: registerData.email,
-        fullName: registerData.full_Name,
-        role: 'customer', // Giới hạn chỉ tạo được customer
-        dateOfBirth: registerData.date_Of_Birth || new Date().toISOString(),
-        sex: registerData.sex || 'male',
-        phoneNumber: registerData.phone_Number || '',
-        address: registerData.address || '',
-        password: registerData.password,
-        username: registerData.username
-      };
-     
-      await axios.post(`${API_BASE_URL}/User/register-user`, postData, {
+      setLoading(true);
+      const token = getAuthToken();
+      const response = await axios.post('https://localhost:7168/api/Promotion/apply', {
+        bookingId: 0, // Booking ID chưa có, để 0 theo ví dụ API
+        promotionCode: promotionCode, // Mã khuyến mãi từ ô nhập
+        totalAmount: calculateSubtotal() // Tổng tiền trước khi áp dụng khuyến mãi
+      }, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: token ? `Bearer ${token}` : undefined,
           'Content-Type': 'application/json'
         },
       });
-
-
-      toast.success('Đăng ký người dùng thành công');
-      setRegisterData({
-        username: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
-        full_Name: '',
-        phone_Number: '',
-        role: 'customer',
-        date_Of_Birth: '',
-        sex: 'male',
-        address: ''
-      });
-     
-      // Refresh user list
-      await fetchUsers(); // Đảm bảo dữ liệu được cập nhật trước khi đóng modal
-      setShowUserModal(false);
-    } catch (error) {
-      console.error('Error registering user:', error);
-     
-      let errorMessage = 'Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.';
-      if (error.response) {
-        errorMessage = error.response.data.message ||
-                      error.response.data.title ||
-                      `Lỗi ${error.response.status}: Thêm người dùng thất bại.`;
-      } else if (error.request) {
-        errorMessage = 'Không nhận được phản hồi từ máy chủ. Vui lòng kiểm tra kết nối và thử lại.';
+      
+      if (response.data) {
+        setAppliedPromotion(response.data);
+        message.success('Áp dụng mã khuyến mãi thành công!');
+        updateBookingSummary(selectedSeats, memberDiscountAmount, response.data.discount_Amount);
       }
-      toast.error(errorMessage);
+    } catch (error) {
+      console.error('Error applying promotion:', error);
+      message.error('Mã khuyến mãi không hợp lệ hoặc không áp dụng được');
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
- 
-  // Handle update user
-  const handleUpdateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedUser) return;
-   
-    setIsSubmitting(true);
+
+  // Remove applied promotion
+  const removePromotion = () => {
+    setAppliedPromotion(null);
+    setPromotionCode('');
+    updateBookingSummary(selectedSeats, memberDiscountAmount, 0);
+    message.success('Đã xóa mã khuyến mãi');
+  };
+
+  // Register new member
+  const registerNewMember = async (values: any) => {
     try {
-      const putData = {
-        fullName: selectedUser.full_Name,
-        dateOfBirth: selectedUser.date_Of_Birth || new Date().toISOString(),
-        sex: selectedUser.sex || 'male',
-        phoneNumber: selectedUser.phone_Number || '',
-        address: selectedUser.address || '',
-        role: 'customer', // Giới hạn chỉ cập nhật customer
-        accountStatus: selectedUser.account_Status,
-      };
-     
-      await axios.put(`${API_BASE_URL}/User/${selectedUser.user_ID}`, putData, {
+      setLoading(true);
+      const token = getAuthToken();
+      const response = await axios.post('https://localhost:7168/api/User/register-user', {
+        name: values.name,
+        email: values.email,
+        phone: values.phone,
+        password: values.password
+      }, {
         headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: token ? `Bearer ${token}` : undefined,
         },
       });
-     
-      toast.success('Cập nhật người dùng thành công!');
-      setShowUserModal(false);
-      await fetchUsers(); // Refresh user list
-    } catch (error) {
-      console.error('Error updating user:', error);
-     
-      let errorMessage = 'Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.';
-      if (error.response) {
-        errorMessage = error.response.data.message ||
-                     `Lỗi ${error.response.status}: Cập nhật người dùng thất bại.`;
-      } else if (error.request) {
-        errorMessage = 'Không nhận được phản hồi từ máy chủ. Vui lòng kiểm tra kết nối và thử lại.';
+      
+      if (response.data) {
+        message.success('Đăng ký thành viên mới thành công!');
+        setNewUserModalVisible(false);
+        
+        customerForm.setFieldsValue({
+          name: values.name,
+          phone: values.phone,
+          email: values.email
+        });
+        setCustomer({
+          name: values.name,
+          phone: values.phone,
+          email: values.email
+        });
+        
+        lookupMember(values.email, 'email');
       }
-      toast.error(errorMessage);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
- 
-  // Handle delete user
-  const handleDeleteUser = async () => {
-    if (!userToDelete) return;
-   
-    setIsSubmitting(true);
-    try {
-      await axios.delete(`${API_BASE_URL}/User/${userToDelete.user_ID}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-
-      setUsers(users.filter(user => user.user_ID !== userToDelete.user_ID));
-      toast.success('Xóa người dùng thành công!');
-      setShowDeleteConfirm(false);
     } catch (error) {
-      console.error('Error deleting user:', error);
-     
-      let errorMessage = 'Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.';
-      if (error.response) {
-        errorMessage = error.response.data.message ||
-                     `Lỗi ${error.response.status}: Xóa người dùng thất bại.`;
-      } else if (error.request) {
-        errorMessage = 'Không nhận được phản hồi từ máy chủ. Vui lòng kiểm tra kết nối và thử lại.';
-      }
-      toast.error(errorMessage);
+      console.error('Error registering new user:', error);
+      message.error('Lỗi đăng ký thành viên mới');
     } finally {
-      setUserToDelete(null);
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
- 
-  // Reset filters
-  const resetFilters = () => {
-    setSearchQuery('');
-    setStatusFilter('all');
-    setRoleFilter('all');
-    setSortConfig({ key: null, direction: 'asc' });
-    setCurrentPage(1);
-  };
- 
-  // Handle sort
-  const handleSort = (key: keyof User) => {
-    setSortConfig(prevConfig => ({
-      key,
-      direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
-    }));
-  };
- 
-  // Modal handlers
-  const openModal = (user: User | null, mode: 'view' | 'edit' | 'add') => {
-    setSelectedUser(user);
-    setModalMode(mode);
-    setShowUserModal(true);
-    setFormErrors({});
-   
-    if (mode === 'add') {
-      setRegisterData({
-        username: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
-        full_Name: '',
-        phone_Number: '',
-        role: 'customer',
-        date_Of_Birth: '',
-        sex: 'male',
-        address: ''
-      });
+
+  const handleSeatSelect = (seat: Seat) => {
+    if (seat.seat_Status === 'Booked' || seat.seat_Status === 'Reserved') {
+      return;
+    }
+
+    const isSelected = selectedSeats.some(s => s.seat_ID === seat.seat_ID);
+    
+    if (isSelected) {
+      setSelectedSeats(prev => prev.filter(s => s.seat_ID !== seat.seat_ID));
+      updateBookingSummary(
+        selectedSeats.filter(s => s.seat_ID !== seat.seat_ID), 
+        memberDiscountAmount, 
+        appliedPromotion?.discount_Amount || 0
+      );
+    } else {
+      setSelectedSeats(prev => [...prev, seat]);
+      updateBookingSummary(
+        [...selectedSeats, seat], 
+        memberDiscountAmount, 
+        appliedPromotion?.discount_Amount || 0
+      );
     }
   };
- 
-  // Confirm delete user
-  const confirmDeleteUser = (user: User) => {
-    setUserToDelete(user);
-    setShowDeleteConfirm(true);
+
+  // Handle movie selection
+  const handleMovieSelect = (movie: Movie) => {
+    setSelectedMovie(movie);
+    fetchAvailableDates(movie.movie_ID);
+    setCurrentStep(1);
   };
- 
-  // Get unique roles for filter dropdown
-  const uniqueRoles = useMemo(() => {
-    const roles = new Set(users.map(user => user.role));
-    return Array.from(roles);
-  }, [users]);
- 
-  // Memoized filtered and sorted users
-  const filteredAndSortedUsers = useMemo(() => {
-    // Apply filters - only show customers for staff
-    let result = users.filter(user => {
-      // Nhân viên chỉ được xem và quản lý khách hàng
-      if (user.role !== 'customer') return false;
-     
-      const matchesSearch =
-        user.full_Name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.username?.toLowerCase().includes(searchQuery.toLowerCase());
-     
-      const matchesStatus = statusFilter === 'all' || user.account_Status === statusFilter;
-     
-      return matchesSearch && matchesStatus;
+
+  // Handle date selection
+  const handleDateSelect = (date: moment.Moment | null) => {
+    if (date && selectedMovie) {
+      setSelectedDate(date);
+      fetchShowtimes(selectedMovie.movie_ID, date.format('YYYY-MM-DD'));
+    }
+  };
+
+  // Handle showtime selection
+  const handleShowtimeSelect = (showtime: Showtime) => {
+    setSelectedShowtime(showtime);
+    fetchSeats(showtime.showtime_ID);
+    setCurrentStep(2);
+  };
+
+  // Calculate subtotal based on selected seats
+  const calculateSubtotal = () => {
+    return selectedSeats.reduce((total, seat) => total + seat.price, 0);
+  };
+
+  const updateBookingSummary = (seats: Seat[], memberDiscount: number, promotionDiscount: number) => {
+    const subtotal = seats.reduce((total, seat) => total + seat.price, 0);
+    const memberDiscountAmount = (memberDiscount / 100) * subtotal;
+    const totalDiscounts = memberDiscountAmount + promotionDiscount;
+    
+    setBookingSummary({
+      subtotal,
+      discounts: totalDiscounts,
+      memberDiscount: memberDiscountAmount,
+      promotionDiscount,
+      total: Math.max(0, subtotal - totalDiscounts)
     });
-   
-    // Apply sorting
-    if (sortConfig.key) {
-      result = [...result].sort((a, b) => {
-        const aValue = a[sortConfig.key!];
-        const bValue = b[sortConfig.key!];
-       
-        if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-   
-    return result;
-  }, [users, searchQuery, statusFilter, roleFilter, sortConfig]);
- 
-  // Pagination
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredAndSortedUsers.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredAndSortedUsers.length / itemsPerPage);
- 
-  // Format date
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('vi-VN');
-  };
- 
-  // Get sort icon
-  const getSortIcon = (key: keyof User) => {
-    if (sortConfig.key !== key) return <FaSort className="inline ml-1" />;
-    return sortConfig.direction === 'asc' ? <FaSortUp className="inline ml-1" /> : <FaSortDown className="inline ml-1" />;
   };
 
+  // Format date and time
+  const formatDate = (dateString: string) => {
+    return moment(dateString).format('DD/MM/YYYY');
+  };
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <ToastContainer position="top-right" autoClose={3000} />
-     
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold flex items-center mb-4 md:mb-0">
-          <FaUsers className="mr-2" /> Quản lý khách hàng
-        </h1>
-       
-        <div className="flex flex-col sm:flex-row gap-2">
-          <button
-            onClick={() => openModal(null, 'add')}
-            className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+  const formatTime = (timeString: string) => {
+    return moment(timeString, 'HH:mm:ss').format('HH:mm');
+  };
+
+  // Render member search component
+  const renderMemberLookup = () => {
+    return (
+      <div className="member-lookup mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <Title level={5}>Tìm thông tin thành viên</Title>
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />}
+            onClick={() => setNewUserModalVisible(true)}
           >
-            <FaUserPlus className="mr-2" /> Thêm khách hàng
-          </button>
-         
-          <button
-            onClick={fetchUsers}
-            className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+            Tạo thành viên mới
+          </Button>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Select 
+            value={memberLookupType} 
+            onChange={(value) => setMemberLookupType(value)}
+            style={{ width: 120 }}
           >
-            <FaSyncAlt className="mr-2" /> Làm mới
-          </button>
+            <Option value="phone">Điện thoại</Option>
+            <Option value="email">Email</Option>
+          </Select>
+          
+          <Input
+            placeholder={memberLookupType === 'phone' ? 'Nhập số điện thoại' : 'Nhập email'}
+            value={memberLookupValue}
+            onChange={(e) => setMemberLookupValue(e.target.value)}
+            style={{ width: 250 }}
+            suffix={lookupLoading ? <Spin size="small" /> : null}
+          />
+          
+          <Button 
+            type="primary"
+            onClick={() => lookupMember(memberLookupValue, memberLookupType)}
+            loading={lookupLoading}
+          >
+            Tìm kiếm
+          </Button>
         </div>
       </div>
-     
-      {/* Filters */}
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="w-full md:w-1/3">
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                <FaSearch className="text-gray-400" />
-              </span>
-              <input
-                type="text"
-                placeholder="Tìm kiếm khách hàng..."
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onChange={(e) => debouncedSearch(e.target.value)}
-              />
-            </div>
-          </div>
-         
-          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="active">Hoạt động</option>
-              <option value="inactive">Không hoạt động</option>
-              <option value="blocked">Đã khóa</option>
-            </select>
-           
-            <button
-              onClick={resetFilters}
-              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
-            >
-              Đặt lại bộ lọc
-            </button>
-          </div>
-        </div>
-      </div>
-     
-      {/* Error message */}
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6 flex items-center">
-          <FaExclamationCircle className="mr-2" />
-          <span>{error}</span>
-        </div>
-      )}
-     
-      {/* Loading indicator */}
-      {loading && (
-        <div className="flex justify-center items-center py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      )}
-     
-      {/* Users table */}
-      {!loading && (
-        <>
-          <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort('full_Name')}
-                        className="flex items-center font-medium text-gray-700"
-                      >
-                        Họ tên {getSortIcon('full_Name')}
-                      </button>
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort('username')}
-                        className="flex items-center font-medium text-gray-700"
-                      >
-                        Tên đăng nhập {getSortIcon('username')}
-                      </button>
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort('email')}
-                        className="flex items-center font-medium text-gray-700"
-                      >
-                        Email {getSortIcon('email')}
-                      </button>
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort('created_At')}
-                        className="flex items-center font-medium text-gray-700"
-                      >
-                        Ngày tạo {getSortIcon('created_At')}
-                      </button>
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort('account_Status')}
-                        className="flex items-center font-medium text-gray-700"
-                      >
-                        Trạng thái {getSortIcon('account_Status')}
-                      </button>
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Hành động
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {currentItems.length > 0 ? (
-                    currentItems.map((user, index) => (
-                      <motion.tr
-                        key={user.user_ID}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.05 }}
-                        className="hover:bg-gray-50"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10">
-                              <img
-                                className="h-10 w-10 rounded-full object-cover"
-                                src={user.avatar_URL || "https://via.placeholder.com/40?text=User"}
-                                alt={user.full_Name}
-                              />
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{user.full_Name}</div>
-                              <div className="text-sm text-gray-500">{user.phone_Number || 'N/A'}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{user.username}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{user.email}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{formatDate(user.created_At)}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                            ${user.account_Status === 'active' ? 'bg-green-100 text-green-800' :
-                              user.account_Status === 'inactive' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'}`}
-                          >
-                            {user.account_Status === 'active' ? 'Hoạt động' :
-                             user.account_Status === 'inactive' ? 'Không hoạt động' : 'Đã khóa'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex justify-end space-x-2">
-                            <button
-                              title="Xem chi tiết"
-                              onClick={() => openModal(user, 'view')}
-                              className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-100 transition-colors"
-                            >
-                              <FaEye className="h-5 w-5" />
-                            </button>
-                            <button
-                              title="Chỉnh sửa"
-                              onClick={() => openModal(user, 'edit')}
-                              className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-100 transition-colors"
-                            >
-                              <FaEdit className="h-5 w-5" />
-                            </button>
-                            <button
-                              title="Xóa"
-                              onClick={() => confirmDeleteUser(user)}
-                              className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-100 transition-colors"
-                            >
-                              <FaTrash className="h-5 w-5" />
-                            </button>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                        Không tìm thấy khách hàng nào
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-         
-          {/* Pagination */}
-          {filteredAndSortedUsers.length > 0 && (
-            <div className="flex flex-col sm:flex-row justify-between items-center">
-              <div className="mb-4 sm:mb-0">
-                <span className="text-sm text-gray-700">
-                  Hiển thị <span className="font-medium">{indexOfFirstItem + 1}</span> đến{" "}
-                  <span className="font-medium">
-                    {Math.min(indexOfLastItem, filteredAndSortedUsers.length)}
-                  </span>{" "}
-                  trong <span className="font-medium">{filteredAndSortedUsers.length}</span> khách hàng
-                </span>
-              </div>
-             
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className={`px-3 py-1 rounded-md ${
-                    currentPage === 1
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}
-                >
-                  Trước
-                </button>
-               
-                {Array.from({ length: Math.min(5, totalPages) }).map((_, idx) => {
-                  // Show pages around current page
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = idx + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = idx + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + idx;
-                  } else {
-                    pageNum = currentPage - 2 + idx;
+    );
+  };
+
+  // Render new user modal
+  const renderNewUserModal = () => {
+    return (
+      <Modal
+        title="Đăng ký thành viên mới"
+        open={newUserModalVisible}
+        onCancel={() => setNewUserModalVisible(false)}
+        footer={null}
+        width={600}
+      >
+        <Form
+          form={newUserForm}
+          layout="vertical"
+          onFinish={registerNewMember}
+        >
+          <Form.Item
+            name="name"
+            label="Họ tên"
+            rules={[{ required: true, message: 'Vui lòng nhập họ tên' }]}
+          >
+            <Input placeholder="Nhập họ tên" />
+          </Form.Item>
+          
+          <Form.Item
+            name="phone"
+            label="Số điện thoại"
+            rules={[{ required: true, message: 'Vui lòng nhập số điện thoại' }]}
+          >
+            <Input placeholder="Nhập số điện thoại" />
+          </Form.Item>
+          
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: 'Vui lòng nhập email' },
+              { type: 'email', message: 'Email không hợp lệ' }
+            ]}
+          >
+            <Input placeholder="Nhập email" />
+          </Form.Item>
+          
+          <Form.Item
+            name="password"
+            label="Mật khẩu"
+            rules={[{ required: true, message: 'Vui lòng nhập mật khẩu' }]}
+          >
+            <Input.Password placeholder="Nhập mật khẩu" />
+          </Form.Item>
+          
+          <Form.Item
+            name="confirmPassword"
+            label="Xác nhận mật khẩu"
+            dependencies={['password']}
+            rules={[
+              { required: true, message: 'Vui lòng xác nhận mật khẩu' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('password') === value) {
+                    return Promise.resolve();
                   }
-                 
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={`px-3 py-1 rounded-md ${
-                        currentPage === pageNum
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-               
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className={`px-3 py-1 rounded-md ${
-                    currentPage === totalPages
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}
-                >
-                  Tiếp
-                </button>
+                  return Promise.reject(new Error('Mật khẩu xác nhận không khớp'));
+                },
+              }),
+            ]}
+          >
+            <Input.Password placeholder="Xác nhận mật khẩu" />
+          </Form.Item>
+          
+          <div className="flex justify-end">
+            <Button onClick={() => setNewUserModalVisible(false)} className="mr-2">
+              Hủy
+            </Button>
+            <Button type="primary" htmlType="submit" loading={loading}>
+              Đăng ký
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+    );
+  };
+
+  // Render payment QR modal
+  const renderPaymentQrModal = () => {
+    return (
+      <Modal
+        title="Thanh toán qua QR"
+        open={paymentQrVisible}
+        onCancel={() => setPaymentQrVisible(false)}
+        footer={[
+          <Button key="completed" type="primary" onClick={completeBooking}>
+            Đã thanh toán xong
+          </Button>,
+          <Button key="cancel" onClick={() => setPaymentQrVisible(false)}>
+            Đóng
+          </Button>
+        ]}
+      >
+        <div className="text-center">
+          <p className="mb-4">Quét mã QR để thanh toán</p>
+          {paymentData && (
+            <>
+              <div className="flex justify-center mb-4">
+                <QRCode value={paymentData.qrCodeUrl} size={250} />
               </div>
+              <p>Mã đơn hàng: <strong>{paymentData.orderCode}</strong></p>
+              <p>Số tiền: <strong>{paymentData.amount.toLocaleString()} VND</strong></p>
+              <Alert
+                className="mt-4"
+                type="info"
+                message="Vui lòng không đóng cửa sổ này cho đến khi thanh toán hoàn tất."
+              />
+            </>
+          )}
+        </div>
+      </Modal>
+    );
+  };
+
+  // Render seat selection
+  const renderSeatSelection = () => {
+    if (!seats.length) {
+      return (
+        <div className="text-center p-8">
+          <Spin size="large" />
+          <div className="mt-4">Đang tải sơ đồ ghế...</div>
+        </div>
+      );
+    }
+
+    const rowsArray = [...new Set(seats.map(seat => seat.row_Name))].sort();
+    const maxColumns = Math.max(...seats.map(seat => seat.seat_Number));
+
+    return (
+      <div className="screen-container mb-8">
+        <Screen>
+          <ScreenText>MÀN HÌNH</ScreenText>
+        </Screen>
+        
+        <SeatingArea>
+          {/* Column Headers (Top) */}
+          <div /> {/* Empty cell for left row label column */}
+          <ColumnHeader>
+            {Array.from({ length: maxColumns }, (_, i) => (
+              <ColumnLabel key={`top-${i}`}>
+                {i + 1}
+              </ColumnLabel>
+            ))}
+          </ColumnHeader>
+          <div /> {/* Empty cell for right row label column */}
+
+          {/* Seat Rows */}
+          {rowsArray.map((row, rowIndex) => (
+            <React.Fragment key={row}>
+              <RowLabel>{row}</RowLabel>
+              <SeatsSection>
+                {seats
+                  .filter(seat => seat.row_Name === row)
+                  .sort((a, b) => a.seat_Number - b.seat_Number)
+                  .map(seat => {
+                    const isSelected = selectedSeats.some(s => s.seat_ID === seat.seat_ID);
+                    const isBooked = seat.seat_Status === 'Booked' || seat.seat_Status === 'Reserved';
+                    
+                    return (
+                      <SeatButtonWrapper key={seat.seat_ID}>
+                        <SeatButton
+                          seatType={seat.seat_Type}
+                          seatStatus={seat.seat_Status}
+                          isSelected={isSelected}
+                          onClick={() => handleSeatSelect(seat)}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <SeatNumber>{seat.seat_Number}</SeatNumber>
+                        </SeatButton>
+                        <SeatTooltip>
+                          {`${row}${seat.seat_Number} - ${seat.price.toLocaleString()} VND - ${isBooked ? 'Đã đặt' : isSelected ? 'Đang chọn' : 'Còn trống'}`}
+                        </SeatTooltip>
+                      </SeatButtonWrapper>
+                    );
+                  })}
+              </SeatsSection>
+              <RowLabel>{row}</RowLabel>
+            </React.Fragment>
+          ))}
+
+          {/* Column Headers (Bottom) */}
+          <div /> {/* Empty cell for left row label column */}
+          <ColumnFooter>
+            {Array.from({ length: maxColumns }, (_, i) => (
+              <ColumnLabel key={`bottom-${i}`}>
+                {i + 1}
+              </ColumnLabel>
+            ))}
+          </ColumnFooter>
+          <div /> {/* Empty cell for right row label column */}
+        </SeatingArea>
+        
+        <SeatLegend>
+          <LegendItem>
+            <ColorBox color="#3b82f6" />
+            <span>Ghế thường</span>
+          </LegendItem>
+          <LegendItem>
+            <ColorBox color="#ef4444" />
+            <span>Ghế VIP</span>
+          </LegendItem>
+          <LegendItem>
+            <ColorBox color="#22c55e" />
+            <span>Đang chọn</span>
+          </LegendItem>
+          <LegendItem>
+            <ColorBox color="#9ca3af" />
+            <span>Đã đặt</span>
+          </LegendItem>
+        </SeatLegend>
+      </div>
+    );
+  };
+
+  // Render promotion section
+  const renderPromotionSection = () => {
+    return (
+      <div className="promotion-section mb-6">
+        <Title level={5}>Mã khuyến mãi</Title>
+        <div className="flex items-center">
+          <Input
+            placeholder="Nhập mã khuyến mãi"
+            value={promotionCode}
+            onChange={e => setPromotionCode(e.target.value)}
+            disabled={!!appliedPromotion}
+            className="mr-2"
+          />
+          {appliedPromotion ? (
+            <Button 
+              danger 
+              icon={<CloseCircleOutlined />} 
+              onClick={removePromotion}
+            >
+              Xóa
+            </Button>
+          ) : (
+            <Button 
+              type="primary" 
+              icon={<PercentageOutlined />} 
+              onClick={applyPromotionCode}
+              loading={loading}
+            >
+              Áp dụng
+            </Button>
+          )}
+        </div>
+        
+        {/* Display list of active promotions */}
+        {promotions.length > 0 && !appliedPromotion && (
+          <PromotionList>
+            {promotions.map(promo => (
+              <Tooltip key={promo.promotion_ID} title={promo.promotion_Detail || 'Không có mô tả'}>
+                <PromotionTag onClick={() => handlePromotionClick(promo.promotion_Code)}>
+                  {promo.promotion_Code}
+                </PromotionTag>
+              </Tooltip>
+            ))}
+          </PromotionList>
+        )}
+        
+        {appliedPromotion && (
+          <Alert
+            message={`Mã khuyến mãi: ${appliedPromotion.code}`}
+            description={`Giảm ${appliedPromotion.discount_Amount.toLocaleString()} VND`}
+            type="success"
+            showIcon
+            className="mt-3"
+          />
+        )}
+      </div>
+    );
+  };
+
+  // Render payment methods
+  const renderPaymentMethods = () => {
+    const paymentMethods = [
+      { id: 'Cash', name: 'Tiền mặt', icon: <DollarOutlined /> },
+      { id: 'Card', name: 'Thẻ ngân hàng', icon: <CreditCardOutlined /> },
+      { id: 'E-Wallet', name: 'Ví điện tử (QR)', icon: <QrcodeOutlined /> }
+    ];
+
+    return (
+      <div className="payment-methods mb-6">
+        <Title level={5}>Phương thức thanh toán</Title>
+        <Radio.Group value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+          <Space direction="vertical" className="w-full">
+            {paymentMethods.map(method => (
+              <Radio key={method.id} value={method.id} className="w-full py-2">
+                <div className="flex items-center">
+                  {method.icon}
+                  <span className="ml-2">{method.name}</span>
+                </div>
+              </Radio>
+            ))}
+          </Space>
+        </Radio.Group>
+        
+        {paymentMethod === 'E-Wallet' && (
+          <Alert
+            className="mt-4"
+            type="info"
+            message="Khách hàng sẽ thanh toán bằng cách quét mã QR"
+          />
+        )}
+        {paymentMethod === 'Card' && (
+          <Alert
+            className="mt-4"
+            type="info"
+            message="Khách hàng sẽ được chuyển đến trang thanh toán an toàn"
+          />
+        )}
+      </div>
+    );
+  };
+
+  // Render booking summary
+  const renderBookingSummary = () => {
+    return (
+      <Card title="Chi tiết thanh toán" className="mb-6">
+        <div className="price-breakdown">
+          <div className="flex justify-between mb-2">
+            <span>Tổng tiền vé:</span>
+            <span>{bookingSummary.subtotal.toLocaleString()} VND</span>
+          </div>
+          
+          {memberDiscountAmount > 0 && (
+            <div className="flex justify-between mb-2 text-green-600">
+              <span>Ưu đãi thành viên ({memberDiscountAmount}%):</span>
+              <span>-{bookingSummary.memberDiscount.toLocaleString()} VND</span>
             </div>
           )}
-        </>
-      )}
-     
-            {/* Add/Edit/View User Modal */}
-            <AnimatePresence>
-        {showUserModal && (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.2 }}
-              className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-            >
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold">
-                    {modalMode === 'add' ? 'Thêm khách hàng mới' :
-                     modalMode === 'edit' ? 'Chỉnh sửa khách hàng' : 'Thông tin khách hàng'}
-                  </h2>
-                  <button
-                    onClick={() => setShowUserModal(false)}
-                    className="text-gray-400 hover:text-gray-600"
+          
+          {appliedPromotion && (
+            <div className="flex justify-between mb-2 text-green-600">
+              <span>Khuyến mãi ({appliedPromotion.code}):</span>
+              <span>-{bookingSummary.promotionDiscount.toLocaleString()} VND</span>
+            </div>
+          )}
+          
+          <Divider />
+          
+          <div className="flex justify-between font-bold text-lg">
+            <span>Thành tiền:</span>
+            <span>{bookingSummary.total.toLocaleString()} VND</span>
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
+  // Create payment
+  const createPayment = async () => {
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+      
+      const bookingData = {
+        showtimeId: selectedShowtime?.showtime_ID,
+        customerPhone: customer.phone,
+        customerEmail: customer.email,
+        customerName: customer.name,
+        seats: selectedSeats.map(seat => ({
+          layoutId: seat.layout_ID,
+          price: seat.price
+        })),
+        totalAmount: bookingSummary.total,
+        memberDiscount: bookingSummary.memberDiscount,
+        promotionDiscount: bookingSummary.promotionDiscount,
+        promotionId: appliedPromotion?.promotion_ID,
+        memberId: member?.user_ID
+      };
+
+      const response = await axios.post<PayosPaymentResponse>('https://localhost:7168/api/payos/create', bookingData, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+      });
+      
+      if (response.data.success) {
+        setPaymentData(response.data);
+        
+        if (paymentMethod === 'E-Wallet') {
+          setPaymentQrVisible(true);
+        } else if (paymentMethod === 'Card') {
+          window.open(response.data.paymentUrl, '_blank');
+          message.success('Đã mở trang thanh toán trong cửa sổ mới');
+        } else {
+          await completeBooking();
+        }
+      } else {
+        message.error(response.data.message || 'Có lỗi xảy ra khi tạo thanh toán');
+      }
+    } catch (error) {
+      console.error('Error creating payment:', error);
+      message.error('Không thể tạo thanh toán');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Complete booking
+  const completeBooking = async () => {
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+      
+      const bookingData = {
+        showtime_ID: selectedShowtime?.showtime_ID,
+        customer: {
+          name: customer.name,
+          phone: customer.phone,
+          email: customer.email
+        },
+        member_ID: member?.user_ID || null,
+        seats: selectedSeats.map(seat => seat.seat_ID),
+        promotion_ID: appliedPromotion?.promotion_ID || null,
+        payment_Method: paymentMethod,
+        total_Amount: bookingSummary.total,
+        discount_Amount: bookingSummary.discounts,
+        send_Confirmation: sendConfirmation
+      };
+      
+      const response = await axios.post('https://localhost:7168/api/Booking', bookingData, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+      });
+      
+      if (response.data) {
+        message.success('Đặt vé thành công!');
+        resetForm();
+      }
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      message.error('Lỗi khi đặt vé');
+    } finally {
+      setLoading(false);
+      setPaymentQrVisible(false);
+    }
+  };
+
+  // Reset form after booking complete
+  const resetForm = () => {
+    setSelectedMovie(null);
+    setSelectedShowtime(null);
+    setSelectedSeats([]);
+    setSelectedDate(null);
+    setMember(null);
+    setAppliedPromotion(null);
+    setPromotionCode('');
+    setCustomer({ name: '', phone: '', email: '' });
+    customerForm.resetFields();
+    setPaymentMethod('Cash');
+    setCurrentStep(0);
+    setPaymentData(null);
+  };
+
+  // Render steps content
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 0: // Chọn phim
+        return (
+          <div className="movie-selection">
+            <div className="mb-4">
+              <Input
+                prefix={<SearchOutlined />}
+                placeholder="Tìm phim..."
+                value={searchValue}
+                onChange={e => setSearchValue(e.target.value)}
+                className="mb-4"
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {movies
+                .filter(movie => movie.movie_Name.toLowerCase().includes(searchValue.toLowerCase()))
+                .map(movie => (
+                  <Card 
+                    key={movie.movie_ID}
+                    hoverable
+                    className="movie-card"
+                    cover={<img alt={movie.movie_Name} src={movie.poster_URL} style={{ height: 300, objectFit: 'cover' }} />}
+                    onClick={() => handleMovieSelect(movie)}
                   >
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-               
-                {modalMode === 'add' ? (
-                  <form onSubmit={handleRegisterUser}>
-                    <div className="grid grid-cols-1 gap-4">
+                    <Card.Meta
+                      title={movie.movie_Name}
+                      description={
+                        <>
+                          <div>Xếp hạng: {movie.rating}</div>
+                          <div>Thời lượng: {movie.duration} phút</div>
+                        </>
+                      }
+                    />
+                  </Card>
+                ))}
+            </div>
+          </div>
+        );
+        
+      case 1: // Chọn suất chiếu
+        return (
+          <div className="showtime-selection">
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <Title level={4}>Chọn suất chiếu: {selectedMovie?.movie_Name}</Title>
+                <Button onClick={() => setCurrentStep(0)}>Đổi phim</Button>
+              </div>
+              
+              <div className="date-selector flex flex-wrap items-center gap-2 mb-4">
+                {availableDates.map(date => (
+                  <Button
+                    key={date}
+                    type={selectedDate && selectedDate.format('YYYY-MM-DD') === date ? 'primary' : 'default'}
+                    onClick={() => handleDateSelect(moment(date))}
+                  >
+                    {moment(date).format('DD/MM (ddd)')}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            
+            {showtimes.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {showtimes.map(showtime => (
+                  <Card 
+                    key={showtime.showtime_ID}
+                    hoverable
+                    className="showtime-card"
+                    onClick={() => handleShowtimeSelect(showtime)}
+                  >
+                    <div className="flex justify-between items-center">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Tên đăng nhập</label>
-                        <input
-                          type="text"
-                          className={`mt-1 block w-full rounded-md border ${formErrors.username ? 'border-red-500' : 'border-gray-300'} shadow-sm focus:border-blue-500 focus:ring-blue-500`}
-                          value={registerData.username}
-                          onChange={(e) => setRegisterData({...registerData, username: e.target.value})}
-                        />
-                        {formErrors.username && <p className="mt-1 text-sm text-red-600">{formErrors.username}</p>}
+                        <div className="text-lg font-bold">{formatTime(showtime.start_Time)}</div>
+                        <div>Phòng: {showtime.room_Name}</div>
+                        <div>Giá: {showtime.base_Price.toLocaleString()} VND</div>
                       </div>
-                     
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Email</label>
-                        <input
-                          type="email"
-                          className={`mt-1 block w-full rounded-md border ${formErrors.email ? 'border-red-500' : 'border-gray-300'} shadow-sm focus:border-blue-500 focus:ring-blue-500`}
-                          value={registerData.email}
-                          onChange={(e) => setRegisterData({...registerData, email: e.target.value})}
-                        />
-                        {formErrors.email && <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>}
-                      </div>
-                     
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Mật khẩu</label>
-                        <input
-                          type="password"
-                          className={`mt-1 block w-full rounded-md border ${formErrors.password ? 'border-red-500' : 'border-gray-300'} shadow-sm focus:border-blue-500 focus:ring-blue-500`}
-                          value={registerData.password}
-                          onChange={(e) => setRegisterData({...registerData, password: e.target.value})}
-                        />
-                        {formErrors.password && <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>}
-                      </div>
-                     
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Xác nhận mật khẩu</label>
-                        <input
-                          type="password"
-                          className={`mt-1 block w-full rounded-md border ${formErrors.confirmPassword ? 'border-red-500' : 'border-gray-300'} shadow-sm focus:border-blue-500 focus:ring-blue-500`}
-                          value={registerData.confirmPassword}
-                          onChange={(e) => setRegisterData({...registerData, confirmPassword: e.target.value})}
-                        />
-                        {formErrors.confirmPassword && <p className="mt-1 text-sm text-red-600">{formErrors.confirmPassword}</p>}
-                      </div>
-                     
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Họ tên</label>
-                        <input
-                          type="text"
-                          className={`mt-1 block w-full rounded-md border ${formErrors.full_Name ? 'border-red-500' : 'border-gray-300'} shadow-sm focus:border-blue-500 focus:ring-blue-500`}
-                          value={registerData.full_Name}
-                          onChange={(e) => setRegisterData({...registerData, full_Name: e.target.value})}
-                        />
-                        {formErrors.full_Name && <p className="mt-1 text-sm text-red-600">{formErrors.full_Name}</p>}
-                      </div>
-                     
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Số điện thoại</label>
-                        <input
-                          type="text"
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          value={registerData.phone_Number}
-                          onChange={(e) => setRegisterData({...registerData, phone_Number: e.target.value})}
-                        />
-                      </div>
-                     
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Vai trò</label>
-                        <select
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          value="customer"
-                          disabled={true}
-                        >
-                          <option value="customer">Khách hàng</option>
-                        </select>
-                        <p className="text-xs text-gray-500 mt-1">Nhân viên chỉ có thể tạo tài khoản khách hàng</p>
-                      </div>
-                     
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Ngày sinh</label>
-                        <input
-                          type="date"
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          value={registerData.date_Of_Birth}
-                          onChange={(e) => setRegisterData({...registerData, date_Of_Birth: e.target.value})}
-                        />
-                      </div>
-                     
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Giới tính</label>
-                        <select
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          value={registerData.sex}
-                          onChange={(e) => setRegisterData({...registerData, sex: e.target.value})}
-                        >
-                          <option value="male">Nam</option>
-                          <option value="female">Nữ</option>
-                          <option value="other">Khác</option>
-                        </select>
-                      </div>
-                     
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Địa chỉ</label>
-                        <textarea
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          rows={3}
-                          value={registerData.address}
-                          onChange={(e) => setRegisterData({...registerData, address: e.target.value})}
-                        ></textarea>
-                      </div>
+                      <Tag color={showtime.status === 'Available' ? 'green' : 'red'}>
+                        {showtime.status === 'Available' ? 'Còn chỗ' : 'Hết chỗ'}
+                      </Tag>
                     </div>
-                   
-                    <div className="mt-6 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => setShowUserModal(false)}
-                        className="mr-3 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      >
-                        Hủy
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <span className="inline-block animate-spin mr-2">⟳</span>
-                            Đang xử lý...
-                          </>
-                        ) : (
-                          'Thêm khách hàng'
-                        )}
-                      </button>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center p-8 bg-gray-50 rounded-lg">
+                <Title level={5}>Không có suất chiếu cho ngày này</Title>
+                <Text type="secondary">Vui lòng chọn ngày khác hoặc đổi phim</Text>
+              </div>
+            )}
+          </div>
+        );
+        
+      case 2: // Chọn ghế
+        return (
+          <div className="seat-selection">
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <Title level={4}>Chọn ghế</Title>
+                <Button onClick={() => setCurrentStep(1)}>Đổi suất chiếu</Button>
+              </div>
+              
+              <div className="showtime-info mb-4 p-4 bg-gray-50 rounded-lg">
+                <Row gutter={16}>
+                  <Col span={8}>
+                    <Text strong>Phim:</Text> {selectedMovie?.movie_Name}
+                  </Col>
+                  <Col span={8}>
+                    <Text strong>Ngày:</Text> {formatDate(selectedShowtime?.show_Date || '')}
+                  </Col>
+                  <Col span={8}>
+                    <Text strong>Giờ:</Text> {formatTime(selectedShowtime?.start_Time || '')}
+                  </Col>
+                </Row>
+                <Row gutter={16}>
+                  <Col span={8}>
+                    <Text strong>Phòng:</Text> {selectedShowtime?.room_Name}
+                  </Col>
+                  <Col span={8}>
+                    <Text strong>Giá cơ bản:</Text> {selectedShowtime?.base_Price.toLocaleString()} VND
+                  </Col>
+                </Row>
+              </div>
+            </div>
+            
+            <Row gutter={24}>
+              <Col span={16}>
+                {renderSeatSelection()}
+              </Col>
+              
+              <Col span={8}>
+                <Card title="Ghế đã chọn" className="mb-4">
+                  {selectedSeats.length === 0 ? (
+                    <div className="text-center text-gray-500 py-4">
+                      Chưa có ghế nào được chọn
                     </div>
-                  </form>
-                ) : modalMode === 'edit' && selectedUser ? (
-                  <form onSubmit={handleUpdateUser}>
-                    <div className="grid grid-cols-1 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Họ tên</label>
-                        <input
-                          type="text"
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          value={selectedUser.full_Name}
-                          onChange={(e) => setSelectedUser({...selectedUser, full_Name: e.target.value})}
-                        />
-                      </div>
-                     
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Email</label>
-                        <input
-                          type="email"
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          value={selectedUser.email}
-                          disabled={true}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Email không thể thay đổi</p>
-                      </div>
-                     
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Số điện thoại</label>
-                        <input
-                          type="text"
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          value={selectedUser.phone_Number || ''}
-                          onChange={(e) => setSelectedUser({...selectedUser, phone_Number: e.target.value})}
-                        />
-                      </div>
-                     
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Trạng thái tài khoản</label>
-                        <select
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          value={selectedUser.account_Status}
-                          onChange={(e) => setSelectedUser({...selectedUser, account_Status: e.target.value})}
-                        >
-                          <option value="active">Hoạt động</option>
-                          <option value="inactive">Không hoạt động</option>
-                          <option value="blocked">Đã khóa</option>
-                        </select>
-                      </div>
-                     
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Ngày sinh</label>
-                        <input
-                          type="date"
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          value={selectedUser.date_Of_Birth?.split('T')[0] || ''}
-                          onChange={(e) => setSelectedUser({...selectedUser, date_Of_Birth: e.target.value})}
-                        />
-                      </div>
-                     
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Giới tính</label>
-                        <select
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          value={selectedUser.sex || 'male'}
-                          onChange={(e) => setSelectedUser({...selectedUser, sex: e.target.value})}
-                        >
-                          <option value="male">Nam</option>
-                          <option value="female">Nữ</option>
-                          <option value="other">Khác</option>
-                        </select>
-                      </div>
-                     
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Địa chỉ</label>
-                        <textarea
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          rows={3}
-                          value={selectedUser.address || ''}
-                          onChange={(e) => setSelectedUser({...selectedUser, address: e.target.value})}
-                        ></textarea>
-                      </div>
-                    </div>
-                   
-                    <div className="mt-6 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => setShowUserModal(false)}
-                        className="mr-3 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      >
-                        Hủy
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <span className="inline-block animate-spin mr-2">⟳</span>
-                            Đang xử lý...
-                          </>
-                        ) : (
-                          'Cập nhật'
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                ) : selectedUser ? (
-                  <div className="space-y-4">
-                    <div className="flex justify-center mb-4">
-                      <div className="relative">
-                        <img
-                          src={selectedUser.avatar_URL || "https://via.placeholder.com/100?text=User"}
-                          alt={selectedUser.full_Name}
-                          className="h-24 w-24 rounded-full object-cover border-2 border-blue-500"
-                        />
-                        <div className={`absolute bottom-0 right-0 h-5 w-5 rounded-full border-2 border-white ${
-                          selectedUser.account_Status === 'active' ? 'bg-green-500' :
-                          selectedUser.account_Status === 'inactive' ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}></div>
-                      </div>
-                    </div>
-                   
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">Tên đăng nhập</h3>
-                        <p className="mt-1">{selectedUser.username}</p>
-                      </div>
-                     
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">Họ tên</h3>
-                        <p className="mt-1">{selectedUser.full_Name}</p>
-                      </div>
-                     
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">Email</h3>
-                        <p className="mt-1">{selectedUser.email}</p>
-                      </div>
-                     
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">Số điện thoại</h3>
-                        <p className="mt-1">{selectedUser.phone_Number || 'Chưa cập nhật'}</p>
-                      </div>
-                     
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">Vai trò</h3>
-                        <p className="mt-1">Khách hàng</p>
-                      </div>
-                     
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">Trạng thái</h3>
-                        <p className="mt-1">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                            ${selectedUser.account_Status === 'active' ? 'bg-green-100 text-green-800' :
-                              selectedUser.account_Status === 'inactive' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'}`}
-                          >
-                            {selectedUser.account_Status === 'active' ? 'Hoạt động' :
-                             selectedUser.account_Status === 'inactive' ? 'Không hoạt động' : 'Đã khóa'}
-                          </span>
-                        </p>
-                      </div>
-                     
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">Ngày tạo</h3>
-                        <p className="mt-1">{formatDate(selectedUser.created_At)}</p>
-                      </div>
-                     
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">Đăng nhập gần nhất</h3>
-                        <p className="mt-1">{selectedUser.last_Login ? formatDate(selectedUser.last_Login) : 'Chưa đăng nhập'}</p>
-                      </div>
-                     
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">Ngày sinh</h3>
-                        <p className="mt-1">{selectedUser.date_Of_Birth ? formatDate(selectedUser.date_Of_Birth) : 'Chưa cập nhật'}</p>
-                      </div>
-                     
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">Giới tính</h3>
-                        <p className="mt-1">
-                          {selectedUser.sex === 'male' ? 'Nam' :
-                           selectedUser.sex === 'female' ? 'Nữ' :
-                           selectedUser.sex === 'other' ? 'Khác' : 'Chưa cập nhật'}
-                        </p>
-                      </div>
-                    </div>
-                   
+                  ) : (
                     <div>
-                      <h3 className="text-sm font-medium text-gray-500">Địa chỉ</h3>
-                      <p className="mt-1">{selectedUser.address || 'Chưa cập nhật'}</p>
+                      <div className="max-h-60 overflow-auto mb-4">
+                        {selectedSeats.map(seat => (
+                          <div key={seat.seat_ID} className="flex justify-between items-center mb-2 p-2 bg-gray-50 rounded">
+                            <span>Ghế {seat.row_Name}{seat.seat_Number}</span>
+                            <div className="flex items-center">
+                              <span className="mr-2">{seat.price.toLocaleString()} VND</span>
+                              <Button 
+                                size="small" 
+                                danger 
+                                icon={<CloseCircleOutlined />} 
+                                onClick={() => handleSeatSelect(seat)}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <Divider />
+                      
+                      <div className="flex justify-between mb-2">
+                        <span>Số ghế:</span>
+                        <span>{selectedSeats.length}</span>
+                      </div>
+                      <div className="flex justify-between font-bold">
+                        <span>Tổng tiền:</span>
+                        <span>{bookingSummary.subtotal.toLocaleString()} VND</span>
+                      </div>
                     </div>
-                   
-                    <div className="mt-6 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => setShowUserModal(false)}
-                        className="mr-3 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      >
-                        Đóng
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setModalMode('edit');
-                        }}
-                        className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      >
-                        Chỉnh sửa
-                      </button>
+                  )}
+                </Card>
+                
+                <Button 
+                  type="primary" 
+                  block 
+                  size="large"
+                  disabled={selectedSeats.length === 0}
+                  onClick={() => setCurrentStep(3)}
+                >
+                  Tiếp tục
+                </Button>
+              </Col>
+            </Row>
+          </div>
+        );
+        
+      case 3: // Thông tin khách hàng
+        return (
+          <div className="customer-info">
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <Title level={4}>Thông tin khách hàng</Title>
+                <Button onClick={() => setCurrentStep(2)}>Quay lại chọn ghế</Button>
+              </div>
+            </div>
+            
+            <Row gutter={24}>
+              <Col span={16}>
+                {renderMemberLookup()}
+                
+                <Divider />
+                
+                <div className="mb-6">
+                  <Title level={5}>Thông tin đặt vé</Title>
+                  
+                  {/* Display member information as read-only */}
+                  {member && (
+                    <div className="mt-4 p-4 bg-blue-50 rounded-lg mb-4">
+                      <div className="flex items-center">
+                        <Avatar size={64} icon={<UserOutlined />} className="mr-4" />
+                        <div>
+                          <Typography.Text strong className="text-lg">{member.full_Name}</Typography.Text><br />
+                          <Typography.Text>Mã thành viên: {member.user_ID}</Typography.Text><br />
+                          <Typography.Text>SĐT: {member.phone_Number}</Typography.Text><br />
+                          <Typography.Text>Email: {member.email}</Typography.Text><br />
+                          <Typography.Text>Hạng thành viên: {member.membershipStatus}</Typography.Text><br />
+                          <Typography.Text>Điểm hiện tại: {member.currentPoints} điểm</Typography.Text><br />
+                          <Typography.Text>Trạng thái VIP: {member.isVip ? 'Có' : 'Không'}</Typography.Text>
+                        </div>
+                      </div>
+                      {memberDiscountAmount > 0 && (
+                        <Alert 
+                          message={`Ưu đãi thành viên: Giảm ${memberDiscountAmount}% tổng hóa đơn`}
+                          type="success" 
+                          showIcon 
+                          className="mt-3"
+                        />
+                      )}
                     </div>
+                  )}
+                  
+                  <Form
+                    form={customerForm}
+                    layout="vertical"
+                    initialValues={customer}
+                    onFinish={(values) => {
+                      setCustomer(values);
+                      setCurrentStep(4);
+                    }}
+                  >
+                    
+                    <Form.Item
+                      name="name"
+                      label="Họ tên"
+                      rules={[{message: 'Vui lòng nhập tên khách hàng' }]}
+                    >
+                      <Input prefix={<UserOutlined />} placeholder="Nhập tên khách hàng" />
+                    </Form.Item>
+                    
+                    <Form.Item
+                      name="phone"
+                      label="Số điện thoại"
+                      rules={[{  message: 'Vui lòng nhập số điện thoại khách hàng' }]}
+                    >
+                      <Input placeholder="Nhập số điện thoại khách hàng" />
+                    </Form.Item>
+                    
+                    <Form.Item
+                      name="email"
+                      label="Email"
+                      rules={[
+                        { type: 'email', message: 'Vui lòng nhập đúng định dạng email' }
+                      ]}
+                    >
+                      <Input placeholder="Nhập email khách hàng (không bắt buộc)" />
+                    </Form.Item>
+                    
+                    <Form.Item>
+                      <Button type="primary" htmlType="submit">
+                        Tiếp tục thanh toán
+                      </Button>
+                    </Form.Item>
+                  </Form>
+                </div>
+              </Col>
+              
+              <Col span={8}>
+                {renderBookingSummary()}
+                
+                <Card title="Thông tin đặt vé" className="mb-4">
+                  <div className="mb-2">
+                    <Text strong>Phim:</Text> {selectedMovie?.movie_Name}
                   </div>
-                ) : null}
-              </div>
-            </motion.div>
+                  <div className="mb-2">
+                    <Text strong>Suất chiếu:</Text> {formatDate(selectedShowtime?.show_Date || '')} {formatTime(selectedShowtime?.start_Time || '')}
+                  </div>
+                  <div className="mb-2">
+                    <Text strong>Phòng:</Text> {selectedShowtime?.room_Name}
+                  </div>
+                  <div className="mb-2">
+                    <Text strong>Ghế:</Text> {selectedSeats.map(seat => `${seat.row_Name}${seat.seat_Number}`).join(', ')}
+                  </div>
+                </Card>
+              </Col>
+            </Row>
+            
+            {renderNewUserModal()}
           </div>
-        )}
-      </AnimatePresence>
-     
-      {/* Delete Confirmation Modal */}
-      <AnimatePresence>
-        {showDeleteConfirm && userToDelete && (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.2 }}
-              className="bg-white rounded-lg shadow-xl max-w-md w-full"
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-center mb-4 text-red-600">
-                  <FaExclamationCircle className="h-12 w-12" />
+        );
+        
+      case 4: // Thanh toán
+        return (
+          <div className="payment">
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <Title level={4}>Thanh toán</Title>
+                <Button onClick={() => setCurrentStep(3)}>Quay lại</Button>
+              </div>
+            </div>
+            
+            <Row gutter={24}>
+              <Col span={16}>
+                <Card className="mb-6">
+                  <div className="booking-summary mb-4">
+                    <Title level={5}>Thông tin đơn hàng</Title>
+                    <Divider />
+                    <Row gutter={[16, 16]}>
+                      <Col span={12}>
+                        <Text strong>Phim:</Text> {selectedMovie?.movie_Name}
+                      </Col>
+                      <Col span={12}>
+                        <Text strong>Suất chiếu:</Text> {formatDate(selectedShowtime?.show_Date || '')} {formatTime(selectedShowtime?.start_Time || '')}
+                      </Col>
+                      <Col span={12}>
+                        <Text strong>Phòng:</Text> {selectedShowtime?.room_Name}
+                      </Col>
+                      <Col span={12}>
+                        <Text strong>Ghế:</Text> {selectedSeats.map(seat => `${seat.row_Name}${seat.seat_Number}`).join(', ')}
+                      </Col>
+                      <Col span={24}>
+                        <Text strong>Khách hàng:</Text> {customer.name} - {customer.phone} {customer.email ? `- ${customer.email}` : ''}
+                      </Col>
+                    </Row>
+                  </div>
+                </Card>
+                
+                <Card className="mb-6">
+                  {renderPromotionSection()}
+                </Card>
+                
+                <Card className="mb-6">
+                  {renderPaymentMethods()}
+                </Card>
+                
+                <div className="confirmation-options mb-6">
+                  <Checkbox checked={sendConfirmation} onChange={e => setSendConfirmation(e.target.checked)}>
+                    Gửi xác nhận đặt vé qua email cho khách hàng
+                  </Checkbox>
                 </div>
-                <h3 className="text-lg font-medium text-center mb-4">Xác nhận xóa người dùng</h3>
-                <p className="text-sm text-gray-500 mb-4 text-center">
-                  Bạn có chắc chắn muốn xóa người dùng <span className="font-semibold">{userToDelete.full_Name}</span>?
-                  Hành động này không thể hoàn tác.
-                </p>
-               
-                <div className="mt-6 flex justify-center space-x-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                
+                <div className="actions">
+                  <Button 
+                    type="primary" 
+                    size="large" 
+                    onClick={createPayment} 
+                    loading={loading}
                   >
-                    Hủy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDeleteUser}
-                    disabled={isSubmitting}
-                    className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <span className="inline-block animate-spin mr-2">⟳</span>
-                        Đang xử lý...
-                      </>
-                    ) : (
-                      'Xóa'
+                    {paymentMethod === 'Cash' ? 'Hoàn tất đặt vé' : 'Tiến hành thanh toán'}
+                  </Button>
+                </div>
+              </Col>
+              
+              <Col span={8}>
+                {renderBookingSummary()}
+                
+                {member && (
+                  <Card title="Thông tin thành viên" className="mb-4">
+                    <div className="flex items-center mb-4">
+                      <Avatar size={40} icon={<UserOutlined />} className="mr-2" />
+                      <div>
+                        <div className="font-medium">{member.full_Name}</div>
+                        <div>
+                          <Tag color="gold">{member.membershipStatus}</Tag>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {memberDiscountAmount > 0 && (
+                      <Alert 
+                        message={`Ưu đãi: Giảm ${memberDiscountAmount}%`}
+                        type="success" 
+                        showIcon 
+                      />
                     )}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
+                  </Card>
+                )}
+                
+                {appliedPromotion && (
+                  <Card title="Khuyến mãi đã áp dụng" className="mb-4">
+                    <Alert
+                      message={appliedPromotion.name}
+                      description={`Mã: ${appliedPromotion.code} - Giảm ${appliedPromotion.discount_Amount.toLocaleString()} VND`}
+                      type="success"
+                      showIcon
+                    />
+                  </Card>
+                )}
+              </Col>
+            </Row>
           </div>
-        )}
-      </AnimatePresence>
+        );
+        
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div>
+      <div className="ticket-selling-container p-6">
+        <div className="header mb-6">
+          <Title level={2}>Hệ thống bán vé</Title>
+          <Text type="secondary">Bán vé trực tiếp cho khách hàng tại quầy</Text>
+        </div>
+        
+        <div className="booking-process">
+          <Steps current={currentStep} className="mb-8">
+            <Step title="Chọn phim" icon={<CalendarOutlined />} />
+            <Step title="Chọn suất chiếu" />
+            <Step title="Chọn ghế" />
+            <Step title="Thông tin khách hàng" icon={<UserOutlined />} />
+            <Step title="Thanh toán" icon={<CreditCardOutlined />} />
+          </Steps>
+          
+          {loading && currentStep === 0 ? (
+            <div className="loading-container text-center p-12">
+              <Spin size="large" />
+              <div className="mt-4">Đang tải danh sách phim...</div>
+            </div>
+          ) : error ? (
+            <div className="error-container text-center p-12">
+              <div className="text-red-500 mb-4">{error}</div>
+              <Button onClick={fetchNowShowingMovies}>Thử lại</Button>
+            </div>
+          ) : (
+            renderStepContent()
+          )}
+        </div>
+        {renderPaymentQrModal()}
+      </div>
     </div>
   );
 };
 
-
-export default StaffPage;
+export default ManageBookings;

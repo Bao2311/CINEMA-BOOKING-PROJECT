@@ -20,6 +20,8 @@ import { useLocation } from 'react-router-dom';
 import ManageCinemaRoomPage from './pages/ManageCinemaRoomPage';
 import ManagePromotionPage from './pages/ManagePromotionPage';
 import UserPromotionsPage from './pages/PromotionPage';
+import TicketSellingByStaff from './pages/StaffPage';
+import ManageBookings from './pages/StaffPage';
 
 function App() {
   return (
@@ -39,6 +41,7 @@ function App() {
             <Route path="/manage-movies" element={<ManageMoviesPage />} />
             <Route path="/manage-showtimes" element={<ManageShowtimesPage />} />
 
+            <Route path="/manage-bookings" element={<ManageBookings />} />
             <Route path="/movies" element={<MoviesPage />} />
             <Route path="/movie/:id" element={<MovieDetailPage />} />
             <Route path="/showtimes" element={<ShowtimesPage />} />
