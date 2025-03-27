@@ -5,18 +5,18 @@ using System;
 using System.Threading.Tasks;
 using System.Security.Claims;
 using System.Collections.Generic;
-using STP.Service.Services;
 using STP.Repository.Dtos;
 using STP.Repository.Models;
 using STP.Repository.Repositories;
 using STP.Repository.Services;
+using STP.Service.Services;
 
 namespace STP.API.Controllers
 {
     // Định nghĩa controller API và route
     [ApiController]
     [Route("api/[controller]")]
-    
+
     public class ShowtimesController : ControllerBase
     {
         // Khai báo các service và logger cần thiết
@@ -76,7 +76,7 @@ namespace STP.API.Controllers
                 return Ok(showtime);
             }
             catch (Exception ex)
-            {   
+            {
                 // Ghi log lỗi và trả về mã lỗi 500
                 _logger.LogError(ex, $"Lỗi khi lấy lịch chiếu ID: {id}");
                 return StatusCode(500, "Lỗi hệ thống");
@@ -86,42 +86,42 @@ namespace STP.API.Controllers
         /// <summary>
         /// Tạo lịch chiếu mới
         /// </summary>
-         [HttpPost]
-          [Authorize(Roles = "Admin,Manager")] // Chỉ Admin và Manager mới có quyền tạo lịch chiếu
-          [ProducesResponseType(StatusCodes.Status201Created)]
-          [ProducesResponseType(StatusCodes.Status400BadRequest)]
-          [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-          public async Task<ActionResult<int>> CreateShowtime([FromBody] ShowtimeCreateDto showtimeDto)
-          {
-              try
-              {
-                  // Kiểm tra tính hợp lệ của dữ liệu đầu vào
-                  if (!ModelState.IsValid)
-                      return BadRequest(ModelState);
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")] // Chỉ Admin và Manager mới có quyền tạo lịch chiếu
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<int>> CreateShowtime([FromBody] ShowtimeCreateDto showtimeDto)
+        {
+            try
+            {
+                // Kiểm tra tính hợp lệ của dữ liệu đầu vào
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
-                  // Lấy ID người dùng từ token JWT
-                  var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-                  // Gọi service để tạo lịch chiếu mới
-                  var id = await _showtimeService.CreateShowtimeAsync(showtimeDto, userId);
+                // Lấy ID người dùng từ token JWT
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                // Gọi service để tạo lịch chiếu mới
+                var id = await _showtimeService.CreateShowtimeAsync(showtimeDto, userId);
 
-                  // Trả về kết quả với mã 201 Created và đường dẫn đến lịch chiếu mới
-                  return CreatedAtAction(nameof(GetShowtime), new { id }, id);
-              }
-              catch (InvalidOperationException ex)
-              {
-                  // Xử lý lỗi nghiệp vụ và trả về mã lỗi 400
-                  _logger.LogWarning(ex, "Lỗi nghiệp vụ khi tạo lịch chiếu");
-                  return BadRequest(ex.Message);
-              }
-              catch (Exception ex)
-              {
-                  // Ghi log lỗi và trả về mã lỗi 500
-                  _logger.LogError(ex, "Lỗi khi tạo lịch chiếu");
-                  return StatusCode(500, "Lỗi hệ thống");
-              }
-          }
+                // Trả về kết quả với mã 201 Created và đường dẫn đến lịch chiếu mới
+                return CreatedAtAction(nameof(GetShowtime), new { id }, id);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Xử lý lỗi nghiệp vụ và trả về mã lỗi 400
+                _logger.LogWarning(ex, "Lỗi nghiệp vụ khi tạo lịch chiếu");
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                // Ghi log lỗi và trả về mã lỗi 500
+                _logger.LogError(ex, "Lỗi khi tạo lịch chiếu");
+                return StatusCode(500, "Lỗi hệ thống");
+            }
+        }
 
-        
+
 
         /// <summary>
         /// Cập nhật thông tin lịch chiếu
@@ -204,6 +204,162 @@ namespace STP.API.Controllers
                 _logger.LogError(ex, $"Lỗi khi ẩn lịch chiếu ID: {id}");
                 return StatusCode(500, "Lỗi hệ thống");
             }
+        }
+
+        [HttpGet("movie/{movieId}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetShowtimesByMovie(int movieId)
+        {
+            try
+            {
+                var result = await _showtimeService.GetShowtimesByMovieAsync(movieId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting showtimes for movie {movieId}");
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi lấy lịch chiếu" });
+            }
+        }
+
+        [HttpGet("room/{roomId}")]
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<IActionResult> GetShowtimesByRoom(int roomId, [FromQuery] DateTime? date = null)
+        {
+            try
+            {
+                var result = await _showtimeService.GetShowtimesByRoomAsync(roomId, date);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting showtimes for room {roomId}");
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi lấy lịch chiếu" });
+            }
+        }
+
+        [HttpGet("movie/{movieId}/dates")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetShowtimeDates(int movieId)
+        {
+            try
+            {
+                var dates = await _showtimeService.GetShowtimeDatesAsync(movieId);
+                return Ok(dates);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting showtime dates for movie ID: {movieId}");
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi lấy danh sách ngày chiếu" });
+            }
+        }
+
+        [HttpGet("movie/{movieId}/date/{date}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetShowtimesByDate(int movieId, DateTime date)
+        {
+            try
+            {
+                var showtimes = await _showtimeService.GetShowtimesByDateAsync(movieId, date);
+                return Ok(showtimes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting showtimes for movie ID: {movieId}, date: {date}");
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi lấy danh sách suất chiếu" });
+            }
+        }
+
+        [HttpPost("search")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetShowtimesByRequest([FromBody] ShowtimeRequestDTO request)
+        {
+            try
+            {
+                if (request == null)
+                    return BadRequest(new { message = "Yêu cầu không hợp lệ" });
+
+                var showtimes = await _showtimeService.GetShowtimesByRequestAsync(request);
+                return Ok(showtimes);
+            }
+            catch (ArgumentNullException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching showtimes");
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi tìm kiếm suất chiếu" });
+            }
+        }
+
+        [HttpGet("rooms")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetRooms()
+        {
+            try
+            {
+                var rooms = await _showtimeService.GetRoomsAsync();
+                return Ok(rooms);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting cinema rooms");
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi lấy danh sách phòng chiếu" });
+            }
+        }
+
+        [HttpGet("room/{roomId}/date/{date}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetShowtimesByRoomAndDate(int roomId, DateTime date)
+        {
+            try
+            {
+                var showtimes = await _showtimeService.GetShowtimesByRoomAndDateAsync(roomId, date);
+                return Ok(showtimes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting showtimes for room ID: {roomId}, date: {date}");
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi lấy danh sách suất chiếu" });
+            }
+        }
+
+        [HttpGet("admin/movie/{movieId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetShowtimesByMovieForAdmin(int movieId)
+        {
+            try
+            {
+                var showtimes = await _showtimeService.GetShowtimesByMovieForAdminAsync(movieId);
+                return Ok(showtimes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting showtimes for movie ID: {movieId} (admin)");
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi lấy danh sách suất chiếu" });
+            }
+        }
+
+        private int GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                User.FindFirst("nameid")?.Value ??
+                User.FindFirst("UserId")?.Value ??
+                User.FindFirst("userId")?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+                return -1;
+
+            return userId;
         }
     }
 }

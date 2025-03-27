@@ -112,6 +112,9 @@ namespace STP.APIService
             builder.Services.AddScoped<SeatService>();
             builder.Services.AddScoped<SeatLayoutService>();
             builder.Services.AddScoped<SeatTypeService>();
+            builder.Services.AddScoped<PromotionService>();
+            builder.Services.AddHttpClient<PayOSNugetService>();
+            builder.Services.AddScoped<PayOSNugetService>();
             // Đăng ký dịch vụ bộ nhớ cache
             builder.Services.AddMemoryCache();
             builder.Services.AddScoped<AccountLockingService>();
@@ -188,3 +191,4 @@ namespace STP.APIService
         }
     }
 }
+

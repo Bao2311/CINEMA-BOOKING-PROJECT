@@ -12,8 +12,7 @@ namespace STP.Repository.Dtos
         /// <summary>
         /// ID của ghế
         /// </summary>
-        public int Seat_ID { get; set; }
-        public string Seat { get; set; }
+        public int? Seat_ID { get; set; }
 
         /// <summary>
         /// Tên hàng ghế (A, B, C...)
@@ -154,6 +153,16 @@ namespace STP.Repository.Dtos
         public List<int> EmptyColumns { get; set; } = new List<int>();
     }
 
+    /// <summary>
+    /// DTO cho thao tác xóa mềm nhiều ghế
+    /// </summary>
+    public class BulkDeleteSeatsDto
+    {
+        /// <summary>
+        /// Danh sách ID của các ghế cần xóa
+        /// </summary>
+        public List<int> LayoutIds { get; set; }
+    }
 }
 
 

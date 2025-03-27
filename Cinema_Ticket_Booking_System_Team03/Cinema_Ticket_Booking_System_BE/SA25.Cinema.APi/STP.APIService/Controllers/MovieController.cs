@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using sa25.Repository.Data;
 using STP.Repository.Dtos;
 using STP.Repository.Models;
+using STP.Repository.Services;
 using System.Security.Claims;
 
 namespace STP.APIService.Controllers
@@ -19,11 +20,15 @@ namespace STP.APIService.Controllers
     {
         private readonly UnitOfWork _unitOfWork;
         private readonly CloudinaryService _cloudinaryService;
+        private readonly MovieService _movieService;
+        private readonly ILogger<MovieController> _logger;
 
-        public MovieController(UnitOfWork unitOfWork, CloudinaryService cloudinaryService)
+        public MovieController(UnitOfWork unitOfWork, CloudinaryService cloudinaryService, MovieService movieService, ILogger<MovieController> logger)
         {
             _unitOfWork = unitOfWork;
             _cloudinaryService = cloudinaryService;
+            _movieService = movieService;
+            _logger = logger;
         }
 
         /// <summary>
@@ -364,6 +369,140 @@ namespace STP.APIService.Controllers
             {
                 return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
             }
+        }
+
+        [HttpPost("{id}/rate")]
+        [Authorize]
+        public async Task<IActionResult> RateMovie(int id, [FromBody] MovieRatingDto ratingDto)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                if (userId <= 0)
+                    return Unauthorized(new { message = "Không thể xác định người dùng" });
+
+                var rating = await _movieService.RateMovieAsync(id, userId, ratingDto);
+                return Ok(rating);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error rating movie {id}");
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi đánh giá phim" });
+            }
+        }
+
+        [HttpGet("coming-soon")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetComingSoonMovies()
+        {
+            try
+            {
+                var movies = await _movieService.GetComingSoonMoviesAsync();
+                return Ok(movies);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting coming soon movies");
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi lấy danh sách phim sắp chiếu" });
+            }
+        }
+
+        [HttpGet("now-showing")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetNowShowingMovies()
+        {
+            try
+            {
+                var movies = await _movieService.GetNowShowingMoviesAsync();
+                return Ok(movies);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting now showing movies");
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi lấy danh sách phim đang chiếu" });
+            }
+        }
+
+        [HttpGet("by-genre/{genre}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetMoviesByGenre(string genre)
+        {
+            try
+            {
+                var movies = await _movieService.GetMoviesByGenreAsync(genre);
+                return Ok(movies);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+            }
+        }
+
+        [HttpGet("genres")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetMovieGenres()
+        {
+            try
+            {
+                var genres = await _movieService.GetMovieGenresAsync();
+                return Ok(genres);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+            }
+        }
+
+        [HttpGet("search")]
+        [AllowAnonymous]
+        public async Task<IActionResult> SearchMovies([FromQuery] string keyword)
+        {
+            try
+            {
+                var movies = await _movieService.SearchMoviesAsync(keyword);
+                return Ok(movies);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+            }
+        }
+
+        private int GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                User.FindFirst("nameid")?.Value ??
+                User.FindFirst("UserId")?.Value ??
+                User.FindFirst("userId")?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+                return -1;
+
+            return userId;
         }
     }
 }

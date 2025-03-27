@@ -106,7 +106,7 @@ const Navbar: React.FC = () => {
             <Link to="/showtimes" className="px-3 py-2 rounded-md hover:bg-indigo-800">
               Showtimes
             </Link>
-            <Link to="/promotions" className="px-3 py-2 rounded-md hover:bg-indigo-800">
+            <Link to="/promotion" className="px-3 py-2 rounded-md hover:bg-indigo-800">
               Promotions
             </Link>
             

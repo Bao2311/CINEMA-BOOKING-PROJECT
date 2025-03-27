@@ -27,11 +27,26 @@ namespace STP.APIService.Controllers
             _context = context;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetAllBookings()
+        {
+            try
+            {
+                var bookings = await _bookingService.GetAllBookings();
+                return Ok(bookings); // Trả về danh sách DTO
+            }
+            catch (Exception ex)
+            {
+                // Xử lý lỗi (ví dụ: trả về 500 Internal Server Error)
+                return StatusCode(500, "Lỗi khi lấy danh sách đơn đặt vé: " + ex.Message);
+            }
+        }
+
         /// <summary>
         /// Tạo đơn đặt vé mới
         /// </summary>
         [HttpPost]
-        [Authorize]
+        //[Authorize]
         public async Task<ActionResult<BookingResponseDTO>> CreateBooking([FromBody] BookingRequestDTO request)
         {
             _logger.LogInformation("Danh sách claims trong token:");
@@ -490,205 +505,6 @@ namespace STP.APIService.Controllers
 
             // Thay thế dấu nháy kép bởi hai dấu nháy kép
             return field.Replace("\"", "\"\"");
-        }
-        /// <summary>
-        /// Xử lý hoàn tiền cho đơn đặt vé (Task 7.3)
-        /// </summary>
-        [HttpPost("{id}/refund")]
-        [Authorize(Roles = "Admin,Staff")]
-        public async Task<ActionResult<RefundResponseDTO>> ProcessRefund(int id, [FromBody] RefundRequestDTO request)
-        {
-            if (request == null || string.IsNullOrEmpty(request.Reason))
-                return BadRequest(new { message = "Phải cung cấp lý do hoàn tiền" });
-
-            _logger.LogInformation("Danh sách claims trong token:");
-            foreach (var claim in User.Claims)
-            {
-                _logger.LogInformation($"Claim: {claim.Type} = {claim.Value}");
-            }
-
-            try
-            {
-                // Lấy thông tin người dùng từ token
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
-                    User.FindFirst("nameid")?.Value ??
-                    User.FindFirst("UserId")?.Value ??
-                    User.FindFirst("userId")?.Value;
-
-                if (string.IsNullOrEmpty(userId))
-                {
-                    return Unauthorized(new { message = "Không thể xác định người dùng" });
-                }
-
-                var result = await _bookingService.ProcessRefund(id, request, int.Parse(userId));
-                return Ok(result);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Lỗi xử lý hoàn tiền cho đơn đặt vé ID: {id}");
-                return StatusCode(500, new { message = "Có lỗi xảy ra khi xử lý hoàn tiền" });
-            }
-        }
-
-        /// <summary>
-        /// Tính toán số tiền hoàn lại mà không thực hiện hoàn tiền (Task 7.3)
-        /// </summary>
-        [HttpGet("{id}/refund-calculation")]
-        [Authorize(Roles = "Admin,Staff")]
-        public async Task<ActionResult> CalculateRefund(int id)
-        {
-            try
-            {
-                // Lấy thông tin đơn đặt vé
-                var booking = await _context.TicketBookings
-                    .Include(b => b.Showtime)
-                    .Include(b => b.Payments.Where(p => p.Payment_Status == "Completed"))
-                    .Include(b => b.Tickets)
-                    .FirstOrDefaultAsync(b => b.Booking_ID == id);
-
-                if (booking == null)
-                    return NotFound(new { message = $"Không tìm thấy đơn đặt vé có ID {id}" });
-
-                if (booking.Status != "Confirmed")
-                    return BadRequest(new { message = $"Chỉ có thể hoàn tiền cho đơn đặt vé đã xác nhận thanh toán, trạng thái hiện tại: {booking.Status}" });
-
-                // Kiểm tra xem vé đã được check-in chưa
-                var checkedInTickets = booking.Tickets.Where(t => t.Is_Checked_In).ToList();
-                if (checkedInTickets.Any())
-                    return BadRequest(new { message = "Không thể hoàn tiền cho đơn đặt vé đã có vé check-in" });
-
-                // Kiểm tra thời gian suất chiếu
-                var showDateTime = booking.Showtime.Show_Date.Add(booking.Showtime.Start_Time);
-                if (DateTime.Now > showDateTime)
-                    return BadRequest(new { message = "Không thể hoàn tiền cho đơn đặt vé sau khi suất chiếu đã bắt đầu" });
-
-                // Lấy thanh toán gần nhất
-                var payment = booking.Payments.OrderByDescending(p => p.Transaction_Date).FirstOrDefault();
-                if (payment == null)
-                    return BadRequest(new { message = "Không tìm thấy thanh toán cho đơn đặt vé này" });
-
-                // Tính số tiền hoàn lại theo chính sách
-                TimeSpan timeUntilShow = showDateTime - DateTime.Now;
-                double hoursUntilShow = timeUntilShow.TotalHours;
-
-                int refundPercentage;
-                string refundPolicy;
-
-                if (hoursUntilShow > 48)
-                {
-                    refundPercentage = 100;
-                    refundPolicy = "Hoàn tiền 100% cho hủy trước 48 giờ";
-                }
-                else if (hoursUntilShow > 24)
-                {
-                    refundPercentage = 75;
-                    refundPolicy = "Hoàn tiền 75% cho hủy trước 24-48 giờ";
-                }
-                else if (hoursUntilShow > 12)
-                {
-                    refundPercentage = 50;
-                    refundPolicy = "Hoàn tiền 50% cho hủy trước 12-24 giờ";
-                }
-                else if (hoursUntilShow > 6)
-                {
-                    refundPercentage = 25;
-                    refundPolicy = "Hoàn tiền 25% cho hủy trước 6-12 giờ";
-                }
-                else
-                {
-                    refundPercentage = 0;
-                    refundPolicy = "Không hoàn tiền cho hủy trong vòng 6 giờ trước suất chiếu";
-                }
-
-                decimal refundAmount = booking.Total_Amount * refundPercentage / 100;
-
-                return Ok(new
-                {
-                    booking_id = booking.Booking_ID,
-                    original_amount = booking.Total_Amount,
-                    refund_amount = refundAmount,
-                    refund_percentage = refundPercentage,
-                    refund_policy = refundPolicy,
-                    hours_until_show = Math.Round(hoursUntilShow, 1),
-                    show_datetime = showDateTime.ToString("dd/MM/yyyy HH:mm")
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Lỗi tính toán hoàn tiền cho đơn đặt vé ID: {id}");
-                return StatusCode(500, new { message = "Có lỗi xảy ra khi tính toán hoàn tiền" });
-            }
-        }
-
-        /// <summary>
-        /// Xem lịch sử hoàn tiền (Task 7.3)
-        /// </summary>
-        [HttpGet("refund-history")]
-        [Authorize(Roles = "Admin,Staff")]
-        public async Task<ActionResult> GetRefundHistory(
-            [FromQuery] DateTime? startDate = null,
-            [FromQuery] DateTime? endDate = null)
-        {
-            try
-            {
-                // Mặc định lấy dữ liệu của 30 ngày gần nhất nếu không chỉ định ngày
-                if (!startDate.HasValue)
-                    startDate = DateTime.Now.AddDays(-30).Date;
-
-                if (!endDate.HasValue)
-                    endDate = DateTime.Now.Date.AddDays(1).AddSeconds(-1);
-
-                // Lấy tất cả các giao dịch hoàn tiền trong khoảng thời gian
-                var refunds = await _context.Payments
-                    .Include(p => p.TicketBooking)
-                        .ThenInclude(tb => tb.User)
-                    .Include(p => p.TicketBooking)
-                        .ThenInclude(tb => tb.Showtime)
-                            .ThenInclude(s => s.Movie)
-                    .Include(p => p.ProcessedBy)
-                    .Where(p => p.Payment_Status == "Refunded" &&
-                           p.Refund_Date >= startDate &&
-                           p.Refund_Date <= endDate)
-                    .OrderByDescending(p => p.Refund_Date)
-                    .ToListAsync();
-
-                var result = refunds.Select(r => new {
-                    refund_id = r.Payment_ID,
-                    booking_id = r.Booking_ID,
-                    customer_name = r.TicketBooking.User?.Full_Name ?? "Unknown",
-                    customer_email = r.TicketBooking.User?.Email,
-                    movie_name = r.TicketBooking.Showtime.Movie.Movie_Name,
-                    show_date = r.TicketBooking.Showtime.Show_Date.ToString("dd/MM/yyyy"),
-                    show_time = r.TicketBooking.Showtime.Start_Time.ToString(@"hh\:mm"),
-                    original_amount = Math.Abs(r.Amount),
-                    refund_amount = r.Refund_Amount,
-                    refund_date = r.Refund_Date,
-                    refund_reason = r.Refund_Reason,
-                    processed_by = r.ProcessedBy?.Full_Name ?? "System"
-                }).ToList();
-
-                return Ok(new
-                {
-                    start_date = startDate.Value.ToString("dd/MM/yyyy"),
-                    end_date = endDate.Value.ToString("dd/MM/yyyy"),
-                    total_refunds = result.Count,
-                    total_amount = result.Sum(r => r.refund_amount),
-                    refunds = result
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Lỗi lấy lịch sử hoàn tiền");
-                return StatusCode(500, new { message = "Có lỗi xảy ra khi lấy lịch sử hoàn tiền" });
-            }
         }
     }
 }
