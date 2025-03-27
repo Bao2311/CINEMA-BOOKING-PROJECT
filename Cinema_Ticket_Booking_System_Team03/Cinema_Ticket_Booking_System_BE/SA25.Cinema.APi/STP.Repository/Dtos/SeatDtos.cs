@@ -12,8 +12,7 @@ namespace STP.Repository.Dtos
         /// <summary>
         /// ID của ghế
         /// </summary>
-        public int Seat_ID { get; set; }
-        public string Seat { get; set; }
+        public int? Seat_ID { get; set; }
 
         /// <summary>
         /// Tên hàng ghế (A, B, C...)

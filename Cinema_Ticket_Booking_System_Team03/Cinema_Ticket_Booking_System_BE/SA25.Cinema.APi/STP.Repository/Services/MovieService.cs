@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace STP.Services
+namespace STP.Repository.Services
 {
     public class MovieService
     {
