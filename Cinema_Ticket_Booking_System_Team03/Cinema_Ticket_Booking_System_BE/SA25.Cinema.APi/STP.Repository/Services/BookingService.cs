@@ -459,31 +459,73 @@ namespace STP.Repository.Services
                     .OrderByDescending(p => p.Transaction_Date)
                     .FirstOrDefaultAsync();
 
-                // Cập nhật trạng thái đơn đặt vé
-                booking.Status = "Cancelled";
-
-                // Cập nhật trạng thái ghế và xóa liên kết với Booking_ID
-                var seats = await _context.Seats
-                    .Where(s => s.Booking_ID == bookingId)
-                    .ToListAsync();
-
-                foreach (var seat in seats)
+                // Tạo transaction để đảm bảo tất cả thay đổi được lưu hoặc rollback cùng nhau
+                using (var transaction = await _context.Database.BeginTransactionAsync())
                 {
-                    seat.Seat_Status = "Available";
-                    seat.Last_Updated = DateTime.Now;
-                    seat.Booking_ID = null; // Xóa liên kết với Booking_ID
+                    try
+                    {
+                        // Cập nhật trạng thái đơn đặt vé
+                        booking.Status = "Cancelled";
+
+                        // Cập nhật trạng thái ghế và xóa liên kết với Booking_ID
+                        var seats = await _context.Seats
+                            .Where(s => s.Booking_ID == bookingId)
+                            .ToListAsync();
+
+                        _logger.LogInformation($"Found {seats.Count} seats to update for cancelled booking {bookingId}");
+
+                        foreach (var seat in seats)
+                        {
+                            _logger.LogInformation($"Updating seat {seat.Seat_ID} from status '{seat.Seat_Status}' to 'Available'");
+                            seat.Seat_Status = "Available";
+                            seat.Last_Updated = DateTime.Now;
+                            seat.Booking_ID = null; // Xóa liên kết với Booking_ID
+                        }
+
+                        // Thêm một cách thay thế để cập nhật ghế nếu cách trên không hoạt động
+                        if (seats.Count == 0)
+                        {
+                            _logger.LogWarning($"No seats found with Booking_ID={bookingId}, trying direct SQL update");
+
+                            // Sử dụng SQL trực tiếp để cập nhật ghế
+                            string updateQuery = @"
+                        UPDATE Seats 
+                        SET Seat_Status = 'Available', 
+                            Last_Updated = @now, 
+                            Booking_ID = NULL 
+                        WHERE Booking_ID = @bookingId";
+
+                            await _context.Database.ExecuteSqlRawAsync(updateQuery,
+                                new SqlParameter("@now", DateTime.Now),
+                                new SqlParameter("@bookingId", bookingId));
+                        }
+
+                        // Thêm lịch sử hủy đơn
+                        var bookingHistory = new BookingHistory
+                        {
+                            Booking_ID = booking.Booking_ID,
+                            Status = "Cancelled",
+                            Date = DateTime.Now,
+                        };
+
+                        _context.BookingHistories.Add(bookingHistory);
+
+                        // Lưu tất cả thay đổi
+                        await _context.SaveChangesAsync();
+
+                        // Commit transaction nếu tất cả thành công
+                        await transaction.CommitAsync();
+
+                        _logger.LogInformation($"Successfully cancelled booking {bookingId} and updated all seats");
+                    }
+                    catch (Exception ex)
+                    {
+                        // Rollback transaction nếu có lỗi
+                        await transaction.RollbackAsync();
+                        _logger.LogError(ex, $"Error during transaction for cancelling booking {bookingId}");
+                        throw;
+                    }
                 }
-
-                // Thêm lịch sử hủy đơn
-                var bookingHistory = new BookingHistory
-                {
-                    Booking_ID = booking.Booking_ID,
-                    Status = "Cancelled",
-                    Date = DateTime.Now,
-                };
-
-                _context.BookingHistories.Add(bookingHistory);
-                await _context.SaveChangesAsync();
 
                 // Tạo response DTO với thông tin từ cả TicketBooking và Payment
                 var response = new BookingResponseDTO
@@ -505,6 +547,64 @@ namespace STP.Repository.Services
             {
                 _logger.LogError(ex, $"Error cancelling booking for ID: {bookingId}");
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Sửa trạng thái ghế cho các booking đã hủy
+        /// </summary>
+        public async Task<int> FixSeatsForCancelledBookings()
+        {
+            try
+            {
+                _logger.LogInformation("Bắt đầu sửa trạng thái ghế cho các booking đã hủy");
+
+                // Lấy danh sách các booking đã hủy
+                var cancelledBookingIds = await _context.TicketBookings
+                    .Where(b => b.Status == "Cancelled")
+                    .Select(b => b.Booking_ID)
+                    .ToListAsync();
+
+                if (!cancelledBookingIds.Any())
+                {
+                    _logger.LogInformation("Không tìm thấy booking nào đã hủy");
+                    return 0;
+                }
+
+                _logger.LogInformation($"Tìm thấy {cancelledBookingIds.Count} booking đã hủy");
+
+                // Tìm tất cả các ghế vẫn còn liên kết với các booking đã hủy
+                var seatsToFix = await _context.Seats
+                    .Where(s => s.Booking_ID != null && cancelledBookingIds.Contains(s.Booking_ID.Value))
+                    .ToListAsync();
+
+                if (!seatsToFix.Any())
+                {
+                    _logger.LogInformation("Không tìm thấy ghế nào cần sửa");
+                    return 0;
+                }
+
+                _logger.LogInformation($"Tìm thấy {seatsToFix.Count} ghế cần sửa");
+
+                // Cập nhật trạng thái ghế
+                foreach (var seat in seatsToFix)
+                {
+                    _logger.LogInformation($"Cập nhật ghế {seat.Seat_ID} từ '{seat.Seat_Status}' thành 'Available'");
+                    seat.Seat_Status = "Available";
+                    seat.Last_Updated = DateTime.Now;
+                    seat.Booking_ID = null;
+                }
+
+                // Lưu thay đổi
+                var result = await _context.SaveChangesAsync();
+                _logger.LogInformation($"Đã cập nhật {result} bản ghi");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi sửa trạng thái ghế cho các booking đã hủy");
+                return -1;
             }
         }
 

@@ -356,7 +356,7 @@ namespace STP.APIService.Controllers
             <p><strong>Ghế:</strong> {seatInfoStr}</p>
         </div>
         
-        <a href=""/"" class=""btn"">Quay lại trang chủ</a>
+        <a href=""http://localhost:5173/"" class=""btn"">Quay lại trang chủ</a>
     </div>
 </body>
 </html>";
@@ -385,7 +385,7 @@ namespace STP.APIService.Controllers
     <div class=""container"">
         <h1>Đã xảy ra lỗi</h1>
         <p>Không thể xử lý thanh toán. Vui lòng thử lại sau.</p>
-        <a href=""/"" class=""btn"">Quay lại trang chủ</a>
+        <a href=""http://localhost:5173/"" class=""btn"">Quay lại trang chủ</a>
     </div>
 </body>
 </html>";
@@ -585,7 +585,7 @@ namespace STP.APIService.Controllers
     <div class=""container"">
         <h1>Đã xảy ra lỗi</h1>
         <p>Không thể xử lý thanh toán. Vui lòng thử lại sau.</p>
-        <a href=""/"" class=""btn"">Quay lại trang chủ</a>
+        <a href=""http://localhost:5173/"" class=""btn"">Quay lại trang chủ</a>
     </div>
 </body>
 </html>";

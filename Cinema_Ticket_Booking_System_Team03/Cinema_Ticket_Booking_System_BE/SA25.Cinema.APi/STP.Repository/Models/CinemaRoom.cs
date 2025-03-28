@@ -21,7 +21,7 @@ namespace STP.Repository.Models
         /// <summary>
         /// Tên của phòng chiếu (ví dụ: "Phòng 1", "Phòng VIP 2")
         /// </summary>
-        public string Room_Name { get; set; }
+        public string? Room_Name { get; set; }
 
         /// <summary>
         /// Tổng số ghế trong phòng chiếu
@@ -31,19 +31,19 @@ namespace STP.Repository.Models
         /// <summary>
         /// Loại phòng chiếu (ví dụ: "Standard", "VIP", "IMAX", "4DX")
         /// </summary>
-        public string Room_Type { get; set; }
+        public string? Room_Type { get; set; }
 
         /// <summary>
         /// Trạng thái hiện tại của phòng chiếu
         /// Giá trị mặc định là "Active"
         /// Các giá trị khác có thể là: "Maintenance", "Closed", "Renovating"
         /// </summary>
-        public string Status { get; set; } = "Active";
+        public string? Status { get; set; } = "Active";
 
         /// <summary>
         /// Ghi chú bổ sung về phòng chiếu
         /// </summary>
-        public string Notes { get; set; }
+        public string? Notes { get; set; }
 
         /// <summary>
         /// Danh sách các sơ đồ ghế được thiết lập cho phòng chiếu này

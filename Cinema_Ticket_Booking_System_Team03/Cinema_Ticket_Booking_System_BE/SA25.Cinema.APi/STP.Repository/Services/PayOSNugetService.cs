@@ -273,6 +273,7 @@ namespace STP.Repository.Services
             {
                 _logger.LogInformation($"Bắt đầu hủy đơn đặt vé {bookingId}");
 
+                // Kiểm tra và lấy thông tin đặt vé
                 var booking = await _context.TicketBookings
                     .FirstOrDefaultAsync(b => b.Booking_ID == bookingId && b.Status == "Pending");
 
@@ -285,39 +286,87 @@ namespace STP.Repository.Services
                 // Lấy trạng thái hiện tại để log
                 _logger.LogInformation($"Trạng thái hiện tại của đơn đặt vé {bookingId}: {booking.Status}");
 
-                // Cập nhật trạng thái đơn hàng
-                booking.Status = "Cancelled";
-
-                // Thực hiện cập nhật và đảm bảo lưu vào database
-                int result = await _context.SaveChangesAsync();
-
-                _logger.LogInformation($"Đã hủy đơn đặt vé {bookingId} thành công. Số dòng bị ảnh hưởng: {result}");
-
-                // Thêm lịch sử đặt vé
-                try
+                // Sử dụng transaction để đảm bảo tính nhất quán dữ liệu
+                using (var transaction = await _context.Database.BeginTransactionAsync())
                 {
-                    var history = new BookingHistory
+                    try
                     {
-                        Booking_ID = bookingId,
-                        Date = DateTime.Now,
-                        Status = "Cancelled"
+                        // 1. Cập nhật trạng thái đơn đặt vé
+                        booking.Status = "Cancelled";
+                        await _context.SaveChangesAsync();
+                        _logger.LogInformation($"Đã hủy đơn đặt vé {bookingId} thành công");
+
+                        // 2. Cập nhật trạng thái ghế và xóa liên kết với Booking_ID
+                        var seats = await _context.Seats
+                            .Where(s => s.Booking_ID == bookingId)
+                            .ToListAsync();
+
+                        _logger.LogInformation($"Tìm thấy {seats.Count} ghế cần cập nhật cho đơn {bookingId}");
+
+                        foreach (var seat in seats)
+                        {
+                            _logger.LogInformation($"Cập nhật ghế {seat.Seat_ID} từ trạng thái '{seat.Seat_Status}' thành 'Available'");
+                            seat.Seat_Status = "Available";
+                            seat.Last_Updated = DateTime.Now;
+                            seat.Booking_ID = null; // Xóa liên kết với Booking_ID
+                        }
+
+                        await _context.SaveChangesAsync();
+
+                        // Nếu không tìm thấy ghế, thử dùng SQL trực tiếp
+                        if (seats.Count == 0)
+                        {
+                            _logger.LogWarning($"Không tìm thấy ghế nào với Booking_ID={bookingId}, thử dùng SQL trực tiếp");
+
+                            // Sử dụng SQL trực tiếp để cập nhật ghế
+                            string updateQuery = @"
+                        UPDATE Seats 
+                        SET Seat_Status = 'Available', 
+                            Last_Updated = @now, 
+                            Booking_ID = NULL 
+                        WHERE Booking_ID = @bookingId";
+
+                            var parameters = new[]
+                            {
+                        new Microsoft.Data.SqlClient.SqlParameter("@now", DateTime.Now),
+                        new Microsoft.Data.SqlClient.SqlParameter("@bookingId", bookingId)
                     };
 
-                    _context.BookingHistories.Add(history);
-                    await _context.SaveChangesAsync();
+                            var updated = await _context.Database.ExecuteSqlRawAsync(updateQuery, parameters);
 
-                    _logger.LogInformation($"Đã thêm lịch sử hủy đơn đặt vé {bookingId}");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, $"Lỗi khi thêm lịch sử hủy đơn đặt vé {bookingId}, nhưng đơn đã được hủy thành công");
-                }
+                            _logger.LogInformation($"Cập nhật trực tiếp {updated} ghế cho đơn đặt vé {bookingId}");
+                        }
 
-                return true;
+                        // 3. Thêm lịch sử hủy đơn
+                        var bookingHistory = new BookingHistory
+                        {
+                            Booking_ID = booking.Booking_ID,
+                            Status = "Cancelled",
+                            Date = DateTime.Now,
+                        };
+
+                        _context.BookingHistories.Add(bookingHistory);
+                        await _context.SaveChangesAsync();
+                        _logger.LogInformation($"Đã thêm lịch sử hủy đơn đặt vé {bookingId}");
+
+                        // Commit transaction nếu tất cả thành công
+                        await transaction.CommitAsync();
+                        _logger.LogInformation($"Đã commit transaction hủy đơn đặt vé {bookingId}");
+
+                        return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        // Rollback transaction nếu có lỗi
+                        await transaction.RollbackAsync();
+                        _logger.LogError(ex, $"Lỗi khi hủy đơn đặt vé {bookingId}, đã rollback transaction");
+                        throw;
+                    }
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Lỗi khi hủy đơn đặt vé {bookingId}: {ex.Message}");
+                _logger.LogError(ex, $"Lỗi không xử lý được khi hủy đơn đặt vé {bookingId}");
                 return false;
             }
         }
@@ -367,7 +416,7 @@ namespace STP.Repository.Services
             <p><strong>Ghế:</strong> {(booking != null ? booking.Seats : "Không có thông tin ghế")}</p>
         </div>
         
-        <a href=""/"" class=""btn"">Quay lại trang chủ</a>
+        <a href=""http://localhost:5173/"" class=""btn"">Quay lại trang chủ</a>
     </div>
 </body>
 </html>";
@@ -399,7 +448,7 @@ namespace STP.Repository.Services
     <div class=""container"">
         <h1>Đã xảy ra lỗi</h1>
         <p>Không thể xử lý thanh toán. Vui lòng thử lại sau.</p>
-        <a href=""/"" class=""btn"">Quay lại trang chủ</a>
+        <a href=""http://localhost:5173/"" class=""btn"">Quay lại trang chủ</a>
     </div>
 </body>
 </html>";

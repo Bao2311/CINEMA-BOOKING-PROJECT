@@ -39,11 +39,11 @@ namespace STP.Repository.Services
             return await query.Select(r => new RoomDTO
             {
                 Cinema_Room_ID = r.Cinema_Room_ID,
-                Room_Name = r.Room_Name,
-                Room_Type = r.Room_Type,
+                Room_Name = r.Room_Name ?? "Unknown Room", 
+                Room_Type = r.Room_Type ?? "2D",     
                 Seat_Quantity = r.Seat_Quantity,
-                Status = r.Status,
-                Notes = r.Notes,
+                Status = r.Status ?? "Active",             
+                Notes = r.Notes ?? "",                     
                 HasUpcomingShowtimes = _context.Showtimes
                     .Any(s => s.Cinema_Room_ID == r.Cinema_Room_ID && s.Show_Date.Date >= DateTime.Today)
             }).ToListAsync();
