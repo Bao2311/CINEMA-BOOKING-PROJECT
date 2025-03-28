@@ -45,12 +45,6 @@ namespace STP.APIService
                     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
                 });
 
-            builder.Services.AddControllers()
-                .AddNewtonsoftJson(options =>
-                {
-                    options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
-                });
-
             // Đăng ký DbContext với chuỗi kết nối từ cấu hình
             builder.Services.AddDbContext<CinemaDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
