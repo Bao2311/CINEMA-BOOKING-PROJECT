@@ -601,58 +601,23 @@ namespace STP.Repository.Services
 
             try
             {
-                // Lấy connection string từ DbContext
-                string connectionString = _context.Database.GetDbConnection().ConnectionString;
+                // Sử dụng EF Core thay vì ADO.NET trực tiếp
+                var seatInfo = await _context.Tickets
+                    .Where(t => t.Booking_ID == bookingId)
+                    .Join(_context.Seats,
+                          t => t.Seat_ID,
+                          s => s.Seat_ID,
+                          (t, s) => new { s.Layout_ID, SeatId = s.Seat_ID })
+                    .Join(_context.SeatLayouts,
+                          ts => ts.Layout_ID,
+                          sl => sl.Layout_ID,
+                          (ts, sl) => new { sl.Row_Label, sl.Column_Number })
+                    .ToListAsync();
 
-                using (SqlConnection connection = new SqlConnection(connectionString))
+                if (seatInfo.Any())
                 {
-                    await connection.OpenAsync();
-
-                    // Truy vấn SQL để lấy thông tin ghế
-                    string query = @"
-                SELECT t.Ticket_ID, t.Seat_ID, s.Layout_ID, sl.Row_Label, sl.Column_Number
-                FROM Tickets t
-                JOIN Seats s ON t.Seat_ID = s.Seat_ID
-                JOIN Seat_Layout sl ON s.Layout_ID = sl.Layout_ID
-                WHERE t.Booking_ID = @BookingId";
-
-                    using (SqlCommand command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@BookingId", bookingId);
-
-                        List<string> seatCodes = new List<string>();
-
-                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
-                        {
-                            while (await reader.ReadAsync())
-                            {
-                                // Đọc thông tin từ kết quả truy vấn
-                                int ticketId = reader.GetInt32(0); // Ticket_ID
-                                int seatId = reader.GetInt32(1);   // Seat_ID
-                                int layoutId = reader.GetInt32(2); // Layout_ID
-                                string rowLabel = reader.GetString(3); // Row_Label
-                                int columnNumber = reader.GetInt32(4); // Column_Number
-
-                                // Log thông tin để kiểm tra
-                                _logger.LogInformation($"Found seat: Ticket={ticketId}, SeatID={seatId}, Layout={layoutId}, Row={rowLabel}, Column={columnNumber}");
-
-                                // Tạo mã ghế (ví dụ: "A4")
-                                string seatCode = rowLabel + columnNumber.ToString();
-                                seatCodes.Add(seatCode);
-                            }
-                        }
-
-                        // Nếu có thông tin ghế, tạo chuỗi phân cách bằng dấu phẩy
-                        if (seatCodes.Any())
-                        {
-                            seatPositionsString = string.Join(", ", seatCodes);
-                            _logger.LogInformation($"Final seat positions: {seatPositionsString}");
-                        }
-                        else
-                        {
-                            _logger.LogWarning($"No seat information found for booking {bookingId}");
-                        }
-                    }
+                    var seatCodes = seatInfo.Select(s => s.Row_Label + s.Column_Number.ToString());
+                    seatPositionsString = string.Join(", ", seatCodes);
                 }
             }
             catch (Exception ex)

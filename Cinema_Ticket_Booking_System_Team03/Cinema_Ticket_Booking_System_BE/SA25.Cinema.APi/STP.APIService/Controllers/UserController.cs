@@ -19,7 +19,7 @@ namespace STP.APIService.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles = "Admin,Staff")]
     public class UserController : ControllerBase
     {
         private readonly UserRepository _userRepository;
