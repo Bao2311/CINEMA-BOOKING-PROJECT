@@ -19,12 +19,14 @@ namespace STP.APIService.Controllers
         private readonly BookingService _bookingService;
         private readonly ILogger<BookingController> _logger;
         private readonly CinemaDbContext _context;
+        private readonly PayOSNugetService _payosService;
 
-        public BookingController(BookingService bookingService, ILogger<BookingController> logger, CinemaDbContext context)
+        public BookingController(BookingService bookingService, ILogger<BookingController> logger, CinemaDbContext context, PayOSNugetService payosService)
         {
             _bookingService = bookingService;
             _logger = logger;
             _context = context;
+            _payosService = payosService;
         }
 
         [HttpGet]
@@ -170,44 +172,60 @@ namespace STP.APIService.Controllers
         /// Hủy đơn đặt vé
         /// </summary>
         [HttpPut("{id}/cancel")]
-        [Authorize]
+        [Authorize] 
         public async Task<IActionResult> CancelBooking(int id)
         {
-            _logger.LogInformation("Danh sách claims trong token:");
-            foreach (var claim in User.Claims)
-            {
-                _logger.LogInformation($"Claim: {claim.Type} = {claim.Value}");
-            }
+            _logger.LogInformation($"Nhận yêu cầu hủy đơn đặt vé ID: {id}");
             try
             {
-                // Lấy thông tin người dùng từ token
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
-                    User.FindFirst("nameid")?.Value ??
-                    User.FindFirst("UserId")?.Value ??
-                    User.FindFirst("userId")?.Value;
-
-                if (string.IsNullOrEmpty(userId))
+                // Lấy userId từ claims (giữ nguyên)
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier); // Nên dùng NameIdentifier chuẩn
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
                 {
-                    return Unauthorized(new { message = "Không thể xác định người dùng" });
+                    _logger.LogWarning("Không thể xác định userId từ token trong yêu cầu hủy.");
+                    return Unauthorized(new { message = "Không thể xác định người dùng từ token." });
                 }
 
-                var response = await _bookingService.CancelBooking(id, int.Parse(userId));
-                return Ok(response);
+                // *** THAY ĐỔI QUAN TRỌNG: Gọi service mới ***
+                // Lưu ý: Phương thức CancelBooking mới trong PayOSNugetService chỉ cần bookingId
+                bool success = await _payosService.CancelBooking(id);
+
+                if (!success)
+                {
+                    // Service mới trả về false: có thể không tìm thấy booking, status không phải Pending, hoặc lỗi DB
+                    _logger.LogWarning($"Hủy đơn đặt vé {id} không thành công từ PayOSNugetService.");
+
+                    // Kiểm tra lý do chi tiết hơn (tùy chọn)
+                    var bookingDetail = await _payosService.GetBookingDetail(id); // Dùng hàm có sẵn trong PayOSNugetService
+                    if (bookingDetail == null)
+                    {
+                        return NotFound(new { message = $"Không tìm thấy đơn đặt vé ID: {id}." });
+                    }
+                    else if (bookingDetail.Status != "Pending")
+                    {
+                        // Trả về BadRequest hợp lý hơn NotFound trong trường hợp này
+                        return BadRequest(new { message = $"Không thể hủy đơn đặt vé ID: {id} vì trạng thái là '{bookingDetail.Status}'. Chỉ hủy được khi trạng thái là 'Pending'." });
+                    }
+                    else
+                    {
+                        // Lỗi không xác định khác trong service
+                        return StatusCode(500, new { message = $"Không thể hủy đơn đặt vé {id} vì lỗi không xác định trong quá trình xử lý." });
+                    }
+                }
+
+                // Nếu service mới trả về true (đã cập nhật status thành công)
+                _logger.LogInformation($"Đã hủy thành công đơn đặt vé ID: {id} thông qua PayOSNugetService.");
+                return Ok(new { message = $"Đã hủy thành công đơn đặt vé ID: {id}" });
+
             }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
+            // Giữ lại các catch block chung chung này
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error cancelling booking for ID: {id}");
-                return StatusCode(500, new { message = "Có lỗi xảy ra khi hủy đơn đặt vé" });
+                _logger.LogError(ex, $"Lỗi không mong muốn khi hủy đơn đặt vé ID: {id}");
+                return StatusCode(500, new { message = "Có lỗi hệ thống xảy ra khi hủy đơn đặt vé." });
             }
         }
+
 
         /// <summary>
         /// Lấy danh sách đơn đặt vé của người dùng hiện tại
