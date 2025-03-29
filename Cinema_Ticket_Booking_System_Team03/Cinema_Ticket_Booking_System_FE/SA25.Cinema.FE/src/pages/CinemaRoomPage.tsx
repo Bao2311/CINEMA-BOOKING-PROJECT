@@ -122,19 +122,17 @@ const CinemaRoomPage: React.FC = () => {
   const [totalPrice, setTotalPrice] = useState(0);
   const [step, setStep] = useState<'select' | 'payment' | 'confirmation'>('select');
   const [isLoading, setIsLoading] = useState(true);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvv, setCvv] = useState('');
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [movieDetails, setMovieDetails] = useState<MovieDetails | null>(null);
   const [showtimeDetails, setShowtimeDetails] = useState<ShowtimeDetails | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingId, setBookingId] = useState<number | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const screenRef = useRef<HTMLDivElement>(null);
+  const [userPoints, setUserPoints] = useState<number>(0);
+  const [pointsToUse, setPointsToUse] = useState<string>('');
+  const [discountedTotal, setDiscountedTotal] = useState<number | null>(null);
+  const [promotionCode, setPromotionCode] = useState<string>('');
+  const [newTotal, setNewTotal] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchMovieDetails = async () => {
@@ -237,24 +235,7 @@ const CinemaRoomPage: React.FC = () => {
     setTotalPrice(price);
   }, [selectedSeats]);
 
-  const validateForm = () => {
-    const newErrors: { [key: string]: string } = {};
-    if (step === 'payment') {
-      if (!name.trim()) newErrors.name = 'Vui lòng nhập họ tên';
-      if (!email.trim()) newErrors.email = 'Vui lòng nhập email';
-      else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Email không hợp lệ';
-      if (!phone.trim()) newErrors.phone = 'Vui lòng nhập số điện thoại';
-      else if (!/^[0-9]{10}$/.test(phone)) newErrors.phone = 'Số điện thoại phải có 10 chữ số';
-      if (!cardNumber.trim()) newErrors.cardNumber = 'Vui lòng nhập số thẻ';
-      else if (!/^[0-9]{16}$/.test(cardNumber.replace(/\s/g, ''))) newErrors.cardNumber = 'Số thẻ phải có 16 chữ số';
-      if (!expiry.trim()) newErrors.expiry = 'Vui lòng nhập ngày hết hạn';
-      else if (!/^(0[1-9]|1[0-2])\/([0-9]{2})$/.test(expiry)) newErrors.expiry = 'Định dạng MM/YY không hợp lệ';
-      if (!cvv.trim()) newErrors.cvv = 'Vui lòng nhập mã CVV';
-      else if (!/^[0-9]{3,4}$/.test(cvv)) newErrors.cvv = 'CVV phải có 3-4 chữ số';
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  
 
   const sendBookingRequest = async () => {
     if (selectedSeats.length === 0) {
@@ -340,18 +321,6 @@ const CinemaRoomPage: React.FC = () => {
       }
       return;
     }
-
-    if (step === 'confirmation') {
-      setSelectedSeats([]);
-      setStep('select');
-      setName('');
-      setEmail('');
-      setPhone('');
-      setCardNumber('');
-      setExpiry('');
-      setCvv('');
-      setErrors({});
-    }
   };
 
   const handleConfirm = async (confirmed: boolean) => {
@@ -372,6 +341,101 @@ const CinemaRoomPage: React.FC = () => {
     });
     return groupedSeats;
   }, [seats]);
+
+  const fetchUserPoints = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+
+      const response = await axios.get(`https://localhost:7168/api/Points/users/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setUserPoints(response.data.total_Points);
+    } catch (error) {
+      console.error('Error fetching user points:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserPoints();
+  }, []);
+
+  const handleApplyPoints = async () => {
+    try {
+      const points = parseInt(pointsToUse);
+      if (isNaN(points)) {
+        alert('Vui lòng nhập số điểm hợp lệ');
+        return;
+      }
+      
+      if (points % 1000 !== 0) {
+        alert('Số điểm sử dụng phải là bội của 1000');
+        return;
+      }
+
+      if (points < 0 || points > userPoints) {
+        alert('Số điểm không hợp lệ');
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `https://localhost:7168/api/Points/booking/${bookingId}/apply-discount`,
+        points,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      setDiscountedTotal(response.data.discountedTotalAmount / 1000);
+      setUserPoints(response.data.currentPoints);
+      setPointsToUse('');
+      alert(`Áp dụng ${points.toLocaleString('vi-VN')} điểm thành công!`);
+    } catch (error) {
+      console.error('Error applying points:', error);
+      alert('Không thể áp dụng điểm. Vui lòng thử lại.');
+    }
+  };
+
+  const handleApplyPromotion = async () => {
+    try {
+      if (!promotionCode.trim()) {
+        alert('Vui lòng nhập mã khuyến mãi');
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        'https://localhost:7168/api/Promotion/apply',
+        {
+          bookingId: bookingId,
+          promotionCode: promotionCode
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        setNewTotal(response.data.new_total / 1000); // Chuyển đổi sang đơn vị k
+        alert('Áp dụng mã khuyến mãi thành công!');
+      } else {
+        alert(response.data.message || 'Mã khuyến mãi không hợp lệ');
+      }
+    } catch (error) {
+      console.error('Error applying promotion:', error);
+      alert('Không thể áp dụng mã khuyến mãi. Vui lòng thử lại.');
+    }
+  };
 
   return (
     <>
@@ -478,6 +542,40 @@ const CinemaRoomPage: React.FC = () => {
                       <Styles.SummaryItem><span>Phim</span><span>{movieDetails?.movie_Name}</span></Styles.SummaryItem>
                       <Styles.SummaryItem><span>Suất chiếu</span><span>{showtimeDetails?.room_Name} - {showtimeDetails?.start_Time}</span></Styles.SummaryItem>
                       <Styles.SummaryItem><span>Ghế</span><span>{selectedSeats.map(s => s.id).join(', ')}</span></Styles.SummaryItem>
+                      <Styles.SummaryItem>
+                        <span>Điểm tích lũy của bạn</span>
+                        <span>{userPoints} điểm</span>
+                      </Styles.SummaryItem>
+                      <Styles.PointsInputContainer>
+                        <Styles.PointsInput
+                          type="number"
+                          value={pointsToUse}
+                          onChange={(e) => setPointsToUse(e.target.value)}
+                          placeholder="Nhập số điểm muốn sử dụng"
+                          min="0"
+                          max={userPoints}
+                        />
+                        <Styles.ApplyPointsButton
+                          onClick={handleApplyPoints}
+                          disabled={!pointsToUse || parseInt(pointsToUse) > userPoints}
+                        >
+                          Xác nhận dùng
+                        </Styles.ApplyPointsButton>
+                      </Styles.PointsInputContainer>
+                      <Styles.PromotionContainer>
+                        <Styles.PromotionInput
+                          type="text"
+                          value={promotionCode}
+                          onChange={(e) => setPromotionCode(e.target.value.toUpperCase())}
+                          placeholder="Nhập mã khuyến mãi"
+                        />
+                        <Styles.ApplyPromotionButton
+                          onClick={handleApplyPromotion}
+                          disabled={!promotionCode.trim()}
+                        >
+                          Áp dụng
+                        </Styles.ApplyPromotionButton>
+                      </Styles.PromotionContainer>
                       <Styles.SummaryDivider />
                       <Styles.SeatTypeSummary>
                         {['standard', 'vip'].map(type => {
@@ -493,7 +591,33 @@ const CinemaRoomPage: React.FC = () => {
                         })}
                       </Styles.SeatTypeSummary>
                       <Styles.SummaryDivider />
-                      <Styles.SummaryItem $total><span>Tổng cộng</span><span>{totalPrice}k</span></Styles.SummaryItem>
+                      <Styles.PriceCalculation>
+                        <Styles.CalculationItem>
+                          <span>Giá gốc:</span>
+                          <span>{totalPrice}k</span>
+                        </Styles.CalculationItem>
+                        
+                        {discountedTotal && discountedTotal < totalPrice && (
+                          <Styles.CalculationItem>
+                            <span>Giảm giá từ điểm:</span>
+                            <span>-{(totalPrice - discountedTotal)}k</span>
+                          </Styles.CalculationItem>
+                        )}
+                        
+                        {newTotal && newTotal < (discountedTotal || totalPrice) && (
+                          <Styles.CalculationItem>
+                            <span>Giảm giá từ mã khuyến mãi:</span>
+                            <span>-{(discountedTotal || totalPrice) - newTotal}k</span>
+                          </Styles.CalculationItem>
+                        )}
+                        
+                        <Styles.SummaryDivider />
+                        
+                        <Styles.SummaryItem $total>
+                          <span>Tổng cộng:</span>
+                          <span>{newTotal || discountedTotal || totalPrice}k</span>
+                        </Styles.SummaryItem>
+                      </Styles.PriceCalculation>
                     </Styles.OrderSummary>
                   </Styles.PaymentGrid>
                 </Styles.PaymentContainer>
