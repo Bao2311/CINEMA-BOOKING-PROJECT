@@ -278,7 +278,7 @@ namespace STP.Repository.Services
             var response = new AuthResponseDto
             {
                 UserId = user.User_ID,
-                FullName = user.Full_Name,
+                Full_Name = user.Full_Name,
                 Email = user.Email,
                 Token = token,
                 TokenExpiration = DateTime.UtcNow.AddDays(1),
@@ -420,10 +420,12 @@ namespace STP.Repository.Services
 
             return new AuthResponseDto
             {
-                UserId = user.User_ID,
-                FullName = user.Full_Name,
+                Full_Name = user.Full_Name,
                 Email = user.Email,
-                Role = user.Role
+                Phone_Number = user.Phone_Number,
+                Address = user.Address,
+                Date_Of_Birth = user.Date_Of_Birth,
+                Sex = user.Sex
             };
         }
 

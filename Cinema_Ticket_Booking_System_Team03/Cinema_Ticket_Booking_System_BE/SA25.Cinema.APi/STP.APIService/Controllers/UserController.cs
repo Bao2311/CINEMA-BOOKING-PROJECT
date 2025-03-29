@@ -42,8 +42,8 @@ namespace STP.APIService.Controllers
         /// API lấy danh sách tất cả người dùng (Task 2.4: Implement View Member List)
         /// Trả về danh sách người dùng với thông tin cơ bản, không bao gồm mật khẩu
         /// </summary>
-        [HttpGet]
-        [Authorize(Roles = "Admin,Staff")]
+        [HttpGet] 
+        [Authorize(Roles = "Admin,Staff,Customer, Manager")]
         public async Task<IActionResult> GetAllUsers()
         {
             try
@@ -295,8 +295,12 @@ namespace STP.APIService.Controllers
                     return BadRequest(new { message = "Không thể xóa tài khoản của chính mình" });
                 }
 
-                // Xóa người dùng
-                await _userRepository.DeleteAsync(user);
+                // Thực hiện xóa mềm
+                user.Account_Status = "Deleted";
+
+                // Cập nhật người dùng với trạng thái đã xóa
+                await _userRepository.UpdateAsync(user);
+
                 return Ok(new { message = "Xóa người dùng thành công" });
             }
             catch (Exception ex)
@@ -358,7 +362,7 @@ namespace STP.APIService.Controllers
         /// Người dùng có thể xem thông tin cá nhân của mình
         /// </summary>
         [HttpGet("profile")]
-        [Authorize]
+        [Authorize(Roles = "Admin,Staff,Customer, Manager")]
         public async Task<ActionResult<object>> GetUserProfile()
         {
             try
@@ -399,7 +403,7 @@ namespace STP.APIService.Controllers
         /// Người dùng có thể cập nhật thông tin cá nhân của mình
         /// </summary>
         [HttpPut("profile")]
-        [Authorize]
+        [Authorize(Roles = "Admin,Staff,Customer, Manager")]
         public async Task<IActionResult> UpdateProfile([FromBody] BaseUpdateProfileDTO updateProfileDto)
         {
             // Kiểm tra tính hợp lệ của dữ liệu đầu vào

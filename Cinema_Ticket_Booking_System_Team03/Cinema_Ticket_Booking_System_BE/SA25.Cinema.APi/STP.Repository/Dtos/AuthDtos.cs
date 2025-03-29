@@ -137,7 +137,7 @@ namespace STP.Repository.Dtos
         public int UserId { get; set; }
 
         // Họ tên đầy đủ của người dùng
-        public string FullName { get; set; }
+        public string Full_Name { get; set; }
 
         // Email của người dùng
         public string Email { get; set; }
@@ -152,6 +152,14 @@ namespace STP.Repository.Dtos
         public string Role { get; set; }
 
         public bool RequiresPasswordChange { get; set; }
+
+        public string Sex { get; set; }
+
+        public string? Phone_Number{ get; set; }
+
+        public string? Address { get; set; }
+
+        public DateTime? Date_Of_Birth { get; set; }
     }
 
     // DTO dùng để thay đổi trạng thái tài khoản
