@@ -38,6 +38,8 @@ namespace STP.Repository.Models
         /// </summary>
         public string Status { get; set; }
 
+        public string Note { get; set; }
+
         /// <summary>
         /// Người dùng thực hiện giao dịch đổi điểm
         /// </summary>

@@ -110,21 +110,6 @@ namespace STP.Repository.Services
                     throw new KeyNotFoundException($"Người dùng với ID {userId} không tồn tại trong hệ thống");
                 }
 
-                // Xử lý điểm nếu người dùng muốn sử dụng
-                int pointsUsed = 0;
-                decimal discountFromPoints = 0;
-
-                if (request.PointsToUse > 0)
-                {
-                    // Kiểm tra số điểm của người dùng
-                    int userPoints = await _pointsService.GetUserPointsTotalAsync(userId);
-                    if (userPoints < request.PointsToUse)
-                    {
-                        throw new InvalidOperationException($"Không đủ điểm. Hiện có: {userPoints}, Yêu cầu: {request.PointsToUse}");
-                    }
-                    pointsUsed = request.PointsToUse;
-                }
-
                 // Lấy thông tin suất chiếu
                 var showtime = await _context.Showtimes
                     .Include(s => s.Movie)
@@ -213,13 +198,6 @@ namespace STP.Repository.Services
                     totalAmount += price;
                 }
 
-                // Áp dụng điểm để giảm giá nếu có
-                if (pointsUsed > 0)
-                {
-                    // 1 điểm = 1 VND
-                    discountFromPoints = Math.Min(pointsUsed, totalAmount);
-                }
-
                 // Tạo đơn đặt vé mới
                 var booking = new TicketBooking
                 {
@@ -227,7 +205,7 @@ namespace STP.Repository.Services
                     Created_By = userId, // Thêm trường Created_By
                     Showtime_ID = request.Showtime_ID,
                     Booking_Date = DateTime.Now,
-                    Total_Amount = totalAmount - discountFromPoints, // Trừ giảm giá từ điểm
+                    Total_Amount = totalAmount,
                     Status = "Pending",
                     Payment_Deadline = DateTime.Now.AddMinutes(5),
                 };
@@ -270,21 +248,13 @@ namespace STP.Repository.Services
                     var seatType = seatLayouts[seat.Layout_ID].Seat_Type;
                     var price = ticketPricings[seatType];
 
-                    // Tính toán giảm giá tỷ lệ cho từng vé (nếu có sử dụng điểm)
-                    decimal ticketDiscount = 0;
-                    if (discountFromPoints > 0)
-                    {
-                        // Phân phối giảm giá tỷ lệ với giá vé
-                        ticketDiscount = Math.Round(discountFromPoints * (price / totalAmount), 2);
-                    }
-
                     var ticket = new Ticket
                     {
                         Booking_ID = booking.Booking_ID,
                         Seat_ID = seat.Seat_ID,
                         Base_Price = price,
-                        Discount_Amount = ticketDiscount,
-                        Final_Price = price - ticketDiscount,
+                        Discount_Amount = 0,
+                        Final_Price = price,
                         Ticket_Code = Guid.NewGuid().ToString().Substring(0, 8).ToUpper(), // Tạo mã vé ngẫu nhiên
                         Is_Checked_In = false
                     };
@@ -311,30 +281,13 @@ namespace STP.Repository.Services
 
                 _context.Tickets.AddRange(tickets);
 
-                // Nếu sử dụng điểm, ghi nhận việc sử dụng điểm
-                string pointsNote = null;
-                if (pointsUsed > 0)
-                {
-                    try
-                    {
-                        await _pointsService.RedeemPointsAsync(userId, pointsUsed);
-                        pointsNote = $"Đã sử dụng {pointsUsed} điểm (giảm {discountFromPoints:C0})";
-                        _logger.LogInformation($"Người dùng {userId} đã sử dụng {pointsUsed} điểm cho booking {booking.Booking_ID}");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, $"Lỗi khi sử dụng điểm cho booking {booking.Booking_ID}, tiếp tục xử lý");
-                        // Không throw exception ở đây để vẫn tiếp tục tạo booking
-                    }
-                }
-
                 // Tạo lịch sử đặt vé
                 var history = new BookingHistory
                 {
                     Booking_ID = booking.Booking_ID,
                     Status = booking.Status,
                     Date = DateTime.Now,
-                    Notes = pointsNote
+                    Notes = null
                 };
 
                 _context.BookingHistories.Add(history);
@@ -393,8 +346,6 @@ namespace STP.Repository.Services
                     }).ToList(),
 
                     // Thêm thông tin về điểm
-                    PointsUsed = pointsUsed,
-                    DiscountFromPoints = discountFromPoints,
                     CurrentPoints = currentPoints
                 };
 
@@ -547,42 +498,22 @@ namespace STP.Repository.Services
                     _context.BookingHistories.Add(bookingHistory);
                     await _context.SaveChangesAsync();
 
-                    // Tìm xem đã có sử dụng điểm không
-                    int pointsUsed = 0;
-                    var pointsRedemptionHistory = booking.BookingHistories
-                        .FirstOrDefault(h => h.Notes != null && h.Notes.Contains("Đã sử dụng"));
-
-                    if (pointsRedemptionHistory != null && pointsRedemptionHistory.Notes != null)
-                    {
-                        // Trích xuất số điểm đã sử dụng từ ghi chú (ví dụ: "Đã sử dụng 500 điểm")
-                        var parts = pointsRedemptionHistory.Notes.Split(' ');
-                        if (parts.Length >= 3)
-                        {
-                            int.TryParse(parts[2], out pointsUsed);
-                        }
-                    }
-
                     // Thêm điểm thưởng khi thanh toán thành công (5% của số tiền thực tế thanh toán)
                     int pointsEarned = 0;
                     try
                     {
-                        // Tính toán số tiền ban đầu trước khi áp dụng điểm (nếu có)
-                        decimal originalAmount = booking.Total_Amount;
-                        if (pointsUsed > 0)
-                        {
-                            // Điểm đã được sử dụng để giảm giá (1 điểm = 1 VND)
-                            originalAmount = booking.Total_Amount + pointsUsed;
-                        }
-
                         // Chỉ thêm điểm nếu trước đó đơn hàng là Pending
                         if (oldStatus == "Pending")
                         {
                             pointsEarned = await _pointsService.AddPointsFromBookingAsync(
                                 userId,
                                 bookingId,
-                                originalAmount,
-                                pointsUsed
+                                booking.Total_Amount,
+                                0 // Không có pointsUsed
                             );
+
+                            booking.Points_Earned = pointsEarned;
+                            await _context.SaveChangesAsync();
 
                             _logger.LogInformation($"Đã thêm {pointsEarned} điểm cho booking {bookingId}");
 
@@ -638,7 +569,6 @@ namespace STP.Repository.Services
                         Start_Time = booking.Showtime.Start_Time,
 
                         // Thêm thông tin về điểm
-                        PointsUsed = pointsUsed,
                         PointsEarned = pointsEarned,
                         CurrentPoints = currentPoints
                     };
@@ -769,6 +699,7 @@ namespace STP.Repository.Services
                         Payment_Method = latestPayment?.Payment_Method,
                         Payment_Date = latestPayment?.Transaction_Date,
                         Cancellation_Date = cancellation?.Date,
+                        PointsEarned = b.Points_Earned,
                         Showtime = new ShowtimeInfoDTO
                         {
                             Showtime_ID = b.Showtime.Showtime_ID,
@@ -812,6 +743,8 @@ namespace STP.Repository.Services
                 .Include(b => b.Showtime)
                     .ThenInclude(s => s.CinemaRoom)
                 .Include(b => b.Tickets)
+                .Include(b => b.Payments)
+                .Include(b => b.BookingHistories)
                 .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
 
             if (booking == null)
@@ -868,6 +801,7 @@ namespace STP.Repository.Services
                 Booking_Date = booking.Booking_Date,
                 Cancellation_Date = DateTime.MinValue,
                 User_ID = booking.User_ID,
+                PointsEarned = booking.Points_Earned,
                 Showtime = new ShowtimeDetailDTO
                 {
                     Showtime_ID = booking.Showtime.Showtime_ID,
@@ -1042,6 +976,7 @@ namespace STP.Repository.Services
                     Booking_ID = booking.Booking_ID,
                     Status = "Cancelled",
                     Date = DateTime.Now,
+                    Notes = "Hủy tự động do quá hạn thanh toán"
                 };
 
                 _context.BookingHistories.Add(bookingHistory);
@@ -1067,5 +1002,3 @@ namespace STP.Repository.Services
         }
     }
 }
-
-

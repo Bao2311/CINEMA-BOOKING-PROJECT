@@ -26,15 +26,9 @@ namespace STP.Repository.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Booking Expiration Service is running.");
-
-            // Chạy kiểm tra mỗi 1 phút
             while (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation("Checking for expired bookings at: {time}", DateTimeOffset.Now);
-
                 await CheckExpiredBookings();
-
                 await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
             }
         }
@@ -46,25 +40,24 @@ namespace STP.Repository.Services
                 using (var scope = _serviceProvider.CreateScope())
                 {
                     var dbContext = scope.ServiceProvider.GetRequiredService<CinemaDbContext>();
+                    var pointsService = scope.ServiceProvider.GetRequiredService<PointsService>();
 
-                    // Lấy tất cả các đơn đặt vé đang ở trạng thái "Pending" và đã quá hạn thanh toán
                     var now = DateTime.Now;
                     var expiredBookings = await dbContext.TicketBookings
-                        .Where(b => b.Status == "Pending" && b.Payment_Deadline < now)
+                        .Where(b => b.Status == "Pending" && b.Payment_Deadline < now && b.Points_Used > 0)
                         .ToListAsync();
-
-                    _logger.LogInformation($"Found {expiredBookings.Count} expired bookings");
 
                     foreach (var booking in expiredBookings)
                     {
                         try
                         {
-                            _logger.LogInformation($"Auto-cancelling expired booking ID: {booking.Booking_ID}");
+                            // Hoàn trả điểm
+                            await pointsService.RefundPointsForExpiredBookingAsync(booking.Booking_ID, booking.User_ID, booking.Points_Used);
 
-                            // Cập nhật trạng thái đơn đặt vé
+                            // Cập nhật trạng thái booking và ghế như cũ
                             booking.Status = "Cancelled";
+                            booking.Points_Used = 0; // Đặt lại điểm đã sử dụng
 
-                            // Cập nhật trạng thái ghế và xóa liên kết với Booking_ID
                             var seats = await dbContext.Seats
                                 .Where(s => s.Booking_ID == booking.Booking_ID)
                                 .ToListAsync();
@@ -73,7 +66,7 @@ namespace STP.Repository.Services
                             {
                                 seat.Seat_Status = "Available";
                                 seat.Last_Updated = DateTime.Now;
-                                seat.Booking_ID = null; // Xóa liên kết với Booking_ID
+                                seat.Booking_ID = null;
                             }
 
                             // Thêm lịch sử hủy đơn
@@ -82,23 +75,24 @@ namespace STP.Repository.Services
                                 Booking_ID = booking.Booking_ID,
                                 Status = "Cancelled",
                                 Date = DateTime.Now,
+                                Notes = "Hủy do quá hạn thanh toán - Hoàn trả điểm"
                             };
 
                             dbContext.BookingHistories.Add(bookingHistory);
                             await dbContext.SaveChangesAsync();
 
-                            _logger.LogInformation($"Successfully auto-cancelled booking ID: {booking.Booking_ID}");
+                            _logger.LogInformation($"Đã hoàn trả {booking.Points_Used} điểm cho booking ID: {booking.Booking_ID}");
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, $"Error auto-cancelling booking ID: {booking.Booking_ID}");
+                            _logger.LogError(ex, $"Lỗi khi hoàn trả điểm cho booking ID: {booking.Booking_ID}");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error checking for expired bookings");
+                _logger.LogError(ex, "Lỗi khi kiểm tra và hủy booking hết hạn");
             }
         }
     }

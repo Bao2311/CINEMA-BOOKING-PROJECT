@@ -177,6 +177,46 @@ namespace STP.APIService.Controllers
 
             return 0;
         }
+
+        /// <summary>
+        /// Áp dụng điểm giảm giá cho booking
+        /// </summary>
+        [HttpPost("booking/{bookingId}/apply-discount")]
+        public async Task<ActionResult<BookingResponseDTO>> ApplyPointsDiscount(
+            int bookingId,
+            [FromBody] int pointsToUse)
+        {
+            try
+            {
+                // Lấy ID người dùng từ token
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+
+                // Áp dụng điểm giảm giá
+                var bookingResponse = await _pointsService.ApplyPointsDiscount(
+                    bookingId,
+                    userId,
+                    pointsToUse
+                );
+
+                return Ok(bookingResponse);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi áp dụng điểm giảm giá", error = ex.Message });
+            }
+        }
     }
 }
 

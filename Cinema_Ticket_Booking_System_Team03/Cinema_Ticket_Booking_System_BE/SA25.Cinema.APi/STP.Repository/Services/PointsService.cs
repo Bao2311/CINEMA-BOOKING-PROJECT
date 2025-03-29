@@ -22,6 +22,97 @@ namespace STP.Repository.Services
         }
 
         /// <summary>
+        /// Áp dụng điểm giảm giá cho booking
+        /// </summary>
+        public async Task<BookingResponseDTO> ApplyPointsDiscount(int bookingId, int userId, int pointsToUse)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                // Lấy thông tin booking
+                var booking = await _context.TicketBookings
+                    .Include(b => b.Showtime)
+                    .ThenInclude(s => s.Movie)
+                    .Include(b => b.Showtime)
+                    .ThenInclude(s => s.CinemaRoom)
+                    .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
+
+                if (booking == null)
+                {
+                    throw new KeyNotFoundException($"Không tìm thấy booking với ID {bookingId}");
+                }
+
+                // Lưu lại tổng tiền ban đầu
+                decimal originalTotalAmount = booking.Total_Amount;
+
+                // Lấy tỷ lệ chuyển đổi điểm sang tiền
+                decimal pointConversionRate = 1m;
+
+                // Tính số tiền giảm
+                decimal discountAmount = pointsToUse * pointConversionRate;
+
+                // Giới hạn giảm giá tối đa 50% tổng số tiền
+                decimal maxDiscountAllowed = originalTotalAmount * 0.5m;
+                discountAmount = Math.Min(discountAmount, maxDiscountAllowed);
+
+                // Cập nhật tổng số tiền booking
+                decimal discountedTotalAmount = originalTotalAmount - discountAmount;
+                booking.Total_Amount = discountedTotalAmount;
+                booking.Points_Used = pointsToUse;
+
+                // Cập nhật điểm người dùng
+                var userPoints = await _context.UserPoints
+                    .FirstOrDefaultAsync(up => up.User_ID == userId);
+
+                userPoints.Total_Points -= pointsToUse;
+                userPoints.Last_Updated = DateTime.Now;
+
+                // Tạo bản ghi đổi điểm
+                var pointsRedemption = new PointsRedemption
+                {
+                    User_ID = userId,
+                    Points_Redeemed = pointsToUse,
+                    Date = DateTime.Now,
+                    Status = "Completed"
+                };
+                _context.PointsRedemptions.Add(pointsRedemption);
+
+                // Lưu các thay đổi
+                await _context.SaveChangesAsync();
+
+                // Commit transaction
+                await transaction.CommitAsync();
+
+                // Tạo response DTO
+                var response = new BookingResponseDTO
+                {
+                    Booking_ID = booking.Booking_ID,
+                    OriginalTotalAmount = originalTotalAmount,
+                    DiscountedTotalAmount = discountedTotalAmount,
+                    PointsUsed = pointsToUse,
+                    CurrentPoints = userPoints.Total_Points,
+
+                    User_ID = booking.User_ID,
+                    Booking_Date = booking.Booking_Date,
+                    Status = booking.Status,
+                    MovieName = booking.Showtime.Movie.Movie_Name,
+                    RoomName = booking.Showtime.CinemaRoom.Room_Name,
+                    Show_Date = booking.Showtime.Show_Date,
+                    Start_Time = booking.Showtime.Start_Time
+                };
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, $"Lỗi khi áp dụng điểm giảm giá cho booking {bookingId}");
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Lấy thông tin điểm hiện tại của người dùng
         /// </summary>
         public async Task<UserPointsDTO> GetUserPointsAsync(int userId)
@@ -235,6 +326,46 @@ namespace STP.Repository.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Lỗi khi lấy lịch sử sử dụng điểm của người dùng {userId}");
+                throw;
+            }
+        }
+
+        public async Task RefundPointsForExpiredBookingAsync(int bookingId, int userId, int pointsToRefund)
+        {
+            try
+            {
+                // Tìm bản ghi điểm người dùng
+                var userPoints = await _context.UserPoints
+                    .FirstOrDefaultAsync(up => up.User_ID == userId);
+
+                if (userPoints == null)
+                {
+                    throw new InvalidOperationException($"Không tìm thấy thông tin điểm cho người dùng {userId}");
+                }
+
+                // Hoàn trả điểm
+                userPoints.Total_Points += pointsToRefund;
+                userPoints.Last_Updated = DateTime.Now;
+
+                // Tạo bản ghi hoàn trả điểm
+                var pointsRefundRecord = new PointsRedemption
+                {
+                    User_ID = userId,
+                    Points_Redeemed = -pointsToRefund, // Giá trị âm để biểu thị hoàn trả
+                    Date = DateTime.Now,
+                    Status = "Refunded",
+                    Note= $"Hoàn trả điểm cho booking {bookingId} bị hủy"
+                };
+
+                _context.PointsRedemptions.Add(pointsRefundRecord);
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"Đã hoàn trả {pointsToRefund} điểm cho người dùng {userId} do booking {bookingId} bị hủy");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi hoàn trả điểm cho booking {bookingId}");
                 throw;
             }
         }

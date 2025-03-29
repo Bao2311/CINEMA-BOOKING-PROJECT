@@ -138,6 +138,8 @@ namespace STP.Repository.Dtos
         /// </summary>
         public ShowtimeInfoDTO Showtime { get; set; }
         public int User_ID { get; set; }
+
+        public int PointsEarned { get; set; }
     }
 
     /// <summary>
@@ -218,6 +220,8 @@ namespace STP.Repository.Dtos
         // Các thuộc tính khác nếu cần
         public ShowtimeDetailDTO Showtime { get; set; }
         public List<TicketDTO> Tickets { get; set; }
+
+        public int PointsEarned { get; set; }
     }
 
 
@@ -531,6 +535,12 @@ namespace STP.Repository.Dtos
         public int PointsEarned { get; set; } = 0;
 
         public int CurrentPoints { get; set; } = 0;
+
+        public decimal PointDiscountAmount { get; set; }
+
+        public decimal OriginalTotalAmount { get; set; } 
+        
+        public decimal DiscountedTotalAmount { get; set; }
     }
     public class ShowtimeInfoDTO
     {
