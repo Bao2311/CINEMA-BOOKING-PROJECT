@@ -171,6 +171,21 @@ namespace STP.Repository.Dtos
         public string Email { get; set; }
     }
 
+    public class StaffRegisterUserDto
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; }
+
+        [Phone]
+        public string PhoneNumber { get; set; }
+
+        [Required]
+        public string FullName { get; set; }
+
+        public string Sex { get; set; }
+    }
+
     // DTO dùng để trả về kết quả sau khi đặt lại mật khẩu
     public class ResetPasswordResultDto
     {
@@ -324,3 +339,5 @@ namespace STP.Repository.Dtos
         public string Address { get; set; }
     }
 }
+
+

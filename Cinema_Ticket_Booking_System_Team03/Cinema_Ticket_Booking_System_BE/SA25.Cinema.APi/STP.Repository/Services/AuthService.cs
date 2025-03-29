@@ -627,8 +627,85 @@ namespace STP.Repository.Services
             return new string(result);
         }
 
+        public async Task<UserRegistrationResponseDto> RegisterUserByStaffAsync(StaffRegisterUserDto model, int staffId)
+        {
+            try
+            {
+                // Kiểm tra email đã tồn tại chưa
+                var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
+                if (existingUser != null)
+                {
+                    return new UserRegistrationResponseDto
+                    {
+                        Success = false,
+                        Message = "Email đã được sử dụng"
+                    };
+                }
+
+                // Kiểm tra số điện thoại đã tồn tại (nếu có)
+                if (!string.IsNullOrEmpty(model.PhoneNumber))
+                {
+                    bool phoneExists = await _userRepository.IsPhoneNumberExistAsync(model.PhoneNumber);
+                    if (phoneExists)
+                    {
+                        return new UserRegistrationResponseDto
+                        {
+                            Success = false,
+                            Message = "Số điện thoại đã được sử dụng"
+                        };
+                    }
+                }
+
+                // Tạo mật khẩu ngẫu nhiên và băm
+                string randomPassword = GenerateRandomPassword();
+                string passwordHash = HashPasswordWithSHA256(randomPassword);
+
+                // Tạo đối tượng người dùng mới
+                var newUser = new User
+                {
+                    Email = model.Email,
+                    Password = passwordHash,
+                    Full_Name = model.FullName,
+                    Role = "Customer", // Mặc định là Customer
+                    Sex = model.Sex,
+                    Phone_Number = model.PhoneNumber,
+                    Account_Status = "Pending", // Trạng thái ban đầu là Pending
+                    Created_At = DateTime.UtcNow
+                };
+
+                // Thêm vào DB và lưu thay đổi
+                _context.Users.Add(newUser);
+                await _context.SaveChangesAsync();
+
+                // Gửi email thông báo mật khẩu cho người dùng mới
+                await _emailService.SendPasswordNotificationEmailAsync(newUser.Email, newUser.Full_Name, randomPassword);
+
+                // Ghi log hành động của nhân viên
+                _logger.LogInformation($"Staff ID {staffId} đã tạo tài khoản cho {model.Email}");
+
+                // Trả về kết quả thành công
+                return new UserRegistrationResponseDto
+                {
+                    Success = true,
+                    Message = $"Đã tạo tài khoản thành công cho {model.Email}. Mật khẩu đã được gửi qua email.",
+                    UserId = newUser.User_ID,
+                    RequiresEmailVerification = true
+                };
+            }
+            catch (Exception ex)
+            {
+                // Ghi log lỗi và trả về thông báo thất bại
+                _logger.LogError($"Lỗi khi đăng ký người dùng bởi nhân viên: {ex.Message}");
+                return new UserRegistrationResponseDto
+                {
+                    Success = false,
+                    Message = "Đã xảy ra lỗi khi tạo tài khoản. Vui lòng thử lại sau."
+                };
+            }
+        }
     }
 }
+
 
 
 

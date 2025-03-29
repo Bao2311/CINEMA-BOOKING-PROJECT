@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Net.Mail;
 using System.Net;
 using STP.Repositories;
+using System.Security.Claims;
 
 namespace STP.Repository.DTOs
 {
@@ -491,7 +492,24 @@ namespace STP.Repository.DTOs
             }
         }
 
+        [HttpPost("staff-register")]
+        [Authorize(Roles = "Staff,Manager")] // Chỉ cho phép Staff và Manager đăng ký
+        public async Task<IActionResult> RegisterUserByStaff([FromBody] StaffRegisterUserDto model)
+        {
+            // Lấy ID của nhân viên từ token
+            int staffId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+
+            var result = await _authService.RegisterUserByStaffAsync(model, staffId);
+
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+
+            return BadRequest(result);
+        }
     }
 }
+
 
 

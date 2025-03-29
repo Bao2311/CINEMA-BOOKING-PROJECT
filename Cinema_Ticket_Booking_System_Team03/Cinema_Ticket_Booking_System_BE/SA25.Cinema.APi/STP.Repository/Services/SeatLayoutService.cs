@@ -531,5 +531,94 @@ namespace STP.Repository.Services
                 throw;
             }
         }
+
+        public async Task<object> CreateRoomWithExistingLayoutAsync(CreateRoomWithLayoutDto model)
+        {
+            // Kiểm tra phòng chiếu mẫu có tồn tại không
+            var templateRoom = await _context.CinemaRooms.FindAsync(model.TemplateRoomId);
+            if (templateRoom == null)
+                throw new KeyNotFoundException($"Không tìm thấy phòng chiếu mẫu có ID {model.TemplateRoomId}");
+
+            // Kiểm tra xem phòng chiếu mẫu có layout ghế không
+            var templateLayouts = await _context.SeatLayouts
+                .Where(sl => sl.Cinema_Room_ID == model.TemplateRoomId)
+                .ToListAsync();
+            if (!templateLayouts.Any())
+                throw new InvalidOperationException("Phòng chiếu mẫu không có layout ghế để sao chép");
+
+            // Bắt đầu giao dịch để đảm bảo toàn vẹn dữ liệu
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // Tạo phòng chiếu mới
+                var newRoom = new CinemaRoom
+                {
+                    Room_Name = model.RoomName,
+                    Room_Type = model.RoomType,
+                    Seat_Quantity = 0 // Sẽ cập nhật sau khi sao chép layout
+                };
+                _context.CinemaRooms.Add(newRoom);
+                await _context.SaveChangesAsync(); // Lưu để lấy Cinema_Room_ID
+
+                // Sao chép layout ghế từ phòng chiếu mẫu
+                var newLayouts = new List<SeatLayout>();
+                foreach (var templateLayout in templateLayouts)
+                {
+                    var newLayout = new SeatLayout
+                    {
+                        Cinema_Room_ID = newRoom.Cinema_Room_ID,
+                        Row_Label = templateLayout.Row_Label,
+                        Column_Number = templateLayout.Column_Number,
+                        Seat_Type = templateLayout.Seat_Type,
+                        Is_Active = templateLayout.Is_Active
+                    };
+                    newLayouts.Add(newLayout);
+                }
+                await _context.SeatLayouts.AddRangeAsync(newLayouts);
+                await _context.SaveChangesAsync(); // Lưu để lấy Layout_ID
+
+                // Tạo các bản ghi Seats cho mỗi SeatLayout mới
+                var newSeats = new List<Seat>();
+                foreach (var layout in newLayouts)
+                {
+                    newSeats.Add(new Seat
+                    {
+                        Layout_ID = layout.Layout_ID,
+                        Seat_Status = "Available",
+                        Last_Updated = DateTime.Now,
+                        Booking_ID = null
+                    });
+                }
+                await _context.Seats.AddRangeAsync(newSeats);
+
+                // Cập nhật tổng số ghế của phòng chiếu mới
+                newRoom.Seat_Quantity = newLayouts.Count;
+                await _context.SaveChangesAsync();
+
+                // Xác nhận giao dịch
+                await transaction.CommitAsync();
+
+                // Trả về kết quả
+                return new
+                {
+                    cinema_room = new
+                    {
+                        newRoom.Cinema_Room_ID,
+                        newRoom.Room_Name,
+                        newRoom.Room_Type,
+                        seat_quantity = newRoom.Seat_Quantity
+                    },
+                    message = "Đã tạo phòng chiếu mới và sao chép layout ghế thành công"
+                };
+            }
+            catch (Exception ex)
+            {
+                // Hủy giao dịch nếu có lỗi
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Lỗi khi tạo phòng chiếu mới với layout có sẵn: {Message}", ex.Message);
+                throw; // Ném lỗi để controller xử lý
+            }
+        }
     }
 }
+

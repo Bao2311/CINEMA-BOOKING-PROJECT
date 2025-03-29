@@ -12,7 +12,8 @@ namespace STP.Repository.Dtos
         /// <summary>
         /// ID của ghế
         /// </summary>
-        public int? Seat_ID { get; set; }
+        public int Seat_ID { get; set; }
+        public string Seat { get; set; }
 
         /// <summary>
         /// Tên hàng ghế (A, B, C...)
@@ -39,6 +40,15 @@ namespace STP.Repository.Dtos
         /// </summary>
         public String Seat_Status { get; set; }
         public int Layout_ID { get; set; }
+
+        public bool Is_Active { get; set; }
+    }
+
+    public class CreateRoomWithLayoutDto
+    {
+        public string RoomName { get; set; }
+        public string RoomType { get; set; }
+        public int TemplateRoomId { get; set; }
     }
 
     /// <summary>
@@ -82,6 +92,8 @@ namespace STP.Repository.Dtos
         /// Danh sách ghế ngồi
         /// </summary>
         public List<SeatDto> Seats { get; set; }
+
+        public int Room_ID { get; set; }
     }
     public class SeatTypeCreateDto
     {

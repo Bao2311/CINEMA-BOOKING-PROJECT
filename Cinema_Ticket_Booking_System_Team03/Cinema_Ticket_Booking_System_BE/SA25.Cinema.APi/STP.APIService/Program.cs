@@ -102,6 +102,7 @@ namespace STP.APIService
             builder.Services.AddScoped<MovieService>();
             builder.Services.AddScoped<EmailVerificationService>();
             builder.Services.AddScoped<BookingService>();
+            builder.Services.AddScoped<PointsService>();
             builder.Services.AddHostedService<BookingExpirationService>();
             builder.Services.AddScoped<MemberService>();
             builder.Services.AddScoped<SmsService>();
