@@ -40,6 +40,7 @@ function App() {
             <Route path="/manage-accounts" element={<ManageEmployeesPage />} />
             <Route path="/manage-movies" element={<ManageMoviesPage />} />
             <Route path="/manage-showtimes" element={<ManageShowtimesPage />} />
+            <Route path="/staff" element={<TicketSellingByStaff />} />
 
             <Route path="/manage-bookings" element={<ManageBookings />} />
             <Route path="/movies" element={<MoviesPage />} />
