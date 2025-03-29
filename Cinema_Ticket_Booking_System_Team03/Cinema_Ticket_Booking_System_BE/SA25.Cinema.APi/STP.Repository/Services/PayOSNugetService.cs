@@ -18,11 +18,13 @@ namespace STP.Repository.Services
         private readonly IConfiguration _configuration;
         private readonly PayOS _payOS;
         private readonly CinemaDbContext _context;
+        private readonly PointsService _pointsService;
 
         public PayOSNugetService(
             ILogger<PayOSNugetService> logger,
             IConfiguration configuration,
-            CinemaDbContext context)
+            CinemaDbContext context,
+            PointsService pointsService)
         {
             _logger = logger;
             _configuration = configuration;
@@ -35,6 +37,7 @@ namespace STP.Repository.Services
 
             // Khởi tạo PayOS
             _payOS = new PayOS(clientId, apiKey, checksumKey);
+            _pointsService = pointsService;
         }
 
         /// <summary>
@@ -298,7 +301,43 @@ namespace STP.Repository.Services
                         await _context.SaveChangesAsync();
                         _logger.LogInformation($"Đã hủy đơn đặt vé {bookingId} thành công");
 
-                        // 2. Cập nhật trạng thái ghế và xóa liên kết với Booking_ID
+                        // 2. THÊM MỚI: Hoàn trả điểm nếu booking có sử dụng điểm
+                        if (booking.Points_Used > 0)
+                        {
+                            try
+                            {
+                                _logger.LogInformation($"Đang hoàn trả {booking.Points_Used} điểm cho người dùng {booking.User_ID} từ booking {bookingId}");
+
+                                await _pointsService.RefundPointsForExpiredBookingAsync(
+                                    booking.Booking_ID,
+                                    booking.User_ID,
+                                    booking.Points_Used
+                                );
+
+                                // Ghi lại trong lịch sử booking
+                                var pointsRefundHistory = new BookingHistory
+                                {
+                                    Booking_ID = booking.Booking_ID,
+                                    Status = "Points Refunded",
+                                    Date = DateTime.Now,
+                                    Notes = $"Hoàn trả {booking.Points_Used} điểm do hủy đơn bởi người dùng"
+                                };
+                                _context.BookingHistories.Add(pointsRefundHistory);
+
+                                // Đặt lại Points_Used sau khi đã hoàn điểm
+                                booking.Points_Used = 0;
+                                await _context.SaveChangesAsync();
+
+                                _logger.LogInformation($"Đã hoàn trả {booking.Points_Used} điểm cho người dùng {booking.User_ID} từ booking {bookingId}");
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, $"Lỗi khi hoàn trả điểm cho booking {bookingId}, User ID: {booking.User_ID}");
+                                // Không ném ngoại lệ để tiếp tục quá trình hủy booking
+                            }
+                        }
+
+                        // 3. Cập nhật trạng thái ghế và xóa liên kết với Booking_ID
                         var seats = await _context.Seats
                             .Where(s => s.Booking_ID == bookingId)
                             .ToListAsync();
@@ -322,29 +361,30 @@ namespace STP.Repository.Services
 
                             // Sử dụng SQL trực tiếp để cập nhật ghế
                             string updateQuery = @"
-                        UPDATE Seats 
-                        SET Seat_Status = 'Available', 
-                            Last_Updated = @now, 
-                            Booking_ID = NULL 
-                        WHERE Booking_ID = @bookingId";
+                    UPDATE Seats 
+                    SET Seat_Status = 'Available', 
+                        Last_Updated = @now, 
+                        Booking_ID = NULL 
+                    WHERE Booking_ID = @bookingId";
 
                             var parameters = new[]
                             {
-                        new Microsoft.Data.SqlClient.SqlParameter("@now", DateTime.Now),
-                        new Microsoft.Data.SqlClient.SqlParameter("@bookingId", bookingId)
-                    };
+                    new Microsoft.Data.SqlClient.SqlParameter("@now", DateTime.Now),
+                    new Microsoft.Data.SqlClient.SqlParameter("@bookingId", bookingId)
+                };
 
                             var updated = await _context.Database.ExecuteSqlRawAsync(updateQuery, parameters);
 
                             _logger.LogInformation($"Cập nhật trực tiếp {updated} ghế cho đơn đặt vé {bookingId}");
                         }
 
-                        // 3. Thêm lịch sử hủy đơn
+                        // 4. Thêm lịch sử hủy đơn
                         var bookingHistory = new BookingHistory
                         {
                             Booking_ID = booking.Booking_ID,
                             Status = "Cancelled",
                             Date = DateTime.Now,
+                            Notes = "Hủy đơn bởi người dùng thông qua PayOS"
                         };
 
                         _context.BookingHistories.Add(bookingHistory);

@@ -334,18 +334,40 @@ namespace STP.Repository.Services
         {
             try
             {
+                _logger.LogInformation($"Bắt đầu hoàn trả {pointsToRefund} điểm cho User {userId} từ booking {bookingId}");
+
+                // Kiểm tra tham số đầu vào
+                if (pointsToRefund <= 0)
+                {
+                    _logger.LogWarning($"Số điểm hoàn trả không hợp lệ: {pointsToRefund} cho booking {bookingId}");
+                    return; // Không có điểm để hoàn trả
+                }
+
                 // Tìm bản ghi điểm người dùng
                 var userPoints = await _context.UserPoints
                     .FirstOrDefaultAsync(up => up.User_ID == userId);
 
                 if (userPoints == null)
                 {
-                    throw new InvalidOperationException($"Không tìm thấy thông tin điểm cho người dùng {userId}");
-                }
+                    _logger.LogInformation($"Không tìm thấy thông tin điểm cho người dùng {userId}, đang tạo mới...");
 
-                // Hoàn trả điểm
-                userPoints.Total_Points += pointsToRefund;
-                userPoints.Last_Updated = DateTime.Now;
+                    // Tạo mới bản ghi UserPoints nếu chưa có
+                    userPoints = new UserPoints
+                    {
+                        User_ID = userId,
+                        Total_Points = pointsToRefund, // Bắt đầu với số điểm hoàn trả
+                        Last_Updated = DateTime.Now
+                    };
+                    _context.UserPoints.Add(userPoints);
+                }
+                else
+                {
+                    _logger.LogInformation($"Cập nhật điểm từ {userPoints.Total_Points} thành {userPoints.Total_Points + pointsToRefund}");
+
+                    // Hoàn trả điểm
+                    userPoints.Total_Points += pointsToRefund;
+                    userPoints.Last_Updated = DateTime.Now;
+                }
 
                 // Tạo bản ghi hoàn trả điểm
                 var pointsRefundRecord = new PointsRedemption
@@ -354,19 +376,19 @@ namespace STP.Repository.Services
                     Points_Redeemed = -pointsToRefund, // Giá trị âm để biểu thị hoàn trả
                     Date = DateTime.Now,
                     Status = "Refunded",
-                    Note= $"Hoàn trả điểm cho booking {bookingId} bị hủy"
+                    Note = $"Hoàn trả điểm cho booking {bookingId} bị hủy"
                 };
 
                 _context.PointsRedemptions.Add(pointsRefundRecord);
 
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation($"Đã hoàn trả {pointsToRefund} điểm cho người dùng {userId} do booking {bookingId} bị hủy");
+                _logger.LogInformation($"Đã hoàn trả thành công {pointsToRefund} điểm cho người dùng {userId} từ booking {bookingId}");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Lỗi khi hoàn trả điểm cho booking {bookingId}");
-                throw;
+                _logger.LogError(ex, $"Lỗi khi hoàn trả điểm cho booking {bookingId}: {ex.Message}");
+                throw; // Re-throw exception để caller biết và xử lý
             }
         }
     }

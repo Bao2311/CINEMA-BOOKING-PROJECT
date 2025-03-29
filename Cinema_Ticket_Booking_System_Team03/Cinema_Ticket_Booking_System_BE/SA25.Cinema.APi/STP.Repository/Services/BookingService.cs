@@ -207,7 +207,7 @@ namespace STP.Repository.Services
                     Booking_Date = DateTime.Now,
                     Total_Amount = totalAmount,
                     Status = "Pending",
-                    Payment_Deadline = DateTime.Now.AddMinutes(5),
+                    Payment_Deadline = DateTime.Now.AddMinutes(5), // thay đổi deadline thanh 0.5 phut
                 };
 
                 _context.TicketBookings.Add(booking);
@@ -398,9 +398,28 @@ namespace STP.Repository.Services
                 if (booking.Status == "Pending" && DateTime.Now > booking.Payment_Deadline)
                 {
                     _logger.LogWarning($"Đơn đặt vé {bookingId} đã quá hạn thanh toán");
-                    // Tự động hủy đơn nếu quá hạn
-                    await AutoCancelExpiredBooking(bookingId);
-                    throw new InvalidOperationException("Đơn đặt vé đã quá hạn thanh toán và đã bị hủy tự động");
+
+                    try
+                    {
+                        // Tự động hủy đơn nếu quá hạn - sử dụng transaction bên trong AutoCancelExpiredBooking
+                        var cancelResult = await AutoCancelExpiredBooking(bookingId);
+                        _logger.LogInformation($"Đã hủy thành công đơn đặt vé quá hạn {bookingId}");
+
+                        // Lấy thông tin về số điểm đã hoàn trả (nếu có)
+                        string pointsMessage = cancelResult.PointsRefunded > 0
+                            ? $" và hoàn trả {cancelResult.PointsRefunded} điểm"
+                            : "";
+
+                        throw new InvalidOperationException($"Đơn đặt vé đã quá hạn thanh toán và đã bị hủy tự động{pointsMessage}");
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex is InvalidOperationException)
+                            throw; // Re-throw nếu là thông báo từ việc hủy thành công
+
+                        _logger.LogError(ex, $"Lỗi khi tự động hủy đơn đặt vé quá hạn {bookingId}");
+                        throw new InvalidOperationException("Đơn đặt vé đã quá hạn thanh toán nhưng không thể hủy tự động");
+                    }
                 }
 
                 // Sử dụng transaction để đảm bảo tất cả các thay đổi được áp dụng hoặc không có thay đổi nào được áp dụng
@@ -594,65 +613,127 @@ namespace STP.Repository.Services
         {
             try
             {
-                // Lấy thông tin đơn đặt vé kèm thông tin thanh toán
-                var booking = await _context.TicketBookings
-                    .Include(b => b.Showtime)
-                    .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
+                // Sử dụng transaction để đảm bảo tính nhất quán
+                using var transaction = await _context.Database.BeginTransactionAsync();
 
-                if (booking == null)
-                    throw new KeyNotFoundException("Không tìm thấy đơn đặt vé");
-
-                // Kiểm tra quyền hạn
-                if (booking.User_ID != userId)
-                    throw new UnauthorizedAccessException("Bạn không có quyền hủy đơn đặt vé này");
-
-                // Lấy thông tin thanh toán từ bảng Payment
-                var payment = await _context.Payments
-                    .Where(p => p.Booking_ID == bookingId)
-                    .OrderByDescending(p => p.Transaction_Date)
-                    .FirstOrDefaultAsync();
-
-                // Cập nhật trạng thái đơn đặt vé
-                booking.Status = "Cancelled";
-
-                // Cập nhật trạng thái ghế và xóa liên kết với Booking_ID
-                var seats = await _context.Seats
-                    .Where(s => s.Booking_ID == bookingId)
-                    .ToListAsync();
-
-                foreach (var seat in seats)
+                try
                 {
-                    seat.Seat_Status = "Available";
-                    seat.Last_Updated = DateTime.Now;
-                    seat.Booking_ID = null; // Xóa liên kết với Booking_ID
-                }
+                    // Lấy thông tin đơn đặt vé kèm thông tin thanh toán
+                    var booking = await _context.TicketBookings
+                        .Include(b => b.Showtime)
+                        .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
 
-                // Thêm lịch sử hủy đơn
-                var bookingHistory = new BookingHistory
-                {
-                    Booking_ID = booking.Booking_ID,
-                    Status = "Cancelled",
-                    Date = DateTime.Now,
-                };
+                    if (booking == null)
+                        throw new KeyNotFoundException("Không tìm thấy đơn đặt vé");
 
-                _context.BookingHistories.Add(bookingHistory);
-                await _context.SaveChangesAsync();
+                    // Kiểm tra quyền hạn
+                    if (booking.User_ID != userId)
+                        throw new UnauthorizedAccessException("Bạn không có quyền hủy đơn đặt vé này");
 
-                // Tạo response DTO với thông tin từ cả TicketBooking và Payment
-                var response = new BookingResponseDTO
-                {
-                    Booking_ID = booking.Booking_ID,
-                    Booking_Date = booking.Booking_Date,
-                    Total_Amount = booking.Total_Amount,
-                    Status = booking.Status,
+                    // Kiểm tra trạng thái đơn hàng - chỉ cho phép hủy đơn Pending
+                    if (booking.Status != "Pending")
+                        throw new InvalidOperationException($"Không thể hủy đơn hàng có trạng thái {booking.Status}");
+
                     // Lấy thông tin thanh toán từ bảng Payment
-                    Payment_Method = payment?.Payment_Method,
-                    Transaction_Date = payment?.Transaction_Date ?? DateTime.MinValue,
-                    // Thời điểm hủy đơn là thời điểm hiện tại
-                    Cancellation_Date = DateTime.Now
-                };
+                    var payment = await _context.Payments
+                        .Where(p => p.Booking_ID == bookingId)
+                        .OrderByDescending(p => p.Transaction_Date)
+                        .FirstOrDefaultAsync();
 
-                return response;
+                    // Cập nhật trạng thái đơn đặt vé
+                    string oldStatus = booking.Status;
+                    booking.Status = "Cancelled";
+
+                    // Cập nhật trạng thái ghế và xóa liên kết với Booking_ID
+                    var seats = await _context.Seats
+                        .Where(s => s.Booking_ID == bookingId)
+                        .ToListAsync();
+
+                    foreach (var seat in seats)
+                    {
+                        seat.Seat_Status = "Available";
+                        seat.Last_Updated = DateTime.Now;
+                        seat.Booking_ID = null; // Xóa liên kết với Booking_ID
+                    }
+
+                    // Thêm lịch sử hủy đơn
+                    var bookingHistory = new BookingHistory
+                    {
+                        Booking_ID = booking.Booking_ID,
+                        Status = "Cancelled",
+                        Date = DateTime.Now,
+                        Notes = "Hủy đơn bởi người dùng"
+                    };
+
+                    _context.BookingHistories.Add(bookingHistory);
+
+                    // THÊM MỚI: Hoàn trả điểm nếu booking có sử dụng điểm
+                    int refundedPoints = 0;
+                    if (booking.Points_Used > 0)
+                    {
+                        try
+                        {
+                            refundedPoints = booking.Points_Used;
+                            _logger.LogInformation($"Đang hoàn trả {refundedPoints} điểm cho người dùng {userId} từ booking {bookingId}");
+
+                            await _pointsService.RefundPointsForExpiredBookingAsync(
+                                booking.Booking_ID,
+                                userId,
+                                refundedPoints
+                            );
+
+                            // Ghi lại trong lịch sử booking
+                            var pointsRefundHistory = new BookingHistory
+                            {
+                                Booking_ID = booking.Booking_ID,
+                                Status = "Points Refunded",
+                                Date = DateTime.Now,
+                                Notes = $"Hoàn trả {refundedPoints} điểm do hủy đơn bởi người dùng"
+                            };
+                            _context.BookingHistories.Add(pointsRefundHistory);
+
+                            // Đặt lại Points_Used sau khi đã hoàn điểm
+                            booking.Points_Used = 0;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, $"Lỗi khi hoàn trả điểm cho booking {bookingId}, User ID: {userId}");
+                            // Không ném ngoại lệ để tiếp tục quá trình hủy booking
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    // Lấy số điểm hiện tại của người dùng sau khi hoàn trả
+                    int currentPoints = await _pointsService.GetUserPointsTotalAsync(userId);
+
+                    // Tạo response DTO với thông tin từ cả TicketBooking và Payment
+                    var response = new BookingResponseDTO
+                    {
+                        Booking_ID = booking.Booking_ID,
+                        User_ID = userId,
+                        Booking_Date = booking.Booking_Date,
+                        Total_Amount = booking.Total_Amount,
+                        Status = booking.Status,
+                        // Lấy thông tin thanh toán từ bảng Payment
+                        Payment_Method = payment?.Payment_Method,
+                        Transaction_Date = payment?.Transaction_Date ?? DateTime.MinValue,
+                        // Thời điểm hủy đơn là thời điểm hiện tại
+                        Cancellation_Date = DateTime.Now,
+                        // Thêm thông tin về điểm đã hoàn trả
+                        PointsRefunded = refundedPoints,
+                        CurrentPoints = currentPoints
+                    };
+
+                    return response;
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, $"Đã rollback transaction do lỗi khi hủy booking {bookingId}");
+                    throw;
+                }
             }
             catch (Exception ex)
             {
@@ -943,56 +1024,128 @@ namespace STP.Repository.Services
 
             return seatPositionsString;
         }
+
         public async Task<BookingResponseDTO> AutoCancelExpiredBooking(int bookingId)
         {
+            _logger.LogInformation($"Bắt đầu tự động hủy đơn đặt vé quá hạn {bookingId}");
+
             try
             {
-                // Lấy thông tin đơn đặt vé
-                var booking = await _context.TicketBookings
-                    .Include(b => b.Showtime)
-                    .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
+                // Sử dụng transaction để đảm bảo tính nhất quán
+                using var transaction = await _context.Database.BeginTransactionAsync();
 
-                if (booking == null)
-                    throw new KeyNotFoundException("Không tìm thấy đơn đặt vé");
-
-                // Cập nhật trạng thái đơn đặt vé
-                booking.Status = "Cancelled";
-
-                // Cập nhật trạng thái ghế và xóa liên kết với Booking_ID
-                var seats = await _context.Seats
-                    .Where(s => s.Booking_ID == bookingId)
-                    .ToListAsync();
-
-                foreach (var seat in seats)
+                try
                 {
-                    seat.Seat_Status = "Available";
-                    seat.Last_Updated = DateTime.Now;
-                    seat.Booking_ID = null; // Xóa liên kết với Booking_ID
+                    // Lấy thông tin đơn đặt vé
+                    var booking = await _context.TicketBookings
+                        .Include(b => b.Showtime)
+                        .ThenInclude(s => s.Movie)
+                        .Include(b => b.Showtime)
+                        .ThenInclude(s => s.CinemaRoom)
+                        .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
+
+                    if (booking == null)
+                    {
+                        _logger.LogError($"Không tìm thấy đơn đặt vé {bookingId}");
+                        throw new KeyNotFoundException($"Không tìm thấy đơn đặt vé {bookingId}");
+                    }
+
+                    _logger.LogInformation($"Tự động hủy đơn đặt vé ID: {bookingId}, User: {booking.User_ID}, Points: {booking.Points_Used}");
+
+                    // Hoàn trả điểm nếu booking có sử dụng điểm
+                    int refundedPoints = 0;
+                    if (booking.Points_Used > 0)
+                    {
+                        try
+                        {
+                            refundedPoints = booking.Points_Used;
+                            _logger.LogInformation($"Đang hoàn trả {refundedPoints} điểm cho người dùng {booking.User_ID} từ booking {bookingId}");
+
+                            await _pointsService.RefundPointsForExpiredBookingAsync(
+                                booking.Booking_ID,
+                                booking.User_ID,
+                                refundedPoints
+                            );
+
+                            // Ghi lại trong lịch sử booking
+                            var pointsRefundHistory = new BookingHistory
+                            {
+                                Booking_ID = booking.Booking_ID,
+                                Status = "Points Refunded",
+                                Date = DateTime.Now,
+                                Notes = $"Hoàn trả {refundedPoints} điểm do hết hạn thanh toán"
+                            };
+                            _context.BookingHistories.Add(pointsRefundHistory);
+
+                            // Đặt lại Points_Used sau khi đã hoàn điểm
+                            booking.Points_Used = 0;
+                            await _context.SaveChangesAsync();
+
+                            _logger.LogInformation($"Đã hoàn trả điểm thành công cho booking {bookingId}");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, $"Lỗi khi hoàn trả điểm cho booking {bookingId}, User ID: {booking.User_ID}");
+                            // Vẫn tiếp tục với các bước còn lại
+                        }
+                    }
+
+                    // Cập nhật trạng thái đơn đặt vé
+                    string oldStatus = booking.Status;
+                    booking.Status = "Cancelled";
+
+                    // Cập nhật trạng thái ghế và xóa liên kết với Booking_ID
+                    var seats = await _context.Seats
+                        .Where(s => s.Booking_ID == bookingId)
+                        .ToListAsync();
+
+                    foreach (var seat in seats)
+                    {
+                        _logger.LogInformation($"Cập nhật ghế {seat.Seat_ID} từ trạng thái '{seat.Seat_Status}' thành 'Available'");
+                        seat.Seat_Status = "Available";
+                        seat.Last_Updated = DateTime.Now;
+                        seat.Booking_ID = null; // Xóa liên kết với Booking_ID
+                    }
+
+                    // Thêm lịch sử hủy đơn
+                    var bookingHistory = new BookingHistory
+                    {
+                        Booking_ID = booking.Booking_ID,
+                        Status = "Cancelled",
+                        Date = DateTime.Now,
+                        Notes = "Hủy tự động do quá hạn thanh toán"
+                    };
+
+                    _context.BookingHistories.Add(bookingHistory);
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
+                    _logger.LogInformation($"Đã commit transaction hủy đơn đặt vé {bookingId}");
+
+                    // Tạo response DTO
+                    var response = new BookingResponseDTO
+                    {
+                        Booking_ID = booking.Booking_ID,
+                        User_ID = booking.User_ID,
+                        Booking_Date = booking.Booking_Date,
+                        Total_Amount = booking.Total_Amount,
+                        Status = booking.Status,
+                        Cancellation_Date = DateTime.Now,
+                        PointsRefunded = refundedPoints,
+                        MovieName = booking.Showtime?.Movie?.Movie_Name,
+                        RoomName = booking.Showtime?.CinemaRoom?.Room_Name,
+                        Show_Date = booking.Showtime?.Show_Date ?? DateTime.MinValue,
+                        Start_Time = booking.Showtime?.Start_Time ?? TimeSpan.Zero
+                    };
+
+                    return response;
                 }
-
-                // Thêm lịch sử hủy đơn
-                var bookingHistory = new BookingHistory
+                catch (Exception ex)
                 {
-                    Booking_ID = booking.Booking_ID,
-                    Status = "Cancelled",
-                    Date = DateTime.Now,
-                    Notes = "Hủy tự động do quá hạn thanh toán"
-                };
-
-                _context.BookingHistories.Add(bookingHistory);
-                await _context.SaveChangesAsync();
-
-                // Tạo response DTO
-                var response = new BookingResponseDTO
-                {
-                    Booking_ID = booking.Booking_ID,
-                    Booking_Date = booking.Booking_Date,
-                    Total_Amount = booking.Total_Amount,
-                    Status = booking.Status,
-                    Cancellation_Date = DateTime.Now,
-                };
-
-                return response;
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, $"Lỗi và đã rollback khi tự động hủy đơn đặt vé {bookingId}");
+                    throw;
+                }
             }
             catch (Exception ex)
             {

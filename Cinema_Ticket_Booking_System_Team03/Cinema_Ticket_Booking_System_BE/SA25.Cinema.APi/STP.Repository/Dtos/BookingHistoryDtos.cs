@@ -541,6 +541,8 @@ namespace STP.Repository.Dtos
         public decimal OriginalTotalAmount { get; set; } 
         
         public decimal DiscountedTotalAmount { get; set; }
+
+        public int? PointsRefunded { get; set; }
     }
     public class ShowtimeInfoDTO
     {
