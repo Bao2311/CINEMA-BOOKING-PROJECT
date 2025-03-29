@@ -425,153 +425,233 @@ namespace STP.Repository.Services
 
                 if (booking == null)
                 {
-                    throw new KeyNotFoundException("Không tìm thấy đơn đặt vé");
+                    _logger.LogError($"Không tìm thấy đơn đặt vé {bookingId}");
+                    throw new KeyNotFoundException($"Không tìm thấy đơn đặt vé {bookingId}");
                 }
 
                 // Kiểm tra người dùng có quyền cập nhật đơn đặt vé không
                 if (booking.User_ID != userId)
                 {
+                    _logger.LogWarning($"Người dùng {userId} không có quyền cập nhật đơn đặt vé {bookingId}");
                     throw new UnauthorizedAccessException("Bạn không có quyền cập nhật đơn đặt vé này");
                 }
 
-                // Kiểm tra trạng thái đơn đặt vé
-                if (booking.Status != "Pending")
+                // Kiểm tra trạng thái đơn đặt vé - CHỈ CHẤP NHẬN PENDING HOẶC CANCELLED
+                if (booking.Status != "Pending" && booking.Status != "Cancelled")
                 {
-                    throw new InvalidOperationException("Đơn đặt vé không ở trạng thái chờ thanh toán");
+                    _logger.LogWarning($"Đơn đặt vé {bookingId} hiện có trạng thái {booking.Status}, không thể cập nhật");
+                    throw new InvalidOperationException("Đơn đặt vé không ở trạng thái cho phép thanh toán");
                 }
 
-                // Kiểm tra xem đơn đặt vé có quá hạn không
-                if (DateTime.Now > booking.Payment_Deadline)
+                // Kiểm tra xem đơn đặt vé có quá hạn không (chỉ áp dụng cho đơn Pending)
+                if (booking.Status == "Pending" && DateTime.Now > booking.Payment_Deadline)
                 {
+                    _logger.LogWarning($"Đơn đặt vé {bookingId} đã quá hạn thanh toán");
                     // Tự động hủy đơn nếu quá hạn
                     await AutoCancelExpiredBooking(bookingId);
                     throw new InvalidOperationException("Đơn đặt vé đã quá hạn thanh toán và đã bị hủy tự động");
                 }
 
-                // Cập nhật trạng thái đơn đặt vé
-                booking.Status = "Confirmed";
-
-                // Cập nhật trạng thái ghế
-                var seats = await _context.Seats
-                    .Where(s => s.Booking_ID == bookingId)
-                    .ToListAsync();
-
-                foreach (var seat in seats)
-                {
-                    seat.Seat_Status = "Sold";
-                    seat.Last_Updated = DateTime.Now;
-                }
-
-                // Cập nhật thanh toán
-                var payment = new Payment
-                {
-                    Booking_ID = bookingId,
-                    Amount = booking.Total_Amount,
-                    Payment_Method = "Online", // Hoặc lấy từ request
-                    Payment_Status = "Completed",
-                    Transaction_Date = DateTime.Now,
-                    Payment_Reference = Guid.NewGuid().ToString(),
-                    Processor_Response = "Payment completed successfully"
-                };
-
-                _context.Payments.Add(payment);
-
-                // Thêm lịch sử đơn đặt vé
-                var bookingHistory = new BookingHistory
-                {
-                    Booking_ID = bookingId,
-                    Status = "Confirmed",
-                    Date = DateTime.Now
-                };
-
-                _context.BookingHistories.Add(bookingHistory);
-                await _context.SaveChangesAsync();
-
-                // Tìm xem đã có sử dụng điểm không
-                int pointsUsed = 0;
-                var pointsRedemptionHistory = booking.BookingHistories
-                    .FirstOrDefault(h => h.Notes != null && h.Notes.Contains("Đã sử dụng"));
-
-                if (pointsRedemptionHistory != null && pointsRedemptionHistory.Notes != null)
-                {
-                    // Trích xuất số điểm đã sử dụng từ ghi chú (ví dụ: "Đã sử dụng 500 điểm")
-                    var parts = pointsRedemptionHistory.Notes.Split(' ');
-                    if (parts.Length >= 3)
-                    {
-                        int.TryParse(parts[2], out pointsUsed);
-                    }
-                }
-
-                // Thêm điểm thưởng khi thanh toán thành công (5% của số tiền thực tế thanh toán)
-                int pointsEarned = 0;
+                // Sử dụng transaction để đảm bảo tất cả các thay đổi được áp dụng hoặc không có thay đổi nào được áp dụng
+                using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
-                    // Tính toán số tiền ban đầu trước khi áp dụng điểm (nếu có)
-                    decimal originalAmount = booking.Total_Amount;
-                    if (pointsUsed > 0)
+                    // Nếu đơn đã bị hủy (Cancelled), cần phục hồi ghế
+                    if (booking.Status == "Cancelled")
                     {
-                        // Điểm đã được sử dụng để giảm giá (1 điểm = 1 VND)
-                        originalAmount = booking.Total_Amount + pointsUsed;
+                        _logger.LogInformation($"Đơn đặt vé {bookingId} đã bị hủy trước đó, đang phục hồi đơn và ghế...");
+
+                        // Lấy danh sách ID ghế từ các vé đã đặt
+                        var ticketSeats = booking.Tickets
+                            .Where(t => t.Seat_ID != null)
+                            .Select(t => t.Seat_ID)
+                            .ToList();
+
+                        if (ticketSeats.Count == 0)
+                        {
+                            _logger.LogWarning($"Không tìm thấy thông tin ghế cho đơn đặt vé {bookingId}");
+                            throw new InvalidOperationException("Không thể phục hồi đơn đặt vé vì không tìm thấy thông tin ghế");
+                        }
+
+                        // Kiểm tra xem có ghế nào đã được đặt bởi đơn hàng khác không
+                        var bookedSeats = await _context.Seats
+                            .Where(s => ticketSeats.Contains(s.Seat_ID) && s.Booking_ID != null && s.Booking_ID != bookingId)
+                            .ToListAsync();
+
+                        if (bookedSeats.Any())
+                        {
+                            var bookedSeatIds = bookedSeats.Select(s => s.Seat_ID).ToList();
+                            _logger.LogError($"Không thể khôi phục đơn đặt vé {bookingId} vì các ghế đã được đặt bởi đơn khác: {string.Join(", ", bookedSeatIds)}");
+                            throw new InvalidOperationException("Không thể khôi phục đơn đặt vé vì ghế đã được đặt bởi đơn khác");
+                        }
+
+                        // Phục hồi trạng thái ghế và liên kết với booking
+                        var seats = await _context.Seats
+                            .Where(s => ticketSeats.Contains(s.Seat_ID))
+                            .ToListAsync();
+
+                        foreach (var seat in seats)
+                        {
+                            _logger.LogInformation($"Cập nhật ghế {seat.Seat_ID} từ trạng thái '{seat.Seat_Status}' thành 'Sold'");
+                            seat.Seat_Status = "Sold";
+                            seat.Booking_ID = bookingId;
+                            seat.Last_Updated = DateTime.Now;
+                        }
+
+                        await _context.SaveChangesAsync();
+                    }
+                    else // Trạng thái là Pending
+                    {
+                        // Cập nhật trạng thái ghế
+                        var seats = await _context.Seats
+                            .Where(s => s.Booking_ID == bookingId)
+                            .ToListAsync();
+
+                        foreach (var seat in seats)
+                        {
+                            _logger.LogInformation($"Cập nhật ghế {seat.Seat_ID} từ trạng thái '{seat.Seat_Status}' thành 'Sold'");
+                            seat.Seat_Status = "Sold";
+                            seat.Last_Updated = DateTime.Now;
+                        }
+
+                        await _context.SaveChangesAsync();
                     }
 
-                    pointsEarned = await _pointsService.AddPointsFromBookingAsync(
-                        userId,
-                        bookingId,
-                        originalAmount,
-                        pointsUsed
-                    );
+                    // Cập nhật trạng thái đơn đặt vé
+                    string oldStatus = booking.Status;
+                    booking.Status = "Confirmed";
 
-                    _logger.LogInformation($"Đã thêm {pointsEarned} điểm cho booking {bookingId}");
-
-                    // Cập nhật lịch sử đặt vé để ghi nhận việc thêm điểm
-                    var pointsHistory = new BookingHistory
+                    // Cập nhật thanh toán
+                    var payment = new Payment
                     {
                         Booking_ID = bookingId,
-                        Status = "Points Earned",
-                        Date = DateTime.Now,
-                        Notes = $"Đã thêm {pointsEarned} điểm thưởng"
+                        Amount = booking.Total_Amount,
+                        Payment_Method = "Online", // Hoặc lấy từ request
+                        Payment_Status = "Completed",
+                        Transaction_Date = DateTime.Now,
+                        Payment_Reference = Guid.NewGuid().ToString(),
+                        Processor_Response = "Payment completed successfully"
                     };
 
-                    _context.BookingHistories.Add(pointsHistory);
+                    _context.Payments.Add(payment);
+
+                    // Thêm lịch sử đơn đặt vé
+                    var bookingHistory = new BookingHistory
+                    {
+                        Booking_ID = bookingId,
+                        Status = "Confirmed",
+                        Date = DateTime.Now,
+                        Notes = oldStatus == "Cancelled" ? "Đơn hàng được khôi phục sau khi thanh toán thành công" : null
+                    };
+
+                    _context.BookingHistories.Add(bookingHistory);
                     await _context.SaveChangesAsync();
+
+                    // Tìm xem đã có sử dụng điểm không
+                    int pointsUsed = 0;
+                    var pointsRedemptionHistory = booking.BookingHistories
+                        .FirstOrDefault(h => h.Notes != null && h.Notes.Contains("Đã sử dụng"));
+
+                    if (pointsRedemptionHistory != null && pointsRedemptionHistory.Notes != null)
+                    {
+                        // Trích xuất số điểm đã sử dụng từ ghi chú (ví dụ: "Đã sử dụng 500 điểm")
+                        var parts = pointsRedemptionHistory.Notes.Split(' ');
+                        if (parts.Length >= 3)
+                        {
+                            int.TryParse(parts[2], out pointsUsed);
+                        }
+                    }
+
+                    // Thêm điểm thưởng khi thanh toán thành công (5% của số tiền thực tế thanh toán)
+                    int pointsEarned = 0;
+                    try
+                    {
+                        // Tính toán số tiền ban đầu trước khi áp dụng điểm (nếu có)
+                        decimal originalAmount = booking.Total_Amount;
+                        if (pointsUsed > 0)
+                        {
+                            // Điểm đã được sử dụng để giảm giá (1 điểm = 1 VND)
+                            originalAmount = booking.Total_Amount + pointsUsed;
+                        }
+
+                        // Chỉ thêm điểm nếu trước đó đơn hàng là Pending
+                        if (oldStatus == "Pending")
+                        {
+                            pointsEarned = await _pointsService.AddPointsFromBookingAsync(
+                                userId,
+                                bookingId,
+                                originalAmount,
+                                pointsUsed
+                            );
+
+                            _logger.LogInformation($"Đã thêm {pointsEarned} điểm cho booking {bookingId}");
+
+                            // Cập nhật lịch sử đặt vé để ghi nhận việc thêm điểm
+                            var pointsHistory = new BookingHistory
+                            {
+                                Booking_ID = bookingId,
+                                Status = "Points Earned",
+                                Date = DateTime.Now,
+                                Notes = $"Đã thêm {pointsEarned} điểm thưởng"
+                            };
+
+                            _context.BookingHistories.Add(pointsHistory);
+                            await _context.SaveChangesAsync();
+                        }
+                        else
+                        {
+                            _logger.LogInformation($"Không thêm điểm cho booking {bookingId} vì đơn hàng đã bị hủy trước đó");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Lỗi khi thêm điểm cho booking {bookingId}, nhưng vẫn tiếp tục xử lý");
+                        // Không throw exception ở đây để tránh ảnh hưởng đến quá trình thanh toán
+                    }
+
+                    // Commit transaction
+                    await transaction.CommitAsync();
+                    _logger.LogInformation($"Đã commit transaction cập nhật thanh toán cho booking {bookingId}");
+
+                    // Lấy số điểm hiện tại của người dùng
+                    int currentPoints = await _pointsService.GetUserPointsTotalAsync(userId);
+
+                    // Lấy thông tin ghế đã định dạng
+                    string formattedSeats = await GetFormattedSeatPositions(bookingId);
+
+                    // Tạo response DTO
+                    var response = new BookingResponseDTO
+                    {
+                        Booking_ID = booking.Booking_ID,
+                        User_ID = userId,
+                        Booking_Date = booking.Booking_Date,
+                        Total_Amount = booking.Total_Amount,
+                        Status = booking.Status,
+                        Payment_Method = payment.Payment_Method,
+                        Transaction_Date = payment.Transaction_Date,
+                        Seats = formattedSeats,
+
+                        // Thêm các trường ánh xạ từ đối tượng con
+                        MovieName = booking.Showtime.Movie.Movie_Name,
+                        RoomName = booking.Showtime.CinemaRoom.Room_Name,
+                        Show_Date = booking.Showtime.Show_Date,
+                        Start_Time = booking.Showtime.Start_Time,
+
+                        // Thêm thông tin về điểm
+                        PointsUsed = pointsUsed,
+                        PointsEarned = pointsEarned,
+                        CurrentPoints = currentPoints
+                    };
+
+                    return response;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"Lỗi khi thêm điểm cho booking {bookingId}, nhưng vẫn tiếp tục xử lý");
-                    // Không throw exception ở đây để tránh ảnh hưởng đến quá trình thanh toán
+                    // Rollback transaction nếu có lỗi
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, $"Đã rollback transaction do lỗi khi cập nhật thanh toán cho booking {bookingId}");
+                    throw;
                 }
-
-                // Lấy số điểm hiện tại của người dùng
-                int currentPoints = await _pointsService.GetUserPointsTotalAsync(userId);
-
-                // Lấy thông tin ghế đã định dạng
-                string formattedSeats = await GetFormattedSeatPositions(bookingId);
-
-                // Tạo response DTO
-                var response = new BookingResponseDTO
-                {
-                    Booking_ID = booking.Booking_ID,
-                    User_ID = userId,
-                    Booking_Date = booking.Booking_Date,
-                    Total_Amount = booking.Total_Amount,
-                    Status = booking.Status,
-                    Payment_Method = payment.Payment_Method,
-                    Transaction_Date = payment.Transaction_Date,
-                    Seats = formattedSeats,
-
-                    // Thêm các trường ánh xạ từ đối tượng con
-                    MovieName = booking.Showtime.Movie.Movie_Name,
-                    RoomName = booking.Showtime.CinemaRoom.Room_Name,
-                    Show_Date = booking.Showtime.Show_Date,
-                    Start_Time = booking.Showtime.Start_Time,
-
-                    // Thêm thông tin về điểm
-                    PointsUsed = pointsUsed,
-                    PointsEarned = pointsEarned,
-                    CurrentPoints = currentPoints
-                };
-
-                return response;
             }
             catch (Exception ex)
             {

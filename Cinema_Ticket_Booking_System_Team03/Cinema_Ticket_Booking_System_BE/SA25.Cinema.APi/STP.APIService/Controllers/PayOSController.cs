@@ -20,16 +20,20 @@ namespace STP.APIService.Controllers
         private readonly PayOSNugetService _payosService;
         private readonly BookingService _bookingService;
         private readonly CinemaDbContext _context;
+        private readonly IConfiguration _configuration;
+
         public PayOSController(
             ILogger<PayOSController> logger,
             PayOSNugetService payosService,
             BookingService bookingService,
-            CinemaDbContext context)
+            CinemaDbContext context,
+            IConfiguration configuration)
         {
             _logger = logger;
             _payosService = payosService;
             _bookingService = bookingService;
             _context = context;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -210,9 +214,6 @@ namespace STP.APIService.Controllers
         /// <summary>
         /// Xử lý khi người dùng quay lại từ trang thanh toán
         /// </summary>
-        /// <summary>
-        /// Xử lý khi người dùng quay lại từ trang thanh toán
-        /// </summary>
         [HttpGet("return")]
         public async Task<IActionResult> PaymentReturn([FromQuery] string orderCode, [FromQuery] string status)
         {
@@ -237,7 +238,8 @@ namespace STP.APIService.Controllers
 
                 if (bookingId == 0)
                 {
-                    return BadRequest(new { success = false, message = "Mã đơn hàng không hợp lệ" });
+                    _logger.LogWarning($"Mã đơn hàng không hợp lệ: {orderCode}");
+                    return Redirect($"{_configuration["PayOS:ReturnUrl"]}?status=error&message=invalid_order");
                 }
 
                 // Kiểm tra trạng thái thanh toán từ PayOS
@@ -246,15 +248,12 @@ namespace STP.APIService.Controllers
                 // Lấy thông tin đặt vé từ cơ sở dữ liệu
                 var booking = await _context.TicketBookings
                     .Include(b => b.Showtime)
-                        .ThenInclude(s => s.Movie)
-                    .Include(b => b.Showtime)
-                        .ThenInclude(s => s.CinemaRoom)
                     .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
 
                 if (booking == null)
                 {
                     _logger.LogWarning($"Không tìm thấy đơn đặt vé {bookingId}");
-                    return NotFound(new { success = false, message = "Không tìm thấy đơn đặt vé" });
+                    return Redirect($"{_configuration["PayOS:ReturnUrl"]}?status=error&message=booking_not_found");
                 }
 
                 // Xử lý thanh toán thành công
@@ -262,6 +261,9 @@ namespace STP.APIService.Controllers
                 {
                     _logger.LogInformation($"Cập nhật đơn đặt vé {bookingId} thành Confirmed");
                     await _bookingService.UpdateBookingPayment(bookingId, booking.User_ID);
+
+                    // Chuyển hướng về trang thành công với thông tin bookingId
+                    return Redirect($"{_configuration["PayOS:ReturnUrl"]}?status=success&orderCode={orderCode}&bookingId={bookingId}");
                 }
                 // Xử lý thanh toán bị hủy
                 else if (paymentStatus.Success && paymentStatus.Status == "CANCELLED" && booking.Status == "Pending")
@@ -290,107 +292,18 @@ namespace STP.APIService.Controllers
                     // Lưu thay đổi
                     await _context.SaveChangesAsync();
                     _logger.LogInformation($"Đã hủy đơn đặt vé {bookingId} thành công");
+
+                    // Chuyển hướng về trang hủy với thông tin
+                    return Redirect($"{_configuration["PayOS:ReturnUrl"]}?status=cancelled&orderCode={orderCode}&bookingId={bookingId}");
                 }
 
-                // Lấy thông tin ghế
-                string seatInfoStr = "Không có thông tin ghế";
-                try
-                {
-                    var seatInfo = await _context.Tickets
-                        .Where(t => t.Booking_ID == bookingId)
-                        .Join(_context.Seats,
-                              t => t.Seat_ID,
-                              s => s.Seat_ID,
-                              (t, s) => new { s.Layout_ID })
-                        .Join(_context.SeatLayouts,
-                              ts => ts.Layout_ID,
-                              sl => sl.Layout_ID,
-                              (ts, sl) => new { sl.Row_Label, sl.Column_Number })
-                        .ToListAsync();
-
-                    if (seatInfo.Any())
-                    {
-                        var seatCodes = seatInfo.Select(s => s.Row_Label + s.Column_Number.ToString());
-                        seatInfoStr = string.Join(", ", seatCodes);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Lỗi khi lấy thông tin ghế");
-                }
-
-                // Xác định số tiền và trạng thái hiển thị
-                decimal amount = paymentStatus.Success ? paymentStatus.Amount ?? booking.Total_Amount : booking.Total_Amount;
-                string statusClass = paymentStatus.Status == "PAID" ? "success" : "failed";
-                string statusTitle = paymentStatus.Status == "PAID" ? "Thanh toán thành công!" : "Thanh toán chưa hoàn tất";
-
-                // Tạo nội dung HTML
-                string htmlContent = $@"
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Kết quả thanh toán</title>
-    <meta charset=""UTF-8"">
-    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; text-align: center; }}
-        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }}
-        .success {{ color: #28a745; }}
-        .failed {{ color: #dc3545; }}
-        h1 {{ font-size: 24px; margin-bottom: 20px; }}
-        .info {{ margin-bottom: 10px; text-align: left; }}
-        .btn {{ display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; 
-               text-decoration: none; border-radius: 4px; margin-top: 20px; }}
-    </style>
-</head>
-<body>
-    <div class=""container"">
-        <h1 class=""{statusClass}"">{statusTitle}</h1>
-        
-        <div class=""info"">
-            <p><strong>Mã đơn hàng:</strong> {orderCode}</p>
-            <p><strong>Trạng thái:</strong> {paymentStatus.Status}</p>
-            <p><strong>Số tiền:</strong> {amount.ToString("N0")} VNĐ</p>
-            <p><strong>Tên phim:</strong> {booking.Showtime?.Movie?.Movie_Name ?? "Không xác định"}</p>
-            <p><strong>Phòng:</strong> {booking.Showtime?.CinemaRoom?.Room_Name ?? "Không xác định"}</p>
-            <p><strong>Ghế:</strong> {seatInfoStr}</p>
-        </div>
-        
-        <a href=""http://localhost:5173/"" class=""btn"">Quay lại trang chủ</a>
-    </div>
-</body>
-</html>";
-
-                return Content(htmlContent, "text/html", System.Text.Encoding.UTF8);
+                // Nếu không rơi vào các trường hợp trên, chuyển về trang với trạng thái hiện tại
+                return Redirect($"{_configuration["PayOS:ReturnUrl"]}?status={paymentStatus.Status.ToLower()}&orderCode={orderCode}&bookingId={bookingId}");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi xử lý PayOS return");
-                string errorHtml = @"
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Lỗi xử lý thanh toán</title>
-    <meta charset=""UTF-8"">
-    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; text-align: center; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
-        h1 { font-size: 24px; margin-bottom: 20px; color: #dc3545; }
-        .btn { display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; 
-              text-decoration: none; border-radius: 4px; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <div class=""container"">
-        <h1>Đã xảy ra lỗi</h1>
-        <p>Không thể xử lý thanh toán. Vui lòng thử lại sau.</p>
-        <a href=""http://localhost:5173/"" class=""btn"">Quay lại trang chủ</a>
-    </div>
-</body>
-</html>";
-
-                return Content(errorHtml, "text/html", System.Text.Encoding.UTF8);
+                return Redirect($"{_configuration["PayOS:ReturnUrl"]}?status=error&message=internal_error");
             }
         }
 
@@ -421,177 +334,94 @@ namespace STP.APIService.Controllers
 
                 if (bookingId == 0)
                 {
-                    return BadRequest(new { success = false, message = "Mã đơn hàng không hợp lệ" });
+                    _logger.LogWarning($"Mã đơn hàng không hợp lệ: {orderCode}");
+                    return Redirect($"{_configuration["PayOS:CancelUrl"]}?status=error&message=invalid_order");
                 }
-
-                _logger.LogInformation($"Đã xác định bookingId: {bookingId} từ orderCode: {orderCode}");
 
                 // LẤY BOOKING TRỰC TIẾP TỪ ENTITY FRAMEWORK
                 var booking = await _context.TicketBookings
-                    .Include(b => b.Showtime)
-                        .ThenInclude(s => s.Movie)
-                    .Include(b => b.Showtime)
-                        .ThenInclude(s => s.CinemaRoom)
                     .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
 
                 if (booking == null)
                 {
                     _logger.LogError($"Không tìm thấy đơn đặt vé {bookingId}");
-                    return NotFound(new { success = false, message = "Không tìm thấy đơn đặt vé" });
+                    return Redirect($"{_configuration["PayOS:CancelUrl"]}?status=error&message=booking_not_found");
                 }
 
                 // Kiểm tra trạng thái thanh toán từ PayOS
                 var paymentStatus = await _payosService.CheckPaymentStatus(orderCode);
-                decimal amount = paymentStatus.Success ? paymentStatus.Amount ?? booking.Total_Amount : booking.Total_Amount;
 
-                // Nếu status là PAID và booking đang ở trạng thái Pending, cập nhật thành Confirmed
-                if (status == "PAID" && paymentStatus.Status == "PAID" && booking.Status == "Pending")
+                // Nếu thanh toán bị hủy và booking đang ở trạng thái Pending, cập nhật thành Cancelled
+                if (booking.Status == "Pending")
                 {
-                    try
+                    _logger.LogInformation($"Hủy đơn đặt vé {bookingId}");
+
+                    // CẬP NHẬT TRỰC TIẾP QUA ENTITY FRAMEWORK
+                    booking.Status = "Cancelled";
+
+                    // Thêm lịch sử hủy đơn
+                    var history = new BookingHistory
                     {
-                        _logger.LogInformation($"Cập nhật đơn đặt vé {bookingId} thành Confirmed");
-                        await _bookingService.UpdateBookingPayment(bookingId, booking.User_ID);
+                        Booking_ID = bookingId,
+                        Date = DateTime.Now,
+                        Status = "Cancelled"
+                    };
+                    _context.BookingHistories.Add(history);
 
-                        // Lấy booking đã cập nhật
-                        booking = await _context.TicketBookings.FindAsync(bookingId);
-                    }
-                    catch (Exception ex)
+                    // Cập nhật trạng thái ghế
+                    var seats = await _context.Seats.Where(s => s.Booking_ID == bookingId).ToListAsync();
+                    foreach (var seat in seats)
                     {
-                        _logger.LogError(ex, $"Lỗi khi cập nhật trạng thái đơn đặt vé: {ex.Message}");
+                        seat.Seat_Status = "Available";
+                        seat.Booking_ID = null;
+                        seat.Last_Updated = DateTime.Now;
                     }
-                }
-                else if (status == "CANCELLED" || status == null)
-                {
-                    // Nếu người dùng hủy thanh toán và booking đang ở trạng thái Pending, cập nhật thành Cancelled
-                    if (booking.Status == "Pending")
-                    {
-                        _logger.LogInformation($"Hủy đơn đặt vé {bookingId}");
 
-                        // CẬP NHẬT TRỰC TIẾP QUA ENTITY FRAMEWORK
-                        booking.Status = "Cancelled";
-
-                        // Thêm lịch sử hủy đơn
-                        var history = new BookingHistory
-                        {
-                            Booking_ID = bookingId,
-                            Date = DateTime.Now,
-                            Status = "Cancelled"
-                        };
-                        _context.BookingHistories.Add(history);
-
-                        // Cập nhật trạng thái ghế
-                        var seats = await _context.Seats.Where(s => s.Booking_ID == bookingId).ToListAsync();
-                        foreach (var seat in seats)
-                        {
-                            seat.Seat_Status = "Available";
-                            seat.Booking_ID = null;
-                            seat.Last_Updated = DateTime.Now;
-                        }
-
-                        // Lưu tất cả thay đổi
-                        await _context.SaveChangesAsync();
-                        _logger.LogInformation($"Đã hủy đơn đặt vé {bookingId} thành công");
-                    }
+                    // Lưu tất cả thay đổi
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"Đã hủy đơn đặt vé {bookingId} thành công");
                 }
 
-                // Lấy thông tin ghế từ Entity Framework
-                var seatInfo = await _context.Tickets
-                    .Where(t => t.Booking_ID == bookingId)
-                    .Join(_context.Seats,
-                          t => t.Seat_ID,
-                          s => s.Seat_ID,
-                          (t, s) => new { s.Layout_ID })
-                    .Join(_context.SeatLayouts,
-                          ts => ts.Layout_ID,
-                          sl => sl.Layout_ID,
-                          (ts, sl) => new { sl.Row_Label, sl.Column_Number })
-                    .ToListAsync();
-
-                string seatInfoStr = "Không có thông tin ghế";
-                if (seatInfo.Any())
-                {
-                    var seatCodes = seatInfo.Select(s => s.Row_Label + s.Column_Number.ToString());
-                    seatInfoStr = string.Join(", ", seatCodes);
-                }
-
-                // Tạo nội dung HTML cho cancel page
-                string cancelledStatus = status == "PAID" ? "PAID" : "CANCELLED";
-                string statusClass = status == "PAID" ? "success" : "failed";
-                string statusTitle = status == "PAID" ? "Thanh toán thành công!" : "Thanh toán đã bị hủy";
-                string message = status == "PAID"
-                    ? "Thanh toán của bạn đã được xác nhận."
-                    : "Bạn đã hủy quá trình thanh toán. Đơn đặt vé của bạn đã được hủy.";
-
-                string htmlContent = $@"
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Kết quả thanh toán</title>
-    <meta charset=""UTF-8"">
-    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; text-align: center; }}
-        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }}
-        .success {{ color: #28a745; }}
-        .pending {{ color: #ffc107; }}
-        .failed {{ color: #dc3545; }}
-        h1 {{ font-size: 24px; margin-bottom: 20px; }}
-        .info {{ margin-bottom: 10px; text-align: left; }}
-        .btn {{ display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; 
-               text-decoration: none; border-radius: 4px; margin-top: 20px; }}
-    </style>
-</head>
-<body>
-    <div class=""container"">
-        <h1 class=""{statusClass}"">{statusTitle}</h1>
-        <p>{message}</p>
-        
-        <div class=""info"">
-            <p><strong>Mã đơn hàng:</strong> {orderCode}</p>
-            <p><strong>Trạng thái:</strong> {cancelledStatus}</p>
-            <p><strong>Số tiền:</strong> {amount.ToString("N0")} VNĐ</p>
-            <p><strong>Tên phim:</strong> {booking.Showtime?.Movie?.Movie_Name ?? "Không xác định"}</p>
-            <p><strong>Phòng:</strong> {booking.Showtime?.CinemaRoom?.Room_Name ?? "Không xác định"}</p>
-            <p><strong>Ghế:</strong> {seatInfoStr}</p>
-        </div>
-        
-        <a href=""/"" class=""btn"">Quay lại trang chủ</a>
-    </div>
-</body>
-</html>";
-
-                return Content(htmlContent, "text/html", System.Text.Encoding.UTF8);
+                // Chuyển về trang profile với thông tin hủy
+                return Redirect($"{_configuration["PayOS:CancelUrl"]}?status=cancelled&orderCode={orderCode}&bookingId={bookingId}");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi xử lý PayOS cancel URL");
-                // Trả về trang lỗi
-                string errorHtml = @"
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Lỗi xử lý thanh toán</title>
-    <meta charset=""UTF-8"">
-    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; text-align: center; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
-        h1 { font-size: 24px; margin-bottom: 20px; color: #dc3545; }
-        .btn { display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; 
-              text-decoration: none; border-radius: 4px; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <div class=""container"">
-        <h1>Đã xảy ra lỗi</h1>
-        <p>Không thể xử lý thanh toán. Vui lòng thử lại sau.</p>
-        <a href=""http://localhost:5173/"" class=""btn"">Quay lại trang chủ</a>
-    </div>
-</body>
-</html>";
-
-                return Content(errorHtml, "text/html", System.Text.Encoding.UTF8);
+                return Redirect($"{_configuration["PayOS:CancelUrl"]}?status=error&message=internal_error");
             }
+        }
+
+        /// <summary>
+        /// Chuyển hướng hủy thanh toán - Phương thức mới
+        /// </summary>
+        [HttpGet("redirect-cancel")]
+        public async Task<IActionResult> CancelPayment(string orderCode)
+        {
+            if (string.IsNullOrEmpty(orderCode))
+            {
+                return BadRequest("Mã đơn hàng là bắt buộc");
+            }
+
+            // Trích xuất ID đặt vé từ orderCode
+            int bookingId = _payosService.GetBookingIdFromOrderCode(orderCode);
+
+            if (bookingId <= 0)
+            {
+                return BadRequest("Mã đơn hàng không hợp lệ");
+            }
+
+            // Gọi phương thức hủy đặt vé
+            bool canceled = await _payosService.CancelBooking(bookingId);
+
+            if (!canceled)
+            {
+                return BadRequest("Không thể hủy đặt vé");
+            }
+
+            // Chuyển hướng đến trang profile với tham số hủy
+            string cancelUrl = _configuration["PayOS:CancelUrl"] ?? "http://localhost:5173/profile";
+            return Redirect($"{cancelUrl}?code=000&id={orderCode}&cancel=true&status=CANCELLED&orderCode={orderCode}");
         }
 
         // DTO cho yêu cầu tạo thanh toán

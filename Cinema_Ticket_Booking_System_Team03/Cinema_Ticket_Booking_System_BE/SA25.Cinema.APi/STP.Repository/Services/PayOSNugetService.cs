@@ -53,9 +53,11 @@ namespace STP.Repository.Services
                 var item = new ItemData("Thanh toán vé xem phim", 1, (int)amount);
                 var items = new List<ItemData> { item };
 
-                // URL trả về sau khi thanh toán
-                string returnUrl = _configuration["PayOS:ReturnUrl"] ?? "https://your-website.com/api/payment/payos/return";
-                string cancelUrl = _configuration["PayOS:CancelUrl"] ?? "https://your-website.com/api/payment/payos/cancel";
+                // URL trả về sau khi thanh toán - sử dụng đường dẫn API của backend
+                string returnUrl = $"{_configuration["AppSettings:ApiBaseUrl"]}/api/payos/return";
+                string cancelUrl = $"{_configuration["AppSettings:ApiBaseUrl"]}/api/payos/cancel";
+
+                _logger.LogInformation($"ReturnURL: {returnUrl}, CancelURL: {cancelUrl}");
 
                 // Tạo dữ liệu thanh toán
                 var paymentData = new PaymentData(
