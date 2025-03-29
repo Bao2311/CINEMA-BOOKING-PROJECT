@@ -231,13 +231,24 @@ namespace STP.Repository.Services
                 return new { status = "deactivated", message = "Phim đã có suất chiếu, đã đánh dấu là đã hủy thay vì xóa" };
             }
 
+            // Đánh dấu phim là đã xóa thay vì xóa cứng
+            movie.Status = "Inactive";
+            movie.Updated_At = DateTime.Now;
+
+            // Đánh dấu các đánh giá là ẩn thay vì xóa cứng
             var ratings = await _context.MovieRatings.Where(r => r.Movie_ID == id).ToListAsync();
             if (ratings.Any())
-                _context.MovieRatings.RemoveRange(ratings);
+            {
+                foreach (var rating in ratings)
+                {
+                    // Nếu không có trường Is_Visible, có thể sử dụng
+                    // trường Is_Verified và đặt nó thành false
+                    rating.Is_Verified = false;
+                }
+            }
 
-            _context.Movies.Remove(movie);
             await _context.SaveChangesAsync();
-            return new { status = "deleted", message = "Phim đã được xóa hoàn toàn" };
+            return new { status = "deleted", message = "Phim đã được đánh dấu là đã xóa" };
         }
 
         public async Task<object> RateMovieAsync(int id, int userId, MovieRatingDto model)
@@ -430,3 +441,4 @@ namespace STP.Repository.Services
         }
     }
 }
+

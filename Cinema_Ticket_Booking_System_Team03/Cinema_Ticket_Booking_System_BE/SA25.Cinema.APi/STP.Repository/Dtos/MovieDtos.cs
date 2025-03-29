@@ -226,17 +226,30 @@ namespace STP.Repository.Dtos
         public string Production_Company { get; set; }
         public string Director { get; set; }
         public string Cast { get; set; }
+
+        [Range(2, int.MaxValue, ErrorMessage = "Thời lượng phim phải lớn hơn 1 phút.")]
         public int Duration { get; set; }
+
         public string Genre { get; set; }
+
         public string Rating { get; set; }
+
         public string Language { get; set; }
+
         public string Country { get; set; }
+
         public string Synopsis { get; set; }
+
         public string Poster_URL { get; set; }
-        public IFormFile PosterFile { get; set; } // Thêm để hỗ trợ upload file
+
+        public IFormFile PosterFile { get; set; }
+
         public string Trailer_Link { get; set; }
+
         public string Status { get; set; }
+
     }
+
     public class MovieUpdateDto : MovieCreateDto
     {
         public int Movie_ID { get; set; }
@@ -245,8 +258,10 @@ namespace STP.Repository.Dtos
     public class MovieRatingDto
     {
         public int Rating { get; set; }
+
         public string Comment { get; set; }
     }
+
     /// <summary>
     /// DTO dùng ?? tr? v? thông tin c?a m?t b? phim.
     /// </summary>
@@ -368,5 +383,6 @@ namespace STP.Repository.Dtos
         }
     }
 }
+
 
 
