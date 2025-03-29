@@ -19,7 +19,7 @@ namespace STP.APIService.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly UserRepository _userRepository;
@@ -43,6 +43,7 @@ namespace STP.APIService.Controllers
         /// Trả về danh sách người dùng với thông tin cơ bản, không bao gồm mật khẩu
         /// </summary>
         [HttpGet]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> GetAllUsers()
         {
             try
@@ -79,6 +80,7 @@ namespace STP.APIService.Controllers
         /// Trả về thông tin chi tiết của một người dùng cụ thể
         /// </summary>
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> GetUserById(int id)
         {
             try
@@ -118,6 +120,7 @@ namespace STP.APIService.Controllers
         /// Admin có thể tạo tài khoản cho người dùng mới, hệ thống sẽ tự động tạo mật khẩu
         /// </summary>
         [HttpPost("register-user")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> RegisterUserWithAutoPassword(AdminRegisterUserDto model)
         {
             try
@@ -159,6 +162,7 @@ namespace STP.APIService.Controllers
         /// Admin có thể cập nhật thông tin và vai trò của người dùng
         /// </summary>
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> UpdateUser(int id, AdminUpdateUserDto updateDto)
         {
             try
@@ -261,6 +265,7 @@ namespace STP.APIService.Controllers
         /// Admin có thể xóa người dùng khỏi hệ thống, nhưng không thể xóa chính mình
         /// </summary>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> DeleteUser(int id)
         {
             try
@@ -292,6 +297,7 @@ namespace STP.APIService.Controllers
         /// Admin có thể khóa hoặc mở khóa tài khoản người dùng
         /// </summary>
         [HttpPut("{id}/status")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> ChangeUserStatus(int id, UserStatusDto statusDto)
         {
             try
@@ -312,6 +318,7 @@ namespace STP.APIService.Controllers
         /// Admin có thể đặt lại mật khẩu cho người dùng, hệ thống sẽ gửi mật khẩu mới qua email
         /// </summary>
         [HttpPost("{id}/reset-password")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> ResetPassword(int id)
         {
             try
@@ -337,6 +344,7 @@ namespace STP.APIService.Controllers
         /// Người dùng có thể xem thông tin cá nhân của mình
         /// </summary>
         [HttpGet("profile")]
+        [Authorize]
         public async Task<ActionResult<object>> GetUserProfile()
         {
             try
@@ -377,6 +385,7 @@ namespace STP.APIService.Controllers
         /// Người dùng có thể cập nhật thông tin cá nhân của mình
         /// </summary>
         [HttpPut("profile")]
+        [Authorize]
         public async Task<IActionResult> UpdateProfile([FromBody] BaseUpdateProfileDTO updateProfileDto)
         {
             // Kiểm tra tính hợp lệ của dữ liệu đầu vào
