@@ -491,25 +491,9 @@ namespace STP.Repository.DTOs
                 return StatusCode(500, new { success = false, message = "Đã xảy ra lỗi khi kiểm tra trạng thái xác thực email" });
             }
         }
-
-        [HttpPost("staff-register")]
-        [Authorize(Roles = "Staff,Manager")] // Chỉ cho phép Staff và Manager đăng ký
-        public async Task<IActionResult> RegisterUserByStaff([FromBody] StaffRegisterUserDto model)
-        {
-            // Lấy ID của nhân viên từ token
-            int staffId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-
-            var result = await _authService.RegisterUserByStaffAsync(model, staffId);
-
-            if (result.Success)
-            {
-                return Ok(result);
-            }
-
-            return BadRequest(result);
-        }
     }
 }
+
 
 
 

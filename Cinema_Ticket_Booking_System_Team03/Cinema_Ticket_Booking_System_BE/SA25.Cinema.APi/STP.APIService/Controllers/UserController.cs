@@ -416,6 +416,48 @@ namespace STP.APIService.Controllers
         }
 
         /// <summary>
+        /// API đăng ký người dùng mới bởi nhân viên
+        /// Nhân viên có thể tạo tài khoản cho người dùng mới, hệ thống sẽ tự động tạo mật khẩu
+        /// </summary>
+        [HttpPost("staff-register")]
+        [Authorize(Roles = "Staff")]
+        public async Task<IActionResult> RegisterUserByStaff([FromBody] StaffRegisterUserDto model)
+        {
+            try
+            {
+                // Kiểm tra tính hợp lệ của dữ liệu đầu vào
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                // Lấy ID của nhân viên đang thực hiện hành động
+                var staffIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(staffIdClaim) || !int.TryParse(staffIdClaim, out int staffId))
+                {
+                    return Unauthorized("Không thể xác định thông tin nhân viên.");
+                }
+
+                // Gọi service để đăng ký người dùng mới
+                var result = await _authService.RegisterUserByStaffAsync(model, staffId);
+
+                if (result.Success)
+                {
+                    return Ok(result);
+                }
+                else
+                {
+                    return BadRequest(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Trả về lỗi nếu có vấn đề
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Phương thức hỗ trợ để lấy ID người dùng từ claims
         /// </summary>
         private int GetUserIdFromClaims()
@@ -430,3 +472,5 @@ namespace STP.APIService.Controllers
         }
     }
 }
+
+

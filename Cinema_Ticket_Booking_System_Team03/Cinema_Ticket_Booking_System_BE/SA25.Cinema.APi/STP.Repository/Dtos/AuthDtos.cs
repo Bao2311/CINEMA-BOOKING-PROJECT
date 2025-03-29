@@ -171,21 +171,6 @@ namespace STP.Repository.Dtos
         public string Email { get; set; }
     }
 
-    public class StaffRegisterUserDto
-    {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
-
-        [Phone]
-        public string PhoneNumber { get; set; }
-
-        [Required]
-        public string FullName { get; set; }
-
-        public string Sex { get; set; }
-    }
-
     // DTO dùng để trả về kết quả sau khi đặt lại mật khẩu
     public class ResetPasswordResultDto
     {
@@ -338,6 +323,24 @@ namespace STP.Repository.Dtos
         [Required(ErrorMessage = "Địa chỉ là bắt buộc")]
         public string Address { get; set; }
     }
+
+    public class StaffRegisterUserDto
+    {
+        [Required(ErrorMessage = "Họ tên không được để trống")]
+        [StringLength(100, ErrorMessage = "Họ tên không được vượt quá 100 ký tự")]
+        public string FullName { get; set; }
+
+        [Required(ErrorMessage = "Email không được để trống")]
+        [EmailAddress(ErrorMessage = "Email không hợp lệ")]
+        public string Email { get; set; }
+
+        [Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
+        public string PhoneNumber { get; set; }
+
+        [StringLength(10, ErrorMessage = "Giới tính không được vượt quá 10 ký tự")]
+        public string Sex { get; set; }
+    }
 }
+
 
 

@@ -68,7 +68,7 @@ namespace STP.Repository.Services
             // Ánh xạ thông tin người dùng vào DTO phù hợp với vai trò
             return user.Role?.ToLower() switch
             {
-                "customer" => MapToCustomerProfile(user),
+                "Customer" => MapToCustomerProfile(user),
                 "admin" => MapToAdminProfile(user),
                 "staff" => MapToStaffProfile(user),
                 _ => throw new InvalidOperationException("Invalid user role")

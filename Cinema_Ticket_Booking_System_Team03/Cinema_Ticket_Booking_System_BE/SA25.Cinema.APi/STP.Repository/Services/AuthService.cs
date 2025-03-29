@@ -669,7 +669,7 @@ namespace STP.Repository.Services
                     Role = "Customer", // Mặc định là Customer
                     Sex = model.Sex,
                     Phone_Number = model.PhoneNumber,
-                    Account_Status = "Pending", // Trạng thái ban đầu là Pending
+                    Account_Status = "Active", // Trạng thái ban đầu là Active
                     Created_At = DateTime.UtcNow
                 };
 
@@ -688,8 +688,7 @@ namespace STP.Repository.Services
                 {
                     Success = true,
                     Message = $"Đã tạo tài khoản thành công cho {model.Email}. Mật khẩu đã được gửi qua email.",
-                    UserId = newUser.User_ID,
-                    RequiresEmailVerification = true
+                    UserId = newUser.User_ID
                 };
             }
             catch (Exception ex)
@@ -705,6 +704,7 @@ namespace STP.Repository.Services
         }
     }
 }
+
 
 
 

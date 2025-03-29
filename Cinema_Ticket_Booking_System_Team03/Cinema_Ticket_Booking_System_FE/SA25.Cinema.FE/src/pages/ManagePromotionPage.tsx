@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import {
   FaPlus, FaTimes, FaEdit, FaTrash, FaCheck, FaEllipsisV, FaInfoCircle,
   FaTicketAlt, FaShoppingBasket, FaUsers, FaPercent, FaTag, FaCalendarDay,
@@ -97,10 +97,10 @@ const promotionService = {
       const response = await axios.post(`${API_BASE_URL}/Promotion`, apiData, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
       });
-      console.log('API Response:', response.data); // Log the response for debugging
-      return true; // Return true to indicate success
+      console.log('API Response:', response.data);
+      return true;
     } catch (error) {
-      console.error('Create Promotion Error:', error.response?.data); // Log error details
+      console.error('Create Promotion Error:', error.response?.data);
       throw new Error(error.response?.data?.message || 'Không thể tạo khuyến mãi');
     }
   },
@@ -174,6 +174,18 @@ const checkPromotionValidity = (promotion: Promotion) => {
 // Modal Animations
 const modalVariants = { hidden: { opacity: 0, scale: 0.9 }, visible: { opacity: 1, scale: 1 } };
 
+// Utility to format numbers with dots for thousands
+const formatNumberWithDots = (number: number | undefined): string => {
+  if (number === undefined || number === null) return '0';
+  return new Intl.NumberFormat('vi-VN').format(number);
+};
+
+// Utility to parse formatted number back to raw number
+const parseFormattedNumber = (value: string): number => {
+  // Remove all dots and convert to number
+  return Number(value.replace(/\./g, ''));
+};
+
 // Components
 const TagSelector: React.FC<{ tags: string[]; selectedTags: string[]; onChange: (tag: string) => void }> = ({ tags, selectedTags, onChange }) => (
   <div className="flex flex-wrap gap-2 mt-2">
@@ -218,7 +230,7 @@ const EnhancedDatePicker: React.FC<{ selected: Date | null; onChange: (date: Dat
 const ItemTypeSelector: React.FC<{ selectedItems: string[]; onChange: (itemId: string) => void; error?: string }> = ({ selectedItems, onChange, error }) => {
   const itemTypes = [
     { id: 'ticket', label: 'Vé', icon: <FaTicketAlt />, color: 'indigo' },
-   { id: 'membership', label: 'Thành viên', icon: <FaUsers />, color: 'blue' }
+    { id: 'membership', label: 'Thành viên', icon: <FaUsers />, color: 'blue' }
   ];
   return (
     <div>
@@ -294,19 +306,19 @@ const PromotionRow: React.FC<{ promotion: Promotion; onEdit: () => void; onDelet
           {promotion.discountType === 'percentage' ? (
             <div className="flex items-center text-sm text-gray-900">
               <span className="font-medium">{promotion.discountValue}%</span>
-              {promotion.maxDiscount && <span className="text-gray-500 ml-1.5">(tối đa {new Intl.NumberFormat('vi-VN').format(promotion.maxDiscount)}đ)</span>}
+              {promotion.maxDiscount ? <span className="text-gray-500 ml-1.5">(tối đa {formatNumberWithDots(promotion.maxDiscount)}đ)</span> : null}
             </div>
           ) : (
-            <div className="text-sm font-medium text-gray-900">{new Intl.NumberFormat('vi-VN').format(promotion.discountValue)}đ</div>
+            <div className="text-sm font-medium text-gray-900">{formatNumberWithDots(promotion.discountValue)}đ</div>
           )}
         </div>
         <div className="mt-1 flex flex-wrap gap-2">
-  {promotion.applicableItems.map(item => (
-    <span key={item} className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm bg-gray-100 text-gray-800">
-      {item === 'ticket' ? <><FaTicketAlt className="mr-1.5" size={12} />Vé</> : <><FaUsers className="mr-1.5" size={12} />Thành viên</>}
-    </span>
-  ))}
-</div>
+          {promotion.applicableItems.map(item => (
+            <span key={item} className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm bg-gray-100 text-gray-800">
+              {item === 'ticket' ? <><FaTicketAlt className="mr-1.5" size={12} />Vé</> : <><FaUsers className="mr-1.5" size={12} />Thành viên</>}
+            </span>
+          ))}
+        </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="text-sm text-gray-900">{formatDate(promotion.startDate)}</div>
@@ -480,6 +492,13 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
     ...initialData,
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  // State to hold the formatted display values
+  const [formattedValues, setFormattedValues] = useState({
+    discountValue: '',
+    maxDiscount: '',
+    minPurchase: '',
+    usageLimit: ''
+  });
 
   useEffect(() => {
     if (initialData) {
@@ -493,7 +512,6 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
         minPurchase: initialData.minPurchase || 0,
         startDate: initialData.startDate || new Date().toISOString(),
         endDate: initialData.endDate || new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
-        applicableMovies: initialData.applicableMovies || [],
         applicableItems: initialData.applicableItems || [],
         description: initialData.description || '',
         isVIP: initialData.isVIP || false,
@@ -501,12 +519,27 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
         usageCount: initialData.usageCount || 0,
         status: initialData.status || 'active',
       });
+      // Initialize formatted values
+      setFormattedValues({
+        discountValue: formatNumberWithDots(initialData.discountValue || 0),
+        maxDiscount: formatNumberWithDots(initialData.maxDiscount || 0),
+        minPurchase: formatNumberWithDots(initialData.minPurchase || 0),
+        usageLimit: formatNumberWithDots(initialData.usageLimit || 0)
+      });
     }
   }, [initialData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'discountValue' || name === 'maxDiscount' || name === 'minPurchase' || name === 'usageLimit') {
+      // Parse the formatted value back to a raw number
+      const rawValue = parseFormattedNumber(value);
+      setFormData(prev => ({ ...prev, [name]: rawValue }));
+      // Format the value for display
+      setFormattedValues(prev => ({ ...prev, [name]: formatNumberWithDots(rawValue) }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
@@ -522,7 +555,6 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
     }));
     if (errors.applicableItems) setErrors(prev => ({ ...prev, applicableItems: '' }));
   };
-
 
   const validateStep = () => {
     const newErrors: { [key: string]: string } = {};
@@ -602,7 +634,15 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
                 <div>
                   <label htmlFor="discountValue" className="block text-sm font-medium text-gray-700 mb-1">Giá trị giảm giá <span className="text-red-500">*</span></label>
                   <div className="flex items-center">
-                    <input type="number" id="discountValue" name="discountValue" value={formData.discountValue || ''} onChange={handleChange} min="0" max={formData.discountType === 'percentage' ? 100 : undefined} className={`w-full border ${errors.discountValue ? 'border-red-500' : 'border-gray-300'} rounded-lg py-2 px-3 focus:outline-none focus:ring-2 ${errors.discountValue ? 'focus:ring-red-500' : 'focus:ring-indigo-500'}`} placeholder={formData.discountType === 'percentage' ? "Nhập % giảm giá" : "Nhập số tiền giảm giá"} />
+                    <input
+                      type="text"
+                      id="discountValue"
+                      name="discountValue"
+                      value={formattedValues.discountValue}
+                      onChange={handleChange}
+                      className={`w-full border ${errors.discountValue ? 'border-red-500' : 'border-gray-300'} rounded-lg py-2 px-3 focus:outline-none focus:ring-2 ${errors.discountValue ? 'focus:ring-red-500' : 'focus:ring-indigo-500'}`}
+                      placeholder={formData.discountType === 'percentage' ? "Nhập % giảm giá" : "Nhập số tiền giảm giá"}
+                    />
                     <span className="ml-2 text-gray-500">{formData.discountType === 'percentage' ? '%' : 'đ'}</span>
                   </div>
                   {errors.discountValue && <p className="mt-1 text-sm text-red-600">{errors.discountValue}</p>}
@@ -611,17 +651,39 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
                   <div>
                     <label htmlFor="maxDiscount" className="block text-sm font-medium text-gray-700 mb-1">Giảm tối đa (để 0 nếu không giới hạn)</label>
                     <div className="flex items-center">
-                      <input type="number" id="maxDiscount" name="maxDiscount" value={formData.maxDiscount || ''} onChange={handleChange} min="0" className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Nhập số tiền giảm tối đa" />
+                      <input
+                        type="text"
+                        id="maxDiscount"
+                        name="maxDiscount"
+                        value={formattedValues.maxDiscount}
+                        onChange={handleChange}
+                        className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        placeholder="Nhập số tiền giảm tối đa"
+                      />
                       <span className="ml-2 text-gray-500">đ</span>
                     </div>
+                    {formData.maxDiscount > 0 && (
+                      <p className="mt-1 text-sm text-gray-500">Giảm tối đa: {formatNumberWithDots(formData.maxDiscount)}đ</p>
+                    )}
                   </div>
                 )}
                 <div>
                   <label htmlFor="minPurchase" className="block text-sm font-medium text-gray-700 mb-1">Giá trị đơn hàng tối thiểu (để 0 nếu không giới hạn)</label>
                   <div className="flex items-center">
-                    <input type="number" id="minPurchase" name="minPurchase" value={formData.minPurchase || ''} onChange={handleChange} min="0" className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Nhập giá trị đơn hàng tối thiểu" />
+                    <input
+                      type="text"
+                      id="minPurchase"
+                      name="minPurchase"
+                      value={formattedValues.minPurchase}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="Nhập giá trị đơn hàng tối thiểu"
+                    />
                     <span className="ml-2 text-gray-500">đ</span>
                   </div>
+                  {formData.minPurchase > 0 && (
+                    <p className="mt-1 text-sm text-gray-500">Đơn hàng tối thiểu: {formatNumberWithDots(formData.minPurchase)}đ</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Mô tả khuyến mãi</label>
@@ -646,7 +708,15 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
                 </div>
                 <div>
                   <label htmlFor="usageLimit" className="block text-sm font-medium text-gray-700 mb-1">Giới hạn số lần sử dụng (để 0 nếu không giới hạn)</label>
-                  <input type="number" id="usageLimit" name="usageLimit" value={formData.usageLimit || ''} onChange={handleChange} min="0" className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Nhập số lần sử dụng tối đa" />
+                  <input
+                    type="text"
+                    id="usageLimit"
+                    name="usageLimit"
+                    value={formattedValues.usageLimit}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Nhập số lần sử dụng tối đa"
+                  />
                 </div>
                 <div>
                   <div className="flex items-center">
@@ -663,7 +733,6 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
                   <label className="block text-sm font-medium text-gray-700 mb-1">Áp dụng cho <span className="text-red-500">*</span></label>
                   <ItemTypeSelector selectedItems={formData.applicableItems} onChange={handleItemTypeToggle} error={errors.applicableItems} />
                 </div>
-                
               </div>
             )}
           </form>
@@ -705,7 +774,16 @@ const PromotionDetailsModal: React.FC<{ promotion: Promotion; onClose: () => voi
             <div className="space-y-4">
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Loại giảm giá</h4>
-                <p className="mt-1 text-base">{promotion.discountType === 'percentage' ? <><span className="font-medium">{promotion.discountValue}%</span>{promotion.maxDiscount ? <span className="text-gray-600 ml-1">(tối đa {new Intl.NumberFormat('vi-VN').format(promotion.maxDiscount)}đ)</span> : null}</> : <span className="font-medium">{new Intl.NumberFormat('vi-VN').format(promotion.discountValue)}đ</span>}</p>
+                <p className="mt-1 text-base">
+                  {promotion.discountType === 'percentage' ? (
+                    <>
+                      <span className="font-medium">{promotion.discountValue}%</span>
+                      {promotion.maxDiscount ? <span className="text-gray-600 ml-1">(tối đa {formatNumberWithDots(promotion.maxDiscount)}đ)</span> : null}
+                    </>
+                  ) : (
+                    <span className="font-medium">{formatNumberWithDots(promotion.discountValue)}đ</span>
+                  )}
+                </p>
               </div>
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Thời gian áp dụng</h4>
@@ -720,7 +798,7 @@ const PromotionDetailsModal: React.FC<{ promotion: Promotion; onClose: () => voi
               {promotion.minPurchase > 0 && (
                 <div>
                   <h4 className="text-sm font-medium text-gray-500">Giá trị đơn hàng tối thiểu</h4>
-                  <p className="mt-1 text-base font-medium">{new Intl.NumberFormat('vi-VN').format(promotion.minPurchase)}đ</p>
+                  <p className="mt-1 text-base font-medium">{formatNumberWithDots(promotion.minPurchase)}đ</p>
                 </div>
               )}
             </div>
@@ -728,12 +806,11 @@ const PromotionDetailsModal: React.FC<{ promotion: Promotion; onClose: () => voi
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Áp dụng cho</h4>
                 <div className="text-xs text-gray-500 mt-1">
-  {promotion.applicableItems.map(item => 
-    item === 'ticket' ? 'Vé' : 'Thành viên'
-  ).join(', ')}
-</div>
+                  {promotion.applicableItems.map(item => 
+                    item === 'ticket' ? 'Vé' : 'Thành viên'
+                  ).join(', ')}
+                </div>
               </div>
-              
               {promotion.description && (
                 <div>
                   <h4 className="text-sm font-medium text-gray-500">Mô tả</h4>

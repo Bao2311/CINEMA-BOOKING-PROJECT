@@ -33,6 +33,7 @@ const RegisterForm: React.FC = () => {
     setError('');
     setIsLoading(true);
 
+    // Kiểm tra định dạng email
     const emailRegex = /^[\w.-]+@([\w-]+\.)+[\w-]{2,4}$/;
     if (!emailRegex.test(values.email)) {
       setError('Invalid email format');
@@ -40,6 +41,7 @@ const RegisterForm: React.FC = () => {
       return;
     }
 
+    // Kiểm tra mật khẩu
     const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordPattern.test(values.password)) {
       setError('Password must be at least 8 characters long, contain letters, numbers, and at least one special character.');
@@ -53,9 +55,10 @@ const RegisterForm: React.FC = () => {
       return;
     }
 
+    // Kiểm tra ngày sinh
     const today = new Date();
     const birthDate = new Date(values.dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
+    const age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
@@ -142,6 +145,61 @@ const RegisterForm: React.FC = () => {
             validateTrigger={['onChange', 'onBlur']}
           >
             <Input.Password placeholder="Enter your password" style={{ width: '100%', padding: '8px' }} />
+          </Form.Item>
+
+          <Form.Item
+            label="Confirm Password"
+            name="confirmPassword"
+            dependencies={['password']}
+            rules={[
+              { required: true, message: 'Please confirm your password!' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('password') === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Passwords do not match!'));
+                },
+              }),
+            ]}
+          >
+            <Input.Password placeholder="Re-type your password" style={{ width: '100%', padding: '8px' }} />
+          </Form.Item>
+
+          <Form.Item
+            label="Date of Birth"
+            name="dateOfBirth"
+            rules={[{ required: true, message: 'Please enter your date of birth!' }]}
+          >
+            <Input type="date" placeholder="yyyy-mm-dd" style={{ width: '100%', padding: '8px' }} />
+          </Form.Item>
+
+          <Form.Item
+            label="Gender"
+            name="sex"
+            rules={[{ required: true, message: 'Please select your gender!' }]}
+          >
+            <select className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+              <option value="">Select gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </Form.Item>
+
+          <Form.Item
+            label="Phone Number"
+            name="phoneNumber"
+            rules={[{ required: true, message: 'Please enter your phone number!' }]}
+          >
+            <Input placeholder="Enter your phone number" style={{ width: '100%', padding: '8px' }} />
+          </Form.Item>
+
+          <Form.Item
+            label="Address"
+            name="address"
+            rules={[{ required: true, message: 'Please enter your address!' }]}
+          >
+            <Input placeholder="Enter your address" style={{ width: '100%', padding: '8px' }} />
           </Form.Item>
 
           <Form.Item>

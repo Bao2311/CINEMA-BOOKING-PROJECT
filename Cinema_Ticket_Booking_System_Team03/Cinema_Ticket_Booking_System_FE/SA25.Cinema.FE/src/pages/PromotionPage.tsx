@@ -26,13 +26,13 @@ const UserPromotionsPage = () => {
           code: promo.promotion_Code,
           description: promo.promotion_Detail,
           discountType: promo.discount_Type.toLowerCase(),
-          discountValue: promo.discount_Value,
+          discountValue: promo.discount_Value, // Remove normalization
           startDate: promo.start_Date,
           endDate: promo.end_Date,
-          image: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", // Placeholder image
-          applicableItems: [promo.applicable_For === "All" ? "ticket" : promo.applicable_For], // Map "All" to "ticket" for consistency
-          isVIP: promo.applicable_For === "member", // Treat "member" as VIP
-          isPopular: false, // API doesn't provide this, default to false
+          image: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+          applicableItems: [promo.applicable_For === "All" ? "ticket" : promo.applicable_For],
+          isVIP: promo.applicable_For === "member",
+          isPopular: false,
           categories: [promo.applicable_For === "member" ? "membership" : promo.applicable_For === "ticket" ? "seasonal" : "special"]
         }));
         setPromotions(mappedPromotions);
@@ -85,7 +85,15 @@ const UserPromotionsPage = () => {
     alert(`Code ${code} copied to clipboard!`);
   };
 
-  // Rest of the component (JSX) remains unchanged
+  // Function to format discount value based on its magnitude
+  const formatDiscount = (discountValue) => {
+    if (discountValue > 100) {
+      return `${discountValue} VND OFF`;
+    } else {
+      return `${discountValue}% OFF`;
+    }
+  };
+
   return (
     <motion.div 
       className="min-h-screen bg-gradient-to-b from-gray-900 to-indigo-900 text-white py-8 px-4 sm:px-6 lg:px-8"
@@ -240,10 +248,9 @@ const UserPromotionsPage = () => {
                 <div className="flex flex-wrap gap-3">
                   <button 
                     onClick={() => copyToClipboard(promotions[0]?.code || "")}
-                    className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors flex items-center"
+                    className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors"
                   >
-                    <span className="mr-2">{promotions[0]?.code || "Loading..."}</span>
-                    <FaPercent size={14} />
+                    {promotions[0]?.code || "Loading..."}
                   </button>
                   <button 
                     onClick={() => openPromotionDetails(promotions[0] || {})}
@@ -260,7 +267,10 @@ const UserPromotionsPage = () => {
                   <div className="absolute inset-4 bg-purple-500 rounded-full opacity-40"></div>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
-                      <span className="block text-6xl font-bold">{promotions[0]?.discountValue || "0"}%</span>
+                      <span className="block text-6xl font-bold">
+                        {promotions[0]?.discountValue || "0"}
+                        {promotions[0]?.discountValue > 100 ? " " : "%"}
+                      </span>
                       <span className="block text-xl font-medium">OFF</span>
                     </div>
                   </div>
@@ -357,7 +367,7 @@ const UserPromotionsPage = () => {
                       
                       {promotion.discountType === 'percentage' && (
                         <div className="px-2 py-1 bg-purple-900 bg-opacity-50 border border-purple-700 rounded-md text-sm font-medium">
-                          {promotion.discountValue}% OFF
+                          {formatDiscount(promotion.discountValue)}
                         </div>
                       )}
                     </div>
@@ -365,10 +375,9 @@ const UserPromotionsPage = () => {
                     <div className="flex flex-col sm:flex-row gap-2">
                       <button 
                         onClick={() => copyToClipboard(promotion.code)}
-                        className="flex-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+                        className="flex-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors"
                       >
-                        <span className="mr-1">{promotion.code}</span>
-                        <FaPercent size={12} />
+                        {promotion.code}
                       </button>
                       <button 
                         onClick={() => openPromotionDetails(promotion)}
@@ -556,9 +565,9 @@ const UserPromotionsPage = () => {
                         <h4 className="font-medium">Discount</h4>
                         <p className="text-sm text-gray-400">
                           {selectedPromotion.discountType === 'percentage' 
-                            ? `${selectedPromotion.discountValue}% off` 
+                            ? formatDiscount(selectedPromotion.discountValue)
                             : selectedPromotion.discountType === 'fixed' 
-                            ? `$${selectedPromotion.discountValue} off` 
+                            ? `${selectedPromotion.discountValue} VND off` 
                             : 'Special offer'}
                         </p>
                       </div>
@@ -604,10 +613,9 @@ const UserPromotionsPage = () => {
                       copyToClipboard(selectedPromotion.code);
                       setShowModal(false);
                     }}
-                    className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors flex items-center"
+                    className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors"
                   >
-                    <span className="mr-2">Use Promotion</span>
-                    <FaPercent size={12} />
+                    Use Promotion
                   </button>
                 </div>
               </div>
