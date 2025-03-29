@@ -172,26 +172,17 @@ namespace STP.Repository.Services
 
             bool isInUse = await _context.SeatLayouts.AnyAsync(sl => sl.Seat_Type == pricing.Seat_Type);
 
-            if (isInUse)
-            {
-                pricing.Status = "Inactive";
-                pricing.Last_Updated = DateTime.Now;
-                await _context.SaveChangesAsync();
-
-                return new
-                {
-                    status = "deactivated",
-                    message = "Loại ghế đang được sử dụng, đã đánh dấu là không hoạt động thay vì xóa"
-                };
-            }
-
-            _context.TicketPricings.Remove(pricing);
+            // Chuyển đổi sang xóa mềm cho tất cả các trường hợp
+            pricing.Status = isInUse ? "Inactive" : "Deleted";
+            pricing.Last_Updated = DateTime.Now;
             await _context.SaveChangesAsync();
 
             return new
             {
-                status = "deleted",
-                message = "Loại ghế đã được xóa hoàn toàn"
+                status = isInUse ? "deactivated" : "deleted",
+                message = isInUse
+                    ? "Loại ghế đang được sử dụng, đã đánh dấu là không hoạt động"
+                    : "Loại ghế đã được đánh dấu là đã xóa"
             };
         }
 
@@ -263,4 +254,5 @@ namespace STP.Repository.Services
         }
     }
 }
+
 

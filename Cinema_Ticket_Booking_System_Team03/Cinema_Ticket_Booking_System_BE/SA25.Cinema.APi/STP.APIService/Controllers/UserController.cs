@@ -48,29 +48,24 @@ namespace STP.APIService.Controllers
         {
             try
             {
-                // Lấy tất cả người dùng từ repository
+                // Lấy tất cả người dùng chưa bị xóa mềm
                 var users = await _userRepository.GetAllAsync();
-                // Chuyển đổi sang DTO để không tiết lộ thông tin nhạy cảm như mật khẩu
-                var userDtos = await users.Select(u => new
+                var activeUsers = users.Where(u => u.Account_Status != "Deleted");
+
+                // Chuyển đổi sang DTO để trả về dữ liệu an toàn
+                var userDtos = await activeUsers.Select(u => new
                 {
                     u.User_ID,
                     u.Full_Name,
                     u.Email,
                     u.Role,
-                    u.Date_Of_Birth,
-                    u.Sex,
-                    u.Phone_Number,
-                    u.Address,
-                    u.Account_Status,
-                    u.Created_At,
-                    u.Last_Login
+                    u.Account_Status
                 }).ToListAsync();
 
                 return Ok(userDtos);
             }
             catch (Exception ex)
             {
-                // Trả về lỗi nếu có vấn đề
                 return BadRequest(new { message = ex.Message });
             }
         }
@@ -87,30 +82,49 @@ namespace STP.APIService.Controllers
             {
                 // Lấy thông tin người dùng theo ID
                 var user = await _userRepository.GetByIdAsync(id);
-                if (user == null)
+                if (user == null || user.Account_Status == "Deleted")
                     return NotFound(new { message = "Không tìm thấy người dùng" });
 
-                // Chuyển đổi sang DTO để không tiết lộ thông tin nhạy cảm như mật khẩu
+                // Chuyển đổi sang DTO
                 var userDto = new
                 {
                     user.User_ID,
                     user.Full_Name,
                     user.Email,
                     user.Role,
-                    user.Date_Of_Birth,
-                    user.Sex,
-                    user.Phone_Number,
-                    user.Address,
-                    user.Account_Status,
-                    user.Created_At,
-                    user.Last_Login
+                    user.Account_Status
                 };
 
                 return Ok(userDto);
             }
             catch (Exception ex)
             {
-                // Trả về lỗi nếu có vấn đề
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// API khôi phục người dùng đã bị xóa mềm
+        /// </summary>
+        [HttpPut("{id}/restore")]
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<IActionResult> RestoreUser(int id)
+        {
+            try
+            {
+                var user = await _userRepository.GetByIdAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Không tìm thấy người dùng" });
+
+                if (user.Account_Status != "Deleted")
+                    return BadRequest(new { message = "Người dùng chưa bị xóa mềm" });
+
+                user.Account_Status = "Active";
+                await _userRepository.UpdateAsync(user);
+                return Ok(new { message = "Khôi phục người dùng thành công" });
+            }
+            catch (Exception ex)
+            {
                 return BadRequest(new { message = ex.Message });
             }
         }
@@ -472,5 +486,6 @@ namespace STP.APIService.Controllers
         }
     }
 }
+
 
 

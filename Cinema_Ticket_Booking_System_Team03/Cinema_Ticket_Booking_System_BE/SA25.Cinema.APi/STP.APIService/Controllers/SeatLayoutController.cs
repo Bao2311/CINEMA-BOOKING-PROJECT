@@ -190,35 +190,6 @@ namespace STP.Web.Controllers
             }
         }
 
-        /// <summary>
-        /// Xóa cứng một hoặc nhiều ghế
-        /// </summary>
-        [HttpDelete("hard-delete")]
-        [Authorize(Roles = "Admin,Manager")] // Chỉ admin hoặc manager mới có quyền xóa cứng
-        public async Task<IActionResult> HardDeleteSeatLayouts([FromBody] BulkDeleteSeatsDto model)
-        {
-            try
-            {
-                if (model == null || model.LayoutIds == null || !model.LayoutIds.Any())
-                    return BadRequest(new { message = "Danh sách ghế cần xóa không được trống" });
-
-                var result = await _seatLayoutService.HardDeleteSeatLayoutsAsync(model);
-                return Ok(result);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Lỗi khi xóa cứng ghế: {Message}", ex.Message);
-                return StatusCode(500, new { message = "Có lỗi xảy ra khi xóa ghế" });
-            }
-        }
 
         [HttpPost("create-room-with-layout")]
         [Authorize(Roles = "Admin,Manager")] // Giới hạn quyền truy cập nếu cần
@@ -245,4 +216,5 @@ namespace STP.Web.Controllers
         }
     }
 }
+
 

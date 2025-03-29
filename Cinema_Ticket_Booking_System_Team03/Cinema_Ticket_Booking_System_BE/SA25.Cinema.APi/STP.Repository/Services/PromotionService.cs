@@ -241,25 +241,24 @@ namespace STP.Repository.Services
 
             var hasBeenUsed = await _context.PromotionUsages.AnyAsync(pu => pu.Promotion_ID == id);
 
+            // Đối với tất cả các trường hợp, sử dụng xóa mềm
             if (hasBeenUsed)
             {
                 promotion.Status = "Inactive";
-                await _context.SaveChangesAsync();
-
-                return new
-                {
-                    status = "deactivated",
-                    message = "Khuyến mãi đã được sử dụng, đã đánh dấu là không hoạt động thay vì xóa"
-                };
+            }
+            else
+            {
+                promotion.Status = "Deleted";
             }
 
-            _context.Promotions.Remove(promotion);
             await _context.SaveChangesAsync();
 
             return new
             {
-                status = "deleted",
-                message = "Khuyến mãi đã được xóa hoàn toàn"
+                status = hasBeenUsed ? "deactivated" : "deleted",
+                message = hasBeenUsed
+                    ? "Khuyến mãi đã được sử dụng, đã đánh dấu là không hoạt động"
+                    : "Khuyến mãi đã được đánh dấu là đã xóa"
             };
         }
 
@@ -694,5 +693,6 @@ namespace STP.Repository.Services
         }
     }
 }
+
 
 

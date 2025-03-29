@@ -39,11 +39,11 @@ namespace STP.Repository.Services
             return await query.Select(r => new RoomDTO
             {
                 Cinema_Room_ID = r.Cinema_Room_ID,
-                Room_Name = r.Room_Name ?? "Unknown Room", 
-                Room_Type = r.Room_Type ?? "2D",     
+                Room_Name = r.Room_Name ?? "Unknown Room",
+                Room_Type = r.Room_Type ?? "2D",
                 Seat_Quantity = r.Seat_Quantity,
-                Status = r.Status ?? "Active",             
-                Notes = r.Notes ?? "",                     
+                Status = r.Status ?? "Active",
+                Notes = r.Notes ?? "",
                 HasUpcomingShowtimes = _context.Showtimes
                     .Any(s => s.Cinema_Room_ID == r.Cinema_Room_ID && s.Show_Date.Date >= DateTime.Today)
             }).ToListAsync();
@@ -204,29 +204,25 @@ namespace STP.Repository.Services
             if (hasUpcomingShowtimes)
                 throw new InvalidOperationException("Không thể xóa phòng chiếu vì có suất chiếu đã được lên lịch");
 
-            var hasPastShowtimes = await _context.Showtimes
-                .AnyAsync(s => s.Cinema_Room_ID == id && s.Show_Date.Date < DateTime.Today);
+            // Luôn dùng cách xóa mềm thay vì xóa cứng
+            cinemaRoom.Status = "Inactive";
 
-            if (hasPastShowtimes)
-            {
-                cinemaRoom.Status = "Inactive";
-                await _context.SaveChangesAsync();
-                return new { message = "Phòng chiếu đã được đánh dấu là không hoạt động" };
-            }
-
+            // Xóa mềm tất cả các SeatLayouts liên quan
             var seatLayouts = await _context.SeatLayouts
                 .Where(sl => sl.Cinema_Room_ID == id)
                 .ToListAsync();
 
             if (seatLayouts.Any())
             {
-                _context.SeatLayouts.RemoveRange(seatLayouts);
+                foreach (var layout in seatLayouts)
+                {
+                    layout.Is_Active = false;
+                }
             }
 
-            _context.CinemaRooms.Remove(cinemaRoom);
             await _context.SaveChangesAsync();
 
-            return new { message = "Xóa phòng chiếu thành công" };
+            return new { message = "Phòng chiếu đã được đánh dấu là đã xóa" };
         }
 
         public async Task<object> CheckCinemaRoomStatusAsync(int id)
@@ -297,4 +293,5 @@ namespace STP.Repository.Services
         }
     }
 }
+
 
