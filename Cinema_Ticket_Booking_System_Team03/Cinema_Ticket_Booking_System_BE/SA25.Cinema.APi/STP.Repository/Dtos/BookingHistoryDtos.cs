@@ -137,7 +137,6 @@ namespace STP.Repository.Dtos
         /// Thông tin chi tiết về suất chiếu
         /// </summary>
         public ShowtimeInfoDTO Showtime { get; set; }
-
         public int User_ID { get; set; }
     }
 
@@ -462,11 +461,10 @@ namespace STP.Repository.Dtos
     /// DTO phản hồi sau khi tạo đơn đặt vé
     /// </summary>
     public class BookingResponseDTO
-    {
-        /// <summary>
-        /// ID đơn đặt vé
-        /// ID đơn đặt vé
-        /// </summary>
+    {         /// <summary>
+              /// ID đơn đặt vé
+              /// ID đơn đặt vé
+              /// </summary>
         public int Booking_ID { get; set; }
 
         /// <summary>
@@ -513,12 +511,26 @@ namespace STP.Repository.Dtos
         /// Danh sách phương thức thanh toán có sẵn
         /// </summary>
         public string Payment_Method { get; set; }
+
         public DateTime Transaction_Date { get; set; }
+
         public ShowtimeInfoDTO Showtime { get; set; }
+
         public List<TicketDTO> Tickets { get; set; }
+
         public DateTime Booking_Date { get; set; }
+
         public DateTime Cancellation_Date { get; set; }
+
         public int User_ID { get; set; }
+
+        public int PointsUsed { get; set; } = 0;
+
+        public decimal DiscountFromPoints { get; set; } = 0;
+
+        public int PointsEarned { get; set; } = 0;
+
+        public int CurrentPoints { get; set; } = 0;
     }
     public class ShowtimeInfoDTO
     {
@@ -659,6 +671,8 @@ namespace STP.Repository.Dtos
         /// Phương thức thanh toán
         /// </summary>
         public string Payment_Method { get; set; }
+
+        public int PointsToUse { get; set; } = 0;
     }
     public class BookingSearchResponseDTO
     {
@@ -677,5 +691,6 @@ namespace STP.Repository.Dtos
         public string Seats { get; set; }
     }
 }
+
 
 

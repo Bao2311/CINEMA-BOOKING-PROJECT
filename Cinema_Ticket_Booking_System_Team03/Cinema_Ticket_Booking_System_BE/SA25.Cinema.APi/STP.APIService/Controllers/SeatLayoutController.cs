@@ -219,5 +219,30 @@ namespace STP.Web.Controllers
                 return StatusCode(500, new { message = "Có lỗi xảy ra khi xóa ghế" });
             }
         }
+
+        [HttpPost("create-room-with-layout")]
+        [Authorize(Roles = "Admin,Manager")] // Giới hạn quyền truy cập nếu cần
+        public async Task<IActionResult> CreateRoomWithExistingLayout([FromBody] CreateRoomWithLayoutDto model)
+        {
+            try
+            {
+                var result = await _seatLayoutService.CreateRoomWithExistingLayoutAsync(model);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tạo phòng chiếu mới với layout có sẵn");
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi tạo phòng chiếu mới" });
+            }
+        }
     }
 }
+

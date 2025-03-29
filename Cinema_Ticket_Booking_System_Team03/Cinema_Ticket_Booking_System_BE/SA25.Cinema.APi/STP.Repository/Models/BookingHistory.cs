@@ -33,6 +33,8 @@ namespace STP.Repository.Models
         /// </summary>
         public string Status { get; set; }
 
+        public string Notes { get; set; }
+
         /// <summary>
         /// Thuộc tính điều hướng đến đơn đặt vé liên quan
         /// </summary>
@@ -40,3 +42,6 @@ namespace STP.Repository.Models
         public virtual TicketBooking TicketBooking { get; set; }
     }
 }
+
+
+

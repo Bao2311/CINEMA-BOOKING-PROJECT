@@ -38,6 +38,8 @@ namespace STP.Repository.Data
         public DbSet<PointsRedemption> PointsRedemptions { get; set; }
         public DbSet<FailedLogin> FailedLogins { get; set; }
         public DbSet<TicketPricing> TicketPricings { get; set; }
+        public DbSet<UserPoints> UserPoints { get; set; }
+        public DbSet<PointsEarning> PointsEarnings { get; set; }
 
         /// <summary>
         /// Lấy chuỗi kết nối từ tệp cấu hình appsettings.json
@@ -92,6 +94,8 @@ namespace STP.Repository.Data
             modelBuilder.Entity<MovieRating>().ToTable("Movie_Ratings");
             modelBuilder.Entity<PointsRedemption>().ToTable("Points_Redemption");
             modelBuilder.Entity<TicketPricing>().ToTable("Ticket_Pricing");
+            modelBuilder.Entity<UserPoints>().ToTable("User_Points");
+            modelBuilder.Entity<PointsEarning>().ToTable("Points_Earning");
 
             // Cấu hình khóa duy nhất
             modelBuilder.Entity<Ticket>()
@@ -294,6 +298,39 @@ namespace STP.Repository.Data
             modelBuilder.Entity<TicketPricing>()
                 .HasIndex(p => new { p.Room_Type, p.Seat_Type })
                 .IsUnique();
+
+            // Cấu hình quan hệ cho UserPoints
+            modelBuilder.Entity<UserPoints>()
+                .HasOne(up => up.User)
+                .WithMany()
+                .HasForeignKey(up => up.User_ID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Cấu hình quan hệ cho PointsEarning
+            modelBuilder.Entity<PointsEarning>()
+                .HasOne(pe => pe.User)
+                .WithMany()
+                .HasForeignKey(pe => pe.User_ID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PointsEarning>()
+                .HasOne(pe => pe.TicketBooking)
+                .WithMany()
+                .HasForeignKey(pe => pe.Booking_ID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Thêm index cho tối ưu truy vấn
+            modelBuilder.Entity<UserPoints>()
+                .HasIndex(up => up.User_ID)
+                .IsUnique();  // Mỗi người dùng chỉ có một bản ghi tổng điểm
+
+            modelBuilder.Entity<PointsEarning>()
+                .HasIndex(pe => pe.User_ID);
+
+            modelBuilder.Entity<PointsEarning>()
+                .HasIndex(pe => pe.Booking_ID);
         }
     }
 }
+
+
