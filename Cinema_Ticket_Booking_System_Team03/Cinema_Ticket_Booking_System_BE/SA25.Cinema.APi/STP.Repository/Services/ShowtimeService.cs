@@ -903,5 +903,73 @@ namespace STP.Service.Services
                 Room = new RoomDTO { Cinema_Room_ID = showtime.Cinema_Room_ID, Room_Name = roomName, Room_Type = _context.CinemaRooms.First(r => r.Cinema_Room_ID == showtime.Cinema_Room_ID).Room_Type }
             };
         }
+
+        /// <summary>
+        /// Tự động ẩn các suất chiếu đã qua thời gian chiếu
+        /// </summary>
+        /// <returns>Số lượng suất chiếu đã được ẩn</returns>
+        public async Task<int> AutoHideExpiredShowtimesAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Bắt đầu tự động ẩn các suất chiếu đã hết hạn");
+
+                var now = DateTime.Now;
+                var today = DateTime.Today;
+
+                // Lấy danh sách các suất chiếu đã qua thời gian chiếu nhưng chưa được ẩn
+                var expiredShowtimes = await _context.Showtimes
+                    .Where(s =>
+                        s.Status != "Hidden" &&
+                        s.Status != "Cancelled" &&
+                        ((s.Show_Date.Date < today) ||
+                        (s.Show_Date.Date == today && s.End_Time < now.TimeOfDay)))
+                    .ToListAsync();
+
+                if (!expiredShowtimes.Any())
+                {
+                    _logger.LogInformation("Không có suất chiếu nào đã hết hạn cần ẩn");
+                    return 0;
+                }
+
+                _logger.LogInformation($"Tìm thấy {expiredShowtimes.Count} suất chiếu đã hết hạn cần ẩn");
+
+                using (var transaction = await _context.Database.BeginTransactionAsync())
+                {
+                    try
+                    {
+                        // Cập nhật trạng thái của tất cả suất chiếu đã qua
+                        foreach (var showtime in expiredShowtimes)
+                        {
+                            showtime.Status = "Hidden";
+                            showtime.Updated_At = DateTime.Now;
+                            showtime.Updated_By = 0; // System user
+
+                            _logger.LogInformation($"Ẩn suất chiếu ID: {showtime.Showtime_ID}, " +
+                                $"Phim: {showtime.Movie_ID}, " +
+                                $"Ngày chiếu: {showtime.Show_Date.ToShortDateString()}, " +
+                                $"Giờ chiếu: {showtime.Start_Time}");
+                        }
+
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync();
+
+                        _logger.LogInformation($"Đã ẩn thành công {expiredShowtimes.Count} suất chiếu đã hết hạn");
+                        return expiredShowtimes.Count;
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        _logger.LogError(ex, "Lỗi khi ẩn các suất chiếu đã hết hạn");
+                        throw;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tự động ẩn các suất chiếu đã hết hạn");
+                throw;
+            }
+        }
     }
 }

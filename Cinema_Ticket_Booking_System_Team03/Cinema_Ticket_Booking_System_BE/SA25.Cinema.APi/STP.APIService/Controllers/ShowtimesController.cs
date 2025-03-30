@@ -206,6 +206,23 @@ namespace STP.API.Controllers
             }
         }
 
+
+        [HttpPost("hide-expired")]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> HideExpiredShowtimes()
+        {
+            try
+            {
+                int hiddenCount = await _showtimeService.AutoHideExpiredShowtimesAsync();
+                return Ok(new { hiddenCount, message = $"Đã ẩn {hiddenCount} suất chiếu đã hết hạn" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi ẩn các suất chiếu đã hết hạn thủ công");
+                return StatusCode(500, "Lỗi máy chủ nội bộ. Vui lòng thử lại sau.");
+            }
+        }
+
         [HttpGet("movie/{movieId}")]
         [AllowAnonymous]
         public async Task<IActionResult> GetShowtimesByMovie(int movieId)
