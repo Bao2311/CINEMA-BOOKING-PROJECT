@@ -13,6 +13,7 @@ namespace STP.Repository.Dtos
         /// ID của ghế
         /// </summary>
         public int Seat_ID { get; set; }
+
         public string Seat { get; set; }
 
         /// <summary>
@@ -39,6 +40,7 @@ namespace STP.Repository.Dtos
         /// Trạng thái ghế (true: còn trống, false: đã đặt)
         /// </summary>
         public String Seat_Status { get; set; }
+
         public int Layout_ID { get; set; }
 
         public bool Is_Active { get; set; }
@@ -47,8 +49,11 @@ namespace STP.Repository.Dtos
     public class CreateRoomWithLayoutDto
     {
         public string RoomName { get; set; }
+
         public string RoomType { get; set; }
+
         public int TemplateRoomId { get; set; }
+
     }
 
     /// <summary>
@@ -85,8 +90,11 @@ namespace STP.Repository.Dtos
         /// Danh sách các hàng ghế
         /// </summary>
         public List<string> Rows { get; set; }
+
         public string Movie_Title { get; set; }
+
         public string Cinema_Room { get; set; }
+
         public TimeSpan End_Time { get; set; }
         /// <summary>
         /// Danh sách ghế ngồi
@@ -98,42 +106,62 @@ namespace STP.Repository.Dtos
     public class SeatTypeCreateDto
     {
         public string Room_Type { get; set; }
+
         public string Seat_Type { get; set; }
+
         public decimal Base_Price { get; set; }
+
     }
     public class SeatTypeResponseDto
     {
         public int Price_ID { get; set; }
+
         public string Room_Type { get; set; }
+
         public string Seat_Type { get; set; }
+
         public decimal Base_Price { get; set; }
+
         public string Status { get; set; }
+
         public DateTime Created_Date { get; set; }
+
     }
     public class SeatTypeUpdateDto
     {
         public string Room_Type { get; set; }
+
         public string Seat_Type { get; set; }
+
         public decimal Base_Price { get; set; }
+
         public string Status { get; set; }
+
     }
     public class SeatMapConfigurationDto
     {
         public List<RowConfigurationDto> Rows { get; set; }
+
         public int ColumnsPerRow { get; set; }
+
     }
 
     public class RowConfigurationDto
     {
         public string RowLabel { get; set; }
+
         public string SeatType { get; set; } = "Regular";
+
         public List<int> EmptyColumns { get; set; } = new List<int>();
+
     }
 
     public class UpdateSeatTypeDto
     {
         public string SeatType { get; set; }
+
         public bool? IsActive { get; set; }
+
     }
 
     public class BulkUpdateSeatsDto
@@ -145,24 +173,39 @@ namespace STP.Repository.Dtos
     public class BulkUpdateResultDto
     {
         public int UpdatedCount { get; set; }
+
         public string SeatType { get; set; }
+
         public bool? IsActive { get; set; }
+
         public List<int> UsedSeats { get; set; }
+
         public string Message { get; set; }
+
     }
     public class BulkRowConfigurationDto
     {
         public string RowsInput { get; set; }  // Chuỗi chứa các hàng, ví dụ: "A,B,C" hoặc "A-Z"
+        
         public int ColumnsPerRow { get; set; }
+
         public string SeatType { get; set; }
+
         public List<int> EmptyColumns { get; set; }
+
+        public bool? OverwriteExisting { get; set; }
+
     }
 
     public class RowConfigDto
     {
+
         public string RowLabel { get; set; }
+
         public string SeatType { get; set; }
+
         public List<int> EmptyColumns { get; set; } = new List<int>();
+
     }
 
     /// <summary>
