@@ -21,8 +21,9 @@ import ManageCinemaRoomPage from './pages/ManageCinemaRoomPage';
 import ManagePromotionPage from './pages/ManagePromotionPage';
 import UserPromotionsPage from './pages/PromotionPage';
 import TicketSellingByStaff from './pages/StaffPage';
-import ManageBookings from './pages/StaffPage';
-
+import StaffPage from './pages/StaffPage';
+import BookingSuccessPage from './pages/BookingSuccessPage';
+import ManageBookingPage from './pages/ManageBookingPage';
 function App() {
   return (
     <AuthProvider>
@@ -41,8 +42,8 @@ function App() {
             <Route path="/manage-movies" element={<ManageMoviesPage />} />
             <Route path="/manage-showtimes" element={<ManageShowtimesPage />} />
             <Route path="/staff" element={<TicketSellingByStaff />} />
-
-            <Route path="/manage-bookings" element={<ManageBookings />} />
+            <Route path="/booking-success" element={<BookingSuccessPage />} />
+            <Route path="/manage-booking" element={<ManageBookingPage />} />
             <Route path="/movies" element={<MoviesPage />} />
             <Route path="/movie/:id" element={<MovieDetailPage />} />
             <Route path="/showtimes" element={<ShowtimesPage />} />
