@@ -702,6 +702,21 @@ namespace STP.Repository.Dtos
         public string PaymentMethod { get; set; }
         public string Seats { get; set; }
     }
+
+    public class PendingBookingCheckDTO
+    {
+        public int Booking_ID { get; set; }
+        public DateTime Booking_Date { get; set; }
+        public DateTime Payment_Deadline { get; set; }
+        public bool IsExpired { get; set; }
+        public string Seats { get; set; }
+        public decimal Total_Amount { get; set; }
+        public string MovieName { get; set; }
+        public string RoomName { get; set; }
+        public DateTime Show_Date { get; set; }
+        public TimeSpan Start_Time { get; set; }
+        public int RemainingMinutes { get; set; }
+    }
 }
 
 

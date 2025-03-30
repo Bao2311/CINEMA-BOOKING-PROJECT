@@ -127,41 +127,35 @@ namespace STP.API.Controllers
         /// Cập nhật thông tin lịch chiếu
         /// </summary>
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Manager")] // Chỉ Admin và Manager mới có quyền cập nhật lịch chiếu
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> UpdateShowtime(int id, [FromBody] ShowtimeUpdateDto showtimeDto)
         {
             try
             {
-                // Kiểm tra tính hợp lệ của dữ liệu đầu vào
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
-                // Lấy ID người dùng từ token JWT
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                // Log để debug
+                _logger.LogInformation($"Attempting to update showtime ID: {id} with data: " +
+                    $"Movie: {showtimeDto.Movie_ID}, Room: {showtimeDto.Cinema_Room_ID}, " +
+                    $"Date: {showtimeDto.Show_Date:yyyy-MM-dd}, Time: {showtimeDto.Start_Time}, " +
+                    $"Status: {showtimeDto.Status}");
 
-                // Gọi service để cập nhật lịch chiếu
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
                 var result = await _showtimeService.UpdateShowtimeAsync(id, showtimeDto, userId);
 
-                // Kiểm tra nếu không tìm thấy lịch chiếu
                 if (!result)
                     return NotFound($"Không tìm thấy lịch chiếu ID: {id}");
 
-                // Trả về dữ liệu đã cập nhật
                 return Ok(showtimeDto);
             }
             catch (InvalidOperationException ex)
             {
-                // Xử lý lỗi nghiệp vụ và trả về mã lỗi 400
                 _logger.LogWarning(ex, $"Lỗi nghiệp vụ khi cập nhật lịch chiếu ID: {id}");
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                // Ghi log lỗi và trả về mã lỗi 500
                 _logger.LogError(ex, $"Lỗi cập nhật lịch chiếu ID: {id}");
                 return StatusCode(500, "Lỗi hệ thống");
             }

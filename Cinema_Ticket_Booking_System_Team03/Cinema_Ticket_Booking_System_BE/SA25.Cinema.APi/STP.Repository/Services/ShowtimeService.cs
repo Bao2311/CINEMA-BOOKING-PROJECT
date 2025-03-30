@@ -210,6 +210,28 @@ namespace STP.Service.Services
                     throw new InvalidOperationException("Thời gian kết thúc không hợp lệ. Vui lòng đảm bảo thời gian chiếu đủ thời lượng phim và thêm 15 phút nghỉ.");
                 }
 
+                // Kiểm tra nếu đang đặt trạng thái thành "Scheduled" 
+                if (showtimeDto.Status == "Scheduled")
+                {
+                    // Tạo DateTime kết hợp ngày chiếu và giờ bắt đầu
+                    var showDate = showtimeDto.Show_Date.Date; // Đảm bảo chỉ lấy phần ngày
+                    var showTime = DateTime.Today.Add(showtimeDto.Start_Time); // Lấy phần giờ
+                    var showDateTime = new DateTime(
+                        showDate.Year, showDate.Month, showDate.Day,
+                        showTime.Hour, showTime.Minute, showTime.Second
+                    );
+
+                    var now = DateTime.Now;
+
+                    _logger.LogInformation($"Kiểm tra thời gian chiếu: ShowTime={showDateTime}, CurrentTime={now}");
+
+                    if (showDateTime <= now)
+                    {
+                        _logger.LogWarning($"Cannot set status to Scheduled: Showtime ID {id} has show time ({showDateTime}) that has already passed current time ({now})");
+                        throw new InvalidOperationException($"Không thể đặt trạng thái 'Scheduled' cho suất chiếu đã qua. Thời gian chiếu: {showDateTime:yyyy-MM-dd HH:mm:ss}, Thời gian hiện tại: {now:yyyy-MM-dd HH:mm:ss}");
+                    }
+                }
+
                 // Kiểm tra xem khung giờ mới có trùng với lịch chiếu khác trong cùng phòng không
                 bool isRoomAvailable = await IsShowtimeAvailableAsync(
                     showtimeDto.Cinema_Room_ID,
@@ -234,6 +256,15 @@ namespace STP.Service.Services
                 existingShowtime.Base_Price = showtimeDto.Base_Price;
                 existingShowtime.Capacity_Available = showtimeDto.Capacity_Available;
 
+                // Cập nhật trạng thái nếu có thay đổi
+                if (!string.IsNullOrEmpty(showtimeDto.Status))
+                {
+                    existingShowtime.Status = showtimeDto.Status;
+                }
+
+                // Cập nhật thông tin thay đổi
+                existingShowtime.Updated_At = DateTime.Now;
+
                 // Lưu thay đổi
                 bool result = await _showtimeRepository.UpdateAsync(id, existingShowtime);
                 if (result)
@@ -253,6 +284,7 @@ namespace STP.Service.Services
                 throw;
             }
         }
+
         /// <summary>
         /// Ẩn lịch chiếu bằng cách đổi trạng thái thành Hidden
         /// </summary>
@@ -333,6 +365,7 @@ namespace STP.Service.Services
 
             return date;
         }
+
         /// <summary>
         /// Kiểm tra xem khung giờ chiếu có khả dụng không trong phòng chiếu cụ thể
         /// và phải cách nhau tối thiểu 15 phút so với các lịch chiếu khác
@@ -943,7 +976,6 @@ namespace STP.Service.Services
                         {
                             showtime.Status = "Hidden";
                             showtime.Updated_At = DateTime.Now;
-                            showtime.Updated_By = 0; // System user
 
                             _logger.LogInformation($"Ẩn suất chiếu ID: {showtime.Showtime_ID}, " +
                                 $"Phim: {showtime.Movie_ID}, " +

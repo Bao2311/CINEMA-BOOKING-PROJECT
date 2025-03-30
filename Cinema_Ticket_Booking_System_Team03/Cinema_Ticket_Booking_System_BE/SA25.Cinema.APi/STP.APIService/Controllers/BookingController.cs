@@ -524,5 +524,39 @@ namespace STP.APIService.Controllers
             // Thay thế dấu nháy kép bởi hai dấu nháy kép
             return field.Replace("\"", "\"\"");
         }
+
+        // Thêm vào BookingController
+        [HttpGet("check-pending")]
+        [Authorize]
+        public async Task<IActionResult> CheckPendingBooking()
+        {
+            try
+            {
+                // Lấy ID người dùng từ token
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+
+                // Gọi service để kiểm tra booking Pending
+                var pendingBooking = await _bookingService.CheckPendingBooking(userId);
+
+                if (pendingBooking == null)
+                {
+                    // Không có booking Pending, người dùng có thể đặt vé mới
+                    return Ok(new { canCreateNewBooking = true });
+                }
+
+                // Trả về thông tin booking Pending để frontend hiển thị
+                return Ok(new
+                {
+                    canCreateNewBooking = false,
+                    pendingBooking = pendingBooking,
+                    message = "Bạn đang có đơn đặt vé chưa thanh toán. Vui lòng thanh toán hoặc hủy đơn đặt vé trước đó để tiếp tục."
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi kiểm tra booking Pending");
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi kiểm tra booking" });
+            }
+        }
     }
 }
