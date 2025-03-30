@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FiPlus, 
   FiEdit2, 
@@ -448,6 +448,7 @@ const CancelButton = styled.button`
 `;
 
 const ManageCinemaRoomPage: React.FC = () => {
+  // Existing state management
   const [isAddingRoom, setIsAddingRoom] = useState(false);
   const [isUpdatingRoom, setIsUpdatingRoom] = useState(false);
   const [newRoom, setNewRoom] = useState({
@@ -626,40 +627,39 @@ const ManageCinemaRoomPage: React.FC = () => {
       setIsLoadingSeatLayout(false);
     }
   };
+// Add this function to handle the delete operation
+const handleDeleteSeatLayout = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    toast.error('You need to be logged in to delete a seat layout.');
+    return;
+  }
 
-  // Add this function to handle the delete operation
-  const handleDeleteSeatLayout = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      toast.error('You need to be logged in to delete a seat layout.');
+  try {
+    // Assuming the API requires layout IDs instead of cinema room ID
+    const layoutIds = seatLayout?.rows.$values.flatMap(row => 
+      row.seats.$values.map(seat => seat.layout_ID)
+    );
+
+    if (!layoutIds || layoutIds.length === 0) {
+      toast.error('No seat layout IDs found to delete.');
       return;
     }
 
-    try {
-      // Assuming the API requires layout IDs instead of cinema room ID
-      const layoutIds = seatLayout?.rows.$values.flatMap(row => 
-        row.seats.$values.map(seat => seat.layout_ID)
-      );
+    const response = await axios.delete('https://localhost:7168/api/SeatLayout/bulk-delete', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      data: { layoutIds }
+    });
 
-      if (!layoutIds || layoutIds.length === 0) {
-        toast.error('No seat layout IDs found to delete.');
-        return;
-      }
-
-      const response = await axios.delete('https://localhost:7168/api/SeatLayout/hard-delete', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        data: { layoutIds }
-      });
-
-      toast.success('Seat layout deleted successfully!');
-      setIsViewingSeatLayout(false);
-    } catch (error) {
-      console.error('Error deleting seat layout:', error);
-      toast.error('Failed to delete seat layout.');
-    }
-  };
+    toast.success('Seat layout deleted successfully!');
+    setIsViewingSeatLayout(false);
+  } catch (error) {
+    console.error('Error deleting seat layout:', error);
+    toast.error('Failed to delete seat layout.');
+  }
+};
 
   // Update individual seat status
   const updateSeatStatus = async (layoutId: number, currentIsActive: boolean) => {
@@ -898,20 +898,17 @@ const ManageCinemaRoomPage: React.FC = () => {
     }
 
     try {
-      await axios.put(`https://localhost:7168/api/CinemaRoom/${id}`, { status: 'Inactive' }, {
+      await axios.delete(`https://localhost:7168/api/CinemaRoom/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-
-      setRooms(rooms.map(room => 
-        room.cinema_Room_ID === id ? { ...room, status: 'Inactive' } : room
-      ));
-      toast.success('Cinema room status updated to Inactive successfully!');
+      setRooms(rooms.filter(room => room.cinema_Room_ID !== id));
+      toast.success('Cinema room deleted successfully!');
       setConfirmDeleteId(null);
     } catch (error) {
-      console.error('Error updating room status:', error);
-      toast.error('Failed to update cinema room status.');
+      console.error('Error deleting room:', error);
+      toast.error('Failed to delete cinema room.');
     }
   };
 
@@ -1016,7 +1013,7 @@ const ManageCinemaRoomPage: React.FC = () => {
   const filteredRooms = rooms.filter(room => {
     const matchesSearch = room.room_Name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || room.status === statusFilter;
-    return matchesSearch && matchesStatus && room.status !== 'Inactive';
+    return matchesSearch && matchesStatus;
   });
 
   // Status badge component
@@ -1612,171 +1609,171 @@ const ManageCinemaRoomPage: React.FC = () => {
 
         {/* View Seat Layout Modal */}
         <Modal isOpen={isViewingSeatLayout} onClose={() => {
+  setIsViewingSeatLayout(false);
+  setSelectedSeats([]);
+  setIsBulkSelecting(false);
+  setSeatPricesMap({});
+}}>
+  <ModalContent>
+    <h2 className="text-2xl font-bold text-gray-900 mb-2">Seat Layout for {seatLayout?.cinema_room.room_Name}</h2>
+    <p className="text-gray-600 mb-6">
+      Total seats: {seatLayout?.stats.total_seats} | Dimensions: {seatLayout?.dimensions.rows} rows × {seatLayout?.dimensions.columns} columns
+    </p>
+
+    {isLoadingSeatLayout ? (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-600"></div>
+        <span className="ml-2 text-gray-600">Loading seat layout...</span>
+      </div>
+    ) : seatLayout ? (
+      <div className="flex flex-col items-center">
+        <BulkActions>
+          <BulkSelectButton onClick={() => setIsBulkSelecting(!isBulkSelecting)}>
+            {isBulkSelecting ? <FiCheckSquare /> : <FiSquare />}
+            {isBulkSelecting ? 'Cancel Selection' : 'Select Multiple Seats'}
+          </BulkSelectButton>
+          {isBulkSelecting && (
+            <>
+              <BulkActionSelect
+                value={bulkSeatType}
+                onChange={(e) => setBulkSeatType(e.target.value)}
+              >
+                <option value="Regular">Regular</option>
+                <option value="VIP">VIP</option>
+              </BulkActionSelect>
+              <BulkActionSelect
+                value={bulkIsActive.toString()}
+                onChange={(e) => setBulkIsActive(e.target.value === 'true')}
+              >
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </BulkActionSelect>
+              <BulkActionButton
+                onClick={bulkUpdateSeats}
+                disabled={selectedSeats.length === 0}
+              >
+                Update {selectedSeats.length} Seat{selectedSeats.length !== 1 ? 's' : ''}
+              </BulkActionButton>
+            </>
+          )}
+        </BulkActions>
+
+        <Screen>
+          <ScreenText>SCREEN</ScreenText>
+        </Screen>
+
+        <SeatingArea>
+          {/* Column Headers (Top) */}
+          <div /> {/* Empty cell for left row label column */}
+          <ColumnHeader>
+            {Array.from({ length: seatLayout.dimensions.columns }, (_, i) => (
+              <ColumnLabel key={`top-${i}`} onClick={() => handleColumnSelect(i + 1)}>
+                {i + 1}
+              </ColumnLabel>
+            ))}
+          </ColumnHeader>
+          <div /> {/* Empty cell for right row label column */}
+
+          {/* Seat Rows */}
+          {seatLayout.rows.$values.map((row, rowIndex) => (
+            <React.Fragment key={row.row}>
+              <RowLabel onClick={() => handleRowSelect(row)}>{row.row}</RowLabel>
+              <SeatsSection>
+                {row.seats.$values
+                  .sort((a, b) => a.column_Number - b.column_Number) // Sort seats by column_Number
+                  .map(seat => (
+                    <SeatButtonWrapper key={seat.layout_ID}>
+                      <SeatButton
+                        seatType={seat.seat_Type}
+                        isActive={seat.is_Active}
+                        isSelected={selectedSeats.includes(seat.layout_ID)}
+                        onClick={() => handleSeatClick(seat)}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <SeatNumber>{`${seat.column_Number}${seat.row_Label}`}</SeatNumber>
+                      </SeatButton>
+                      <Tooltip>
+                        {seatPricesMap[seat.layout_ID] !== undefined
+                          ? `${seatPricesMap[seat.layout_ID]} VND`
+                          : 'Price not available'}
+                      </Tooltip>
+                    </SeatButtonWrapper>
+                  ))}
+              </SeatsSection>
+              <RowLabel onClick={() => handleRowSelect(row)}>{row.row}</RowLabel>
+            </React.Fragment>
+          ))}
+
+          {/* Column Headers (Bottom) */}
+          <div /> {/* Empty cell for left row label column */}
+          <ColumnFooter>
+            {Array.from({ length: seatLayout.dimensions.columns }, (_, i) => (
+              <ColumnLabel key={`bottom-${i}`} onClick={() => handleColumnSelect(i + 1)}>
+                {i + 1}
+              </ColumnLabel>
+            ))}
+          </ColumnFooter>
+          <div /> {/* Empty cell for right row label column */}
+        </SeatingArea>
+
+        <SeatLegend>
+          {seatLayout.stats.seat_types.$values.map(type => (
+            <LegendItem key={type.seatType}>
+              <ColorBox
+                color={
+                  type.seatType === 'Regular'
+                    ? '#3b82f6'
+                    : type.seatType === 'VIP'
+                    ? '#ef4444'
+                    : '#9ca3af'
+                }
+              />
+              <span>{type.seatType} ({type.count})</span>
+            </LegendItem>
+          ))}
+          <LegendItem>
+            <ColorBox color="#9ca3af" />
+            <span>Inactive</span>
+          </LegendItem>
+          {isBulkSelecting && (
+            <LegendItem>
+              <ColorBox color="#22c55e" />
+              <span>Selected</span>
+            </LegendItem>
+          )}
+        </SeatLegend>
+
+        {/* Delete Button */}
+        <div className="mt-4">
+          <button
+            onClick={handleDeleteSeatLayout}
+            className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+          >
+            <FiTrash2 className="mr-2" /> Delete Seat Layout
+          </button>
+        </div>
+      </div>
+    ) : (
+      <p className="text-center text-gray-500">No seat layout available for this room.</p>
+    )}
+
+    <div className="mt-6 flex justify-end">
+      <button
+        onClick={() => {
           setIsViewingSeatLayout(false);
           setSelectedSeats([]);
           setIsBulkSelecting(false);
           setSeatPricesMap({});
-        }}>
-          <ModalContent>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Seat Layout for {seatLayout?.cinema_room.room_Name}</h2>
-            <p className="text-gray-600 mb-6">
-              Total seats: {seatLayout?.stats.total_seats} | Dimensions: {seatLayout?.dimensions.rows} rows × {seatLayout?.dimensions.columns} columns
-            </p>
-
-            {isLoadingSeatLayout ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-600"></div>
-                <span className="ml-2 text-gray-600">Loading seat layout...</span>
-              </div>
-            ) : seatLayout ? (
-              <div className="flex flex-col items-center">
-                <BulkActions>
-                  <BulkSelectButton onClick={() => setIsBulkSelecting(!isBulkSelecting)}>
-                    {isBulkSelecting ? <FiCheckSquare /> : <FiSquare />}
-                    {isBulkSelecting ? 'Cancel Selection' : 'Select Multiple Seats'}
-                  </BulkSelectButton>
-                  {isBulkSelecting && (
-                    <>
-                      <BulkActionSelect
-                        value={bulkSeatType}
-                        onChange={(e) => setBulkSeatType(e.target.value)}
-                      >
-                        <option value="Regular">Regular</option>
-                        <option value="VIP">VIP</option>
-                      </BulkActionSelect>
-                      <BulkActionSelect
-                        value={bulkIsActive.toString()}
-                        onChange={(e) => setBulkIsActive(e.target.value === 'true')}
-                      >
-                        <option value="true">Active</option>
-                        <option value="false">Inactive</option>
-                      </BulkActionSelect>
-                      <BulkActionButton
-                        onClick={bulkUpdateSeats}
-                        disabled={selectedSeats.length === 0}
-                      >
-                        Update {selectedSeats.length} Seat{selectedSeats.length !== 1 ? 's' : ''}
-                      </BulkActionButton>
-                    </>
-                  )}
-                </BulkActions>
-
-                <Screen>
-                  <ScreenText>SCREEN</ScreenText>
-                </Screen>
-
-                <SeatingArea>
-                  {/* Column Headers (Top) */}
-                  <div /> {/* Empty cell for left row label column */}
-                  <ColumnHeader>
-                    {Array.from({ length: seatLayout.dimensions.columns }, (_, i) => (
-                      <ColumnLabel key={`top-${i}`} onClick={() => handleColumnSelect(i + 1)}>
-                        {i + 1}
-                      </ColumnLabel>
-                    ))}
-                  </ColumnHeader>
-                  <div /> {/* Empty cell for right row label column */}
-
-                  {/* Seat Rows */}
-                  {seatLayout.rows.$values.map((row, rowIndex) => (
-                    <React.Fragment key={row.row}>
-                      <RowLabel onClick={() => handleRowSelect(row)}>{row.row}</RowLabel>
-                      <SeatsSection>
-                        {row.seats.$values
-                          .sort((a, b) => a.column_Number - b.column_Number) // Sort seats by column_Number
-                          .map(seat => (
-                            <SeatButtonWrapper key={seat.layout_ID}>
-                              <SeatButton
-                                seatType={seat.seat_Type}
-                                isActive={seat.is_Active}
-                                isSelected={selectedSeats.includes(seat.layout_ID)}
-                                onClick={() => handleSeatClick(seat)}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.3 }}
-                              >
-                                <SeatNumber>{`${seat.column_Number}${seat.row_Label}`}</SeatNumber>
-                              </SeatButton>
-                              <Tooltip>
-                                {seatPricesMap[seat.layout_ID] !== undefined
-                                  ? `${seatPricesMap[seat.layout_ID]} VND`
-                                  : 'Price not available'}
-                              </Tooltip>
-                            </SeatButtonWrapper>
-                          ))}
-                      </SeatsSection>
-                      <RowLabel onClick={() => handleRowSelect(row)}>{row.row}</RowLabel>
-                    </React.Fragment>
-                  ))}
-
-                  {/* Column Headers (Bottom) */}
-                  <div /> {/* Empty cell for left row label column */}
-                  <ColumnFooter>
-                    {Array.from({ length: seatLayout.dimensions.columns }, (_, i) => (
-                      <ColumnLabel key={`bottom-${i}`} onClick={() => handleColumnSelect(i + 1)}>
-                        {i + 1}
-                      </ColumnLabel>
-                    ))}
-                  </ColumnFooter>
-                  <div /> {/* Empty cell for right row label column */}
-                </SeatingArea>
-
-                <SeatLegend>
-                  {seatLayout.stats.seat_types.$values.map(type => (
-                    <LegendItem key={type.seatType}>
-                      <ColorBox
-                        color={
-                          type.seatType === 'Regular'
-                            ? '#3b82f6'
-                            : type.seatType === 'VIP'
-                            ? '#ef4444'
-                            : '#9ca3af'
-                        }
-                      />
-                      <span>{type.seatType} ({type.count})</span>
-                    </LegendItem>
-                  ))}
-                  <LegendItem>
-                    <ColorBox color="#9ca3af" />
-                    <span>Inactive</span>
-                  </LegendItem>
-                  {isBulkSelecting && (
-                    <LegendItem>
-                      <ColorBox color="#22c55e" />
-                      <span>Selected</span>
-                    </LegendItem>
-                  )}
-                </SeatLegend>
-
-                {/* Delete Button */}
-                <div className="mt-4">
-                  <button
-                    onClick={handleDeleteSeatLayout}
-                    className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                  >
-                    <FiTrash2 className="mr-2" /> Delete Seat Layout
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <p className="text-center text-gray-500">No seat layout available for this room.</p>
-            )}
-
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={() => {
-                  setIsViewingSeatLayout(false);
-                  setSelectedSeats([]);
-                  setIsBulkSelecting(false);
-                  setSeatPricesMap({});
-                }}
-                className="flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
-              >
-                <FiX className="mr-2" /> Close
-              </button>
-            </div>
-          </ModalContent>
-        </Modal>
+        }}
+        className="flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+      >
+        <FiX className="mr-2" /> Close
+      </button>
+    </div>
+  </ModalContent>
+</Modal>
 
         {/* Seat Price and Status Update Confirmation Modal */}
         <Modal isOpen={isPriceModalOpen} onClose={() => {
