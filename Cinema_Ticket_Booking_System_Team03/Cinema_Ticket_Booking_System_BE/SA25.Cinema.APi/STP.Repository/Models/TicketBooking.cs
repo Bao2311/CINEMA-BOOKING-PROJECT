@@ -21,7 +21,7 @@ namespace STP.Repository.Models
         /// <summary>
         /// ID của người dùng đặt vé
         /// </summary>
-        public int User_ID { get; set; }
+        public int? User_ID { get; set; }
 
         /// <summary>
         /// ID của suất chiếu được đặt vé

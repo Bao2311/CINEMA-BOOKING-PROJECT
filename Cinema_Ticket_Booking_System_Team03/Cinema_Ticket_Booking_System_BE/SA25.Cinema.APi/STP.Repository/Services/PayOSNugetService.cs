@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Net.payOS;
 using Net.payOS.Types;
 using STP.Repository.Data;
+using STP.Repository.Dtos;
 using STP.Repository.Models;
 using System;
 using System.Collections.Generic;
@@ -310,7 +311,7 @@ namespace STP.Repository.Services
 
                                 await _pointsService.RefundPointsForExpiredBookingAsync(
                                     booking.Booking_ID,
-                                    booking.User_ID,
+                                    booking.User_ID.Value,
                                     booking.Points_Used
                                 );
 
@@ -411,6 +412,225 @@ namespace STP.Repository.Services
                 _logger.LogError(ex, $"Lỗi không xử lý được khi hủy đơn đặt vé {bookingId}");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Lấy URL thanh toán từ PayOS
+        /// </summary>
+        /// <param name="bookingId">ID của đơn đặt vé</param>
+        /// <returns>URL thanh toán và thông tin liên quan</returns>
+        public async Task<PaymentUrlResponse> GetPaymentUrl(int bookingId)
+        {
+            try
+            {
+                _logger.LogInformation($"Lấy URL thanh toán cho đơn đặt vé {bookingId}");
+
+                // Lấy thông tin booking từ database
+                var booking = await _context.TicketBookings
+                    .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
+
+                if (booking == null)
+                {
+                    _logger.LogError($"Không tìm thấy thông tin đơn đặt vé {bookingId}");
+                    return new PaymentUrlResponse
+                    {
+                        Success = false,
+                        Message = "Không tìm thấy thông tin đơn đặt vé"
+                    };
+                }
+
+                // Kiểm tra trạng thái booking
+                if (booking.Status != "Pending")
+                {
+                    _logger.LogWarning($"Đơn đặt vé {bookingId} không ở trạng thái Pending, trạng thái hiện tại: {booking.Status}");
+                    return new PaymentUrlResponse
+                    {
+                        Success = false,
+                        Message = $"Đơn đặt vé không ở trạng thái chờ thanh toán (hiện tại: {booking.Status})"
+                    };
+                }
+
+                // Trước tiên, tìm kiếm thanh toán hiện có trong database
+                var existingPayment = await _context.Payments
+                    .Where(p => p.Booking_ID == bookingId && p.Payment_Status == "Pending")
+                    .OrderByDescending(p => p.Transaction_Date)
+                    .FirstOrDefaultAsync();
+
+                if (existingPayment != null)
+                {
+                    // Kiểm tra xem có thông tin URL trong Processor_Response không
+                    if (!string.IsNullOrEmpty(existingPayment.Processor_Response))
+                    {
+                        try
+                        {
+                            var responseData = System.Text.Json.JsonSerializer.Deserialize<PaymentResponseData>(
+                                existingPayment.Processor_Response);
+
+                            string paymentUrl = responseData?.PaymentUrl;
+                            string qrCodeUrl = responseData?.QrCodeUrl;
+
+                            if (!string.IsNullOrEmpty(paymentUrl))
+                            {
+                                _logger.LogInformation($"Đã tìm thấy URL thanh toán hiện có cho đơn đặt vé {bookingId}: {paymentUrl}");
+
+                                return new PaymentUrlResponse
+                                {
+                                    Success = true,
+                                    Message = "Lấy URL thanh toán thành công",
+                                    PaymentUrl = paymentUrl,
+                                    QrCodeUrl = qrCodeUrl,
+                                    OrderCode = existingPayment.Payment_Reference,
+                                    Amount = existingPayment.Amount,
+                                    PaymentId = existingPayment.Payment_ID
+                                };
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning($"Không thể parse Processor_Response: {ex.Message}");
+                            // Tiếp tục tìm kiếm hoặc tạo mới
+                        }
+                    }
+
+                    // Nếu có Payment_Reference nhưng không có URL, thì kiểm tra trạng thái thông qua API PayOS
+                    if (!string.IsNullOrEmpty(existingPayment.Payment_Reference))
+                    {
+                        try
+                        {
+                            var paymentStatus = await CheckPaymentStatus(existingPayment.Payment_Reference);
+                            if (paymentStatus.Success && paymentStatus.Status == "PENDING")
+                            {
+                                _logger.LogInformation($"Đơn thanh toán vẫn đang chờ xử lý, tuy nhiên không có URL. Lấy thông tin từ API");
+
+                                // Lấy thông tin từ API create để không phải tạo mới
+                                // Yêu cầu tạo thanh toán mới do không thể lấy lại URL
+                                _logger.LogWarning($"Không thể lấy lại URL thanh toán từ API, cần tạo mới");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, $"Lỗi khi kiểm tra trạng thái thanh toán hiện có: {ex.Message}");
+                        }
+                    }
+                }
+
+                // Không tìm thấy thanh toán hiện có hoặc không thể lấy URL, tạo mới
+                string description = $"Thanh toán vé #{bookingId}";
+                if (description.Length > 25)
+                {
+                    description = description.Substring(0, 25);
+                }
+
+                // Tạo link thanh toán mới
+                var paymentResponse = await CreatePaymentLink(
+                    bookingId: bookingId,
+                    amount: booking.Total_Amount,
+                    description: description,
+                    customerName: "Khách hàng"
+                );
+
+                if (!paymentResponse.Success)
+                {
+                    _logger.LogError($"Không thể tạo URL thanh toán cho đơn đặt vé {bookingId}: {paymentResponse.Message}");
+                    return new PaymentUrlResponse
+                    {
+                        Success = false,
+                        Message = paymentResponse.Message
+                    };
+                }
+
+                // Lưu thông tin thanh toán mới vào database
+                try
+                {
+                    // Serialize thông tin response
+                    string processorResponse = System.Text.Json.JsonSerializer.Serialize(new PaymentResponseData
+                    {
+                        PaymentUrl = paymentResponse.PaymentUrl,
+                        QrCodeUrl = paymentResponse.QrCodeUrl,
+                        PaymentLinkId = paymentResponse.PaymentLinkId
+                    });
+
+                    // Nếu đã có payment, cập nhật thay vì tạo mới
+                    if (existingPayment != null)
+                    {
+                        existingPayment.Payment_Reference = paymentResponse.OrderCode;
+                        existingPayment.Processor_Response = processorResponse;
+                        existingPayment.Transaction_Date = DateTime.Now;
+                    }
+                    else
+                    {
+                        // Tạo mới nếu chưa có
+                        var payment = new Payment
+                        {
+                            Booking_ID = bookingId,
+                            Amount = booking.Total_Amount,
+                            Payment_Method = "PayOS",
+                            Payment_Reference = paymentResponse.OrderCode,
+                            Transaction_Date = DateTime.Now,
+                            Payment_Status = "Pending",
+                            Processor_Response = processorResponse
+                        };
+
+                        _context.Payments.Add(payment);
+                    }
+
+                    await _context.SaveChangesAsync();
+
+                    return new PaymentUrlResponse
+                    {
+                        Success = true,
+                        Message = "Lấy URL thanh toán thành công",
+                        PaymentUrl = paymentResponse.PaymentUrl,
+                        QrCodeUrl = paymentResponse.QrCodeUrl,
+                        OrderCode = paymentResponse.OrderCode,
+                        Amount = booking.Total_Amount,
+                        PaymentId = existingPayment?.Payment_ID
+                    };
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, $"Không thể lưu thông tin thanh toán vào database: {ex.Message}");
+                    // Vẫn trả về URL thanh toán cho dù không lưu được vào database
+                    return new PaymentUrlResponse
+                    {
+                        Success = true,
+                        Message = "Lấy URL thanh toán thành công, nhưng không lưu được vào database",
+                        PaymentUrl = paymentResponse.PaymentUrl,
+                        QrCodeUrl = paymentResponse.QrCodeUrl,
+                        OrderCode = paymentResponse.OrderCode,
+                        Amount = booking.Total_Amount
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi lấy URL thanh toán cho đơn đặt vé {bookingId}: {ex.Message}");
+                return new PaymentUrlResponse
+                {
+                    Success = false,
+                    Message = $"Lỗi: {ex.Message}"
+                };
+            }
+        }
+
+        // DTO cho kết quả lấy URL thanh toán
+        public class PaymentUrlResponse
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; }
+            public string PaymentUrl { get; set; }
+            public string QrCodeUrl { get; set; }
+            public string OrderCode { get; set; }
+            public decimal Amount { get; set; }
+            public int? PaymentId { get; set; }
+        }
+
+        // DTO để lưu thông tin response vào Processor_Response
+        private class PaymentResponseData
+        {
+            public string PaymentUrl { get; set; }
+            public string QrCodeUrl { get; set; }
+            public string PaymentLinkId { get; set; }
         }
 
         /// <summary>
@@ -525,7 +745,7 @@ namespace STP.Repository.Services
     public class BookingDetailInfo
     {
         public int BookingId { get; set; }
-        public int UserId { get; set; }
+        public int? UserId { get; set; }
         public string MovieName { get; set; }
         public string RoomName { get; set; }
         public decimal Amount { get; set; }

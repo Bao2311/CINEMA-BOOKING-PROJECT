@@ -44,6 +44,7 @@ namespace STP.Repository.Dtos
         public int Layout_ID { get; set; }
 
         public bool Is_Active { get; set; }
+
     }
 
     public class CreateRoomWithLayoutDto

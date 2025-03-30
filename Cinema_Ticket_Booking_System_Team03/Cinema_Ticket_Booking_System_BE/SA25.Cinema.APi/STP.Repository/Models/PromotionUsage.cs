@@ -16,7 +16,7 @@ namespace STP.Repository.Models
         /// ID duy nhất của lần sử dụng khuyến mãi
         /// </summary>
         [Key]
-        public int Usage_ID { get; set; }
+        public int? Usage_ID { get; set; }
 
         /// <summary>
         /// ID của chương trình khuyến mãi được sử dụng

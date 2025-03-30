@@ -498,7 +498,7 @@ namespace STP.Repository.Services
                 {
                     Promotion_ID = promotion.Promotion_ID,
                     Booking_ID = booking.Booking_ID,
-                    User_ID = booking.User_ID,
+                    User_ID = booking.User_ID.Value,
                     Discount_Amount = discountAmount,
                     Applied_Date = DateTime.Now
                 };

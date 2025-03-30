@@ -113,7 +113,7 @@ namespace STP.Repository.Services
                         // Gọi phương thức hoàn điểm
                         await pointsService.RefundPointsForExpiredBookingAsync(
                             booking.Booking_ID,
-                            booking.User_ID,
+                            booking.User_ID.Value,
                             pointsToRefund
                         );
 

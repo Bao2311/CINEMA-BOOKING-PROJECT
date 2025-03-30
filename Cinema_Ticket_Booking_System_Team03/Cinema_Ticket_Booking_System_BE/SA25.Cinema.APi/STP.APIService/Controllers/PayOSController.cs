@@ -37,6 +37,120 @@ namespace STP.APIService.Controllers
         }
 
         /// <summary>
+        /// Lấy URL thanh toán cho đơn đặt vé
+        /// </summary>
+        [HttpGet("payment-url/{bookingId}")]
+        [Authorize]
+        public async Task<IActionResult> GetPaymentUrl(int bookingId)
+        {
+            try
+            {
+                _logger.LogInformation($"Đang lấy URL thanh toán cho đơn đặt vé: {bookingId}");
+
+                // Lấy thông tin người dùng từ token
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                    User.FindFirst("nameid")?.Value ??
+                    User.FindFirst("UserId")?.Value ??
+                    User.FindFirst("userId")?.Value;
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { success = false, message = "Không thể xác định người dùng" });
+                }
+
+                // Lấy thông tin đặt vé
+                var booking = await _context.TicketBookings
+                    .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
+
+                if (booking == null)
+                {
+                    return NotFound(new { success = false, message = "Không tìm thấy đơn đặt vé" });
+                }
+
+                // Kiểm tra quyền của người dùng
+                if (booking.User_ID != int.Parse(userId))
+                {
+                    return Unauthorized(new { success = false, message = "Bạn không có quyền xem thông tin thanh toán đơn đặt vé này" });
+                }
+
+                // Lấy URL thanh toán
+                var result = await _payosService.GetPaymentUrl(bookingId);
+
+                if (!result.Success)
+                {
+                    return BadRequest(new { success = false, message = result.Message });
+                }
+
+                // Trả về thông tin thanh toán
+                return Ok(new
+                {
+                    success = true,
+                    message = result.Message,
+                    paymentUrl = result.PaymentUrl,
+                    qrCodeUrl = result.QrCodeUrl,
+                    orderCode = result.OrderCode,
+                    amount = result.Amount,
+                    paymentId = result.PaymentId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi lấy URL thanh toán: {ex.Message}");
+                return StatusCode(500, new { success = false, message = "Có lỗi xảy ra khi lấy URL thanh toán" });
+            }
+        }
+
+        [HttpGet("pending-payment")]
+        [Authorize]
+        public async Task<IActionResult> GetPendingPayment()
+        {
+            try
+            {
+                // Lấy userId từ token
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { success = false, message = "Không thể xác định người dùng" });
+                }
+
+                // Tìm booking đang pending của người dùng hiện tại
+                var pendingBooking = await _context.TicketBookings
+                    .Where(b => b.User_ID == int.Parse(userId) && b.Status == "Pending")
+                    .OrderByDescending(b => b.Booking_Date)
+                    .FirstOrDefaultAsync();
+
+                if (pendingBooking == null)
+                {
+                    return NotFound(new { success = false, message = "Không tìm thấy đơn đặt vé đang chờ thanh toán" });
+                }
+
+                // Lấy URL thanh toán
+                var paymentResult = await _payosService.GetPaymentUrl(pendingBooking.Booking_ID);
+
+                if (!paymentResult.Success)
+                {
+                    return BadRequest(new { success = false, message = paymentResult.Message });
+                }
+
+                // Trả về thông tin thanh toán
+                return Ok(new
+                {
+                    success = true,
+                    bookingId = pendingBooking.Booking_ID,
+                    paymentUrl = paymentResult.PaymentUrl,
+                    qrCodeUrl = paymentResult.QrCodeUrl,
+                    orderCode = paymentResult.OrderCode,
+                    amount = paymentResult.Amount
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy thông tin thanh toán đang chờ");
+                return StatusCode(500, new { success = false, message = "Có lỗi xảy ra khi lấy thông tin thanh toán" });
+            }
+        }
+
+        /// <summary>
         /// Tạo thanh toán với PayOS
         /// </summary>
         [HttpPost("create")]
@@ -260,7 +374,7 @@ namespace STP.APIService.Controllers
                 if (paymentStatus.Success && paymentStatus.Status == "PAID" && booking.Status == "Pending")
                 {
                     _logger.LogInformation($"Cập nhật đơn đặt vé {bookingId} thành Confirmed");
-                    await _bookingService.UpdateBookingPayment(bookingId, booking.User_ID);
+                    await _bookingService.UpdateBookingPayment(bookingId, booking.User_ID.Value);
 
                     // Chuyển hướng về trang thành công với thông tin bookingId
                     return Redirect($"{_configuration["PayOS:ReturnUrl"]}?status=success&orderCode={orderCode}&bookingId={bookingId}");

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using STP.Repository.Models;
 using STP.Repository.Services;
@@ -11,10 +13,14 @@ namespace STP.Web.Controllers
     public class MemberController : ControllerBase
     {
         private readonly MemberService _memberService;
+        private readonly BookingService _bookingService;
+        private readonly ILogger<MemberController> _logger;
 
-        public MemberController(MemberService memberService)
+        public MemberController(MemberService memberService, BookingService bookingService, ILogger<MemberController> logger)
         {
             _memberService = memberService;
+            _bookingService = bookingService;
+            _logger = logger;
         }
 
         /// <summary>
@@ -78,6 +84,60 @@ namespace STP.Web.Controllers
 
             return Ok(result);
         }
+
+        /// <summary>
+        /// Liên kết booking với thành viên
+        /// </summary>
+        [HttpPost("link-member")]
+        [Authorize(Roles = "Staff,Admin")]
+        public async Task<IActionResult> LinkBookingToMember([FromBody] LinkBookingRequestDto request)
+        {
+            try
+            {
+                // Lấy ID người dùng hiện tại từ token
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                    User.FindFirst("nameid")?.Value ??
+                    User.FindFirst("UserId")?.Value ??
+                    User.FindFirst("userId")?.Value;
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "Không thể xác định người dùng" });
+                }
+
+                var result = await _bookingService.LinkBookingToMemberAsync(
+                    request.BookingId,
+                    request.MemberIdentifier,
+                    int.Parse(userId)
+                );
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi liên kết booking với thành viên");
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi liên kết booking với thành viên" });
+            }
+        }
+
+        public class LinkBookingRequestDto
+        {
+            public int BookingId { get; set; }
+            public string MemberIdentifier { get; set; }
+        }
+
 
         /// <summary>
         /// Áp dụng giảm giá VIP cho đơn đặt vé

@@ -18,12 +18,14 @@ namespace STP.Repository.Services
         private readonly ILogger<BookingService> _logger;
         private readonly PayOSNugetService _payosService;
         private readonly PointsService _pointsService;
-        public BookingService(CinemaDbContext context, ILogger<BookingService> logger, PayOSNugetService payosService, PointsService pointsService)
+        private readonly MemberService _memberService;
+        public BookingService(CinemaDbContext context, ILogger<BookingService> logger, PayOSNugetService payosService, PointsService pointsService, MemberService memberService)
         {
             _context = context;
             _logger = logger;
             _payosService = payosService;
             _pointsService = pointsService;
+            _memberService = memberService;
         }
 
         public async Task<IEnumerable<BookingHistoryDTO>> GetAllBookings()
@@ -98,30 +100,42 @@ namespace STP.Repository.Services
                 throw; // Re-throw để xử lý ở tầng cao hơn
             }
         }
+
         public async Task<BookingResponseDTO> CreateBooking(BookingRequestDTO request, int userId)
         {
             try
             {
-                // THÊM MỚI: Kiểm tra xem người dùng có booking đang Pending không
-                var pendingBooking = await CheckPendingBooking(userId);
-                if (pendingBooking != null)
+                // Lấy thông tin người dùng để kiểm tra role
+                var currentUser = await _context.Users
+    .FirstOrDefaultAsync(u => u.User_ID == userId);
+
+                if (currentUser == null)
                 {
-                    _logger.LogWarning($"Người dùng {userId} đang có booking Pending ID: {pendingBooking.Booking_ID}");
-
-                    // Tạo exception với thông tin chi tiết về booking đang Pending
-                    var exception = new InvalidOperationException("Bạn đang có đơn đặt vé chưa thanh toán. Vui lòng thanh toán hoặc hủy đơn đặt vé trước đó để tiếp tục.");
-
-                    // Thêm data vào exception để frontend có thể hiển thị thông tin
-                    exception.Data.Add("PendingBookingDetails", pendingBooking);
-                    throw exception;
+                    _logger.LogWarning($"Không tìm thấy thông tin người dùng với ID {userId}");
+                    throw new KeyNotFoundException($"Người dùng với ID {userId} không tồn tại trong hệ thống");
                 }
 
-                // Kiểm tra người dùng tồn tại
-                var user = await _context.Users.FindAsync(userId);
-                if (user == null)
+                // Xác định tự động liệu đây có phải là đặt vé từ nhân viên hay không
+                bool isStaffBooking = currentUser.Role == "Staff" || currentUser.Role == "Admin";
+
+                _logger.LogInformation($"Tạo đơn đặt vé mới - {(isStaffBooking ? "Đặt tại quầy" : "Đặt online")} - UserId: {userId}");
+
+                // Nếu là đơn đặt vé online (khách hàng tự đặt), thực hiện các kiểm tra như trước
+                if (!isStaffBooking)
                 {
-                    _logger.LogWarning($"Người dùng với ID {userId} không tồn tại trong hệ thống");
-                    throw new KeyNotFoundException($"Người dùng với ID {userId} không tồn tại trong hệ thống");
+                    // THÊM MỚI: Kiểm tra xem người dùng có booking đang Pending không
+                    var pendingBooking = await CheckPendingBooking(userId);
+                    if (pendingBooking != null)
+                    {
+                        _logger.LogWarning($"Người dùng {userId} đang có booking Pending ID: {pendingBooking.Booking_ID}");
+
+                        // Tạo exception với thông tin chi tiết về booking đang Pending
+                        var exception = new InvalidOperationException("Bạn đang có đơn đặt vé chưa thanh toán. Vui lòng thanh toán hoặc hủy đơn đặt vé trước đó để tiếp tục.");
+
+                        // Thêm data vào exception để frontend có thể hiển thị thông tin
+                        exception.Data.Add("PendingBookingDetails", pendingBooking);
+                        throw exception;
+                    }
                 }
 
                 // Lấy thông tin suất chiếu
@@ -152,9 +166,6 @@ namespace STP.Repository.Services
                     var bookedSeatIds = bookedSeats.Select(s => s.Seat_ID).ToList();
                     throw new InvalidOperationException($"Một số ghế đã được đặt: {string.Join(", ", bookedSeatIds)}");
                 }
-
-                // Phần còn lại giữ nguyên
-                // ...
 
                 // Lấy thông tin ghế - chỉ lấy các thuộc tính cần thiết để tránh lỗi SeatLayoutLayout_ID
                 var seats = await _context.Seats
@@ -218,13 +229,13 @@ namespace STP.Repository.Services
                 // Tạo đơn đặt vé mới
                 var booking = new TicketBooking
                 {
-                    User_ID = userId,
-                    Created_By = userId, // Thêm trường Created_By
+                    User_ID = isStaffBooking ? null : userId, // Nếu đặt tại quầy, User_ID là null
+                    Created_By = userId, // Nhân viên hoặc khách hàng tạo đơn
                     Showtime_ID = request.Showtime_ID,
                     Booking_Date = DateTime.Now,
                     Total_Amount = totalAmount,
                     Status = "Pending",
-                    Payment_Deadline = DateTime.Now.AddMinutes(5), // 5 phút để thanh toán
+                    Payment_Deadline = DateTime.Now.AddMinutes(isStaffBooking ? 15 : 5), // Thời gian lâu hơn cho đặt tại quầy
                 };
 
                 _context.TicketBookings.Add(booking);
@@ -304,14 +315,18 @@ namespace STP.Repository.Services
                     Booking_ID = booking.Booking_ID,
                     Status = booking.Status,
                     Date = DateTime.Now,
-                    Notes = null
+                    Notes = isStaffBooking ? "Đặt vé tại quầy bởi nhân viên" : null
                 };
 
                 _context.BookingHistories.Add(history);
                 await _context.SaveChangesAsync();
 
-                // Lấy số điểm hiện tại của người dùng
-                int currentPoints = await _pointsService.GetUserPointsTotalAsync(userId);
+                // Lấy số điểm hiện tại của người dùng - chỉ áp dụng cho đặt online
+                int currentPoints = 0;
+                if (!isStaffBooking)
+                {
+                    currentPoints = await _pointsService.GetUserPointsTotalAsync(userId);
+                }
 
                 string formattedSeats = await GetFormattedSeatPositions(booking.Booking_ID);
 
@@ -319,13 +334,14 @@ namespace STP.Repository.Services
                 var response = new BookingResponseDTO
                 {
                     Booking_ID = booking.Booking_ID,
-                    User_ID = userId,
+                    User_ID = isStaffBooking ? null : userId,
                     Booking_Date = booking.Booking_Date,
                     Payment_Deadline = booking.Payment_Deadline,
                     Total_Amount = booking.Total_Amount,
                     Status = booking.Status,
                     Seats = formattedSeats,
                     Payment_Method = initialPayment?.Payment_Method,
+                    IsStaffBooking = isStaffBooking, // Thêm trường này để frontend biết đây là đơn đặt tại quầy
 
                     // Thêm các trường ánh xạ từ đối tượng con
                     MovieName = showtime.Movie.Movie_Name,
@@ -375,7 +391,7 @@ namespace STP.Repository.Services
             }
         }
 
-        public async Task<BookingResponseDTO> UpdateBookingPayment(int bookingId, int userId)
+        public async Task<BookingResponseDTO> UpdateBookingPayment(int bookingId, int staffId)
         {
             try
             {
@@ -397,10 +413,20 @@ namespace STP.Repository.Services
                     throw new KeyNotFoundException($"Không tìm thấy đơn đặt vé {bookingId}");
                 }
 
-                // Kiểm tra người dùng có quyền cập nhật đơn đặt vé không
-                if (booking.User_ID != userId)
+                // Xác định đây là đơn đặt tại quầy hay đơn đặt online
+                bool isStaffBooking = booking.Created_By != booking.User_ID || booking.User_ID == null;
+
+                // Kiểm tra quyền - khác nhau giữa đặt online và đặt tại quầy
+                if (isStaffBooking)
                 {
-                    _logger.LogWarning($"Người dùng {userId} không có quyền cập nhật đơn đặt vé {bookingId}");
+                    // Đối với đơn đặt tại quầy, chỉ nhân viên mới có quyền thanh toán
+                    // CẢNH BÁO: Nếu mô hình phân quyền của bạn yêu cầu nghiêm ngặt hơn,
+                    // có thể cần kiểm tra xem staffId có phải nhân viên hay không
+                }
+                else if (booking.User_ID != staffId)
+                {
+                    // Đối với đơn đặt online, chỉ khách hàng đặt mới có quyền thanh toán
+                    _logger.LogWarning($"Người dùng {staffId} không có quyền cập nhật đơn đặt vé {bookingId}");
                     throw new UnauthorizedAccessException("Bạn không có quyền cập nhật đơn đặt vé này");
                 }
 
@@ -536,13 +562,14 @@ namespace STP.Repository.Services
 
                     // Thêm điểm thưởng khi thanh toán thành công (5% của số tiền thực tế thanh toán)
                     int pointsEarned = 0;
+                    int currentPoints = 0;
                     try
                     {
-                        // Chỉ thêm điểm nếu trước đó đơn hàng là Pending
-                        if (oldStatus == "Pending")
+                        // Chỉ thêm điểm nếu trước đó đơn hàng là Pending và có User_ID
+                        if (oldStatus == "Pending" && booking.User_ID.HasValue && booking.User_ID > 0)
                         {
                             pointsEarned = await _pointsService.AddPointsFromBookingAsync(
-                                userId,
+                                booking.User_ID.Value, // Sử dụng User_ID từ booking thay vì staffId
                                 bookingId,
                                 booking.Total_Amount,
                                 0 // Không có pointsUsed
@@ -551,7 +578,7 @@ namespace STP.Repository.Services
                             booking.Points_Earned = pointsEarned;
                             await _context.SaveChangesAsync();
 
-                            _logger.LogInformation($"Đã thêm {pointsEarned} điểm cho booking {bookingId}");
+                            _logger.LogInformation($"Đã thêm {pointsEarned} điểm cho booking {bookingId}, user {booking.User_ID}");
 
                             // Cập nhật lịch sử đặt vé để ghi nhận việc thêm điểm
                             var pointsHistory = new BookingHistory
@@ -564,10 +591,13 @@ namespace STP.Repository.Services
 
                             _context.BookingHistories.Add(pointsHistory);
                             await _context.SaveChangesAsync();
+
+                            // Lấy số điểm hiện tại của người dùng
+                            currentPoints = await _pointsService.GetUserPointsTotalAsync(booking.User_ID.Value);
                         }
                         else
                         {
-                            _logger.LogInformation($"Không thêm điểm cho booking {bookingId} vì đơn hàng đã bị hủy trước đó");
+                            _logger.LogInformation($"Không thêm điểm cho booking {bookingId} - Status: {oldStatus}, User_ID: {booking.User_ID}");
                         }
                     }
                     catch (Exception ex)
@@ -576,13 +606,6 @@ namespace STP.Repository.Services
                         // Không throw exception ở đây để tránh ảnh hưởng đến quá trình thanh toán
                     }
 
-                    // Commit transaction
-                    await transaction.CommitAsync();
-                    _logger.LogInformation($"Đã commit transaction cập nhật thanh toán cho booking {bookingId}");
-
-                    // Lấy số điểm hiện tại của người dùng
-                    int currentPoints = await _pointsService.GetUserPointsTotalAsync(userId);
-
                     // Lấy thông tin ghế đã định dạng
                     string formattedSeats = await GetFormattedSeatPositions(bookingId);
 
@@ -590,13 +613,14 @@ namespace STP.Repository.Services
                     var response = new BookingResponseDTO
                     {
                         Booking_ID = booking.Booking_ID,
-                        User_ID = userId,
+                        User_ID = booking.User_ID, // Có thể là null cho booking tại quầy không liên kết member
                         Booking_Date = booking.Booking_Date,
                         Total_Amount = booking.Total_Amount,
                         Status = booking.Status,
                         Payment_Method = payment.Payment_Method,
                         Transaction_Date = payment.Transaction_Date,
                         Seats = formattedSeats,
+                        IsStaffBooking = isStaffBooking,
 
                         // Thêm các trường ánh xạ từ đối tượng con
                         MovieName = booking.Showtime.Movie.Movie_Name,
@@ -613,9 +637,7 @@ namespace STP.Repository.Services
                 }
                 catch (Exception ex)
                 {
-                    // Rollback transaction nếu có lỗi
-                    await transaction.RollbackAsync();
-                    _logger.LogError(ex, $"Đã rollback transaction do lỗi khi cập nhật thanh toán cho booking {bookingId}");
+                    _logger.LogError(ex, $"Error updating booking payment for ID: {bookingId}");
                     throw;
                 }
             }
@@ -1080,7 +1102,7 @@ namespace STP.Repository.Services
 
                             await _pointsService.RefundPointsForExpiredBookingAsync(
                                 booking.Booking_ID,
-                                booking.User_ID,
+                                booking.User_ID.Value,
                                 refundedPoints
                             );
 
@@ -1176,6 +1198,7 @@ namespace STP.Repository.Services
         /// Nếu có, người dùng cần hủy booking cũ trước khi đặt mới
         /// </summary>
         /// <param name="userId">ID của người dùng</param>
+        /// <param name="userId">ID của người dùng</param>
         /// <returns>Thông tin về booking Pending hoặc null nếu không có</returns>
         public async Task<PendingBookingCheckDTO> CheckPendingBooking(int userId)
         {
@@ -1242,6 +1265,141 @@ namespace STP.Repository.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Lỗi khi kiểm tra booking Pending của người dùng {userId}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Liên kết booking với khách hàng thành viên
+        /// </summary>
+        /// <param name="bookingId">ID của booking</param>
+        /// <param name="memberIdentifier">Số điện thoại hoặc email của khách hàng</param>
+        /// <param name="staffId">ID của nhân viên thực hiện thao tác</param>
+        /// <returns>Thông tin booking đã cập nhật</returns>
+        public async Task<BookingResponseDTO> LinkBookingToMemberAsync(int bookingId, string memberIdentifier, int currentUserId)
+        {
+            try
+            {
+                // Lấy thông tin người dùng hiện tại để kiểm tra role
+                var currentUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.User_ID == currentUserId);
+
+                if (currentUser == null)
+                {
+                    throw new KeyNotFoundException($"Không tìm thấy thông tin người dùng với ID {currentUserId}");
+                }
+
+                // Kiểm tra xem người thực hiện thao tác có phải là nhân viên không
+                bool isStaff = currentUser.Role == "Staff" || currentUser.Role == "Admin";
+
+                if (!isStaff)
+                {
+                    throw new UnauthorizedAccessException("Chỉ nhân viên mới có quyền liên kết booking với thành viên");
+                }
+
+                _logger.LogInformation($"Liên kết booking {bookingId} với khách hàng {memberIdentifier} bởi nhân viên {currentUserId}");
+
+                // Phần còn lại giữ nguyên như cũ
+                // Kiểm tra booking có tồn tại không
+                var booking = await _context.TicketBookings
+                    .Include(b => b.Showtime)
+                        .ThenInclude(s => s.Movie)
+                    .Include(b => b.Showtime)
+                        .ThenInclude(s => s.CinemaRoom)
+                    .Include(b => b.Tickets)
+                    .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
+
+                if (booking == null)
+                {
+                    throw new KeyNotFoundException($"Không tìm thấy booking với ID {bookingId}");
+                }
+
+                // Kiểm tra trạng thái booking - chỉ cho phép liên kết khi đang Pending
+                if (booking.Status != "Pending")
+                {
+                    throw new InvalidOperationException($"Chỉ có thể liên kết thành viên cho booking có trạng thái Pending");
+                }
+
+                // Kiểm tra xem booking đã được liên kết với khách hàng khác chưa
+                if (booking.User_ID != null && booking.User_ID > 0)
+                {
+                    throw new InvalidOperationException($"Booking này đã được liên kết với khách hàng khác (ID: {booking.User_ID})");
+                }
+
+                // Tìm khách hàng dựa trên số điện thoại hoặc email
+                User member = null;
+                if (memberIdentifier.Contains("@"))
+                {
+                    // Tìm theo email
+                    member = await _memberService.FindMemberByEmailAsync(memberIdentifier);
+                }
+                else
+                {
+                    // Tìm theo số điện thoại
+                    member = await _memberService.FindMemberByPhoneAsync(memberIdentifier);
+                }
+
+                if (member == null)
+                {
+                    throw new KeyNotFoundException($"Không tìm thấy thành viên với thông tin: {memberIdentifier}");
+                }
+
+                // Cập nhật booking với User_ID của khách hàng
+                booking.User_ID = member.User_ID;
+
+                // Thêm lịch sử booking
+                var history = new BookingHistory
+                {
+                    Booking_ID = booking.Booking_ID,
+                    Status = "Member Linked",
+                    Date = DateTime.Now,
+                    Notes = $"Liên kết với thành viên {member.Full_Name} (ID: {member.User_ID}) bởi nhân viên ID: {currentUserId}"
+                };
+
+                _context.BookingHistories.Add(history);
+                await _context.SaveChangesAsync();
+
+                // Lấy thông tin ghế
+                string formattedSeats = await GetFormattedSeatPositions(bookingId);
+
+                // Lấy điểm hiện tại của khách hàng
+                int currentPoints = await _pointsService.GetUserPointsTotalAsync(member.User_ID);
+
+                // Tạo response
+                var response = new BookingResponseDTO
+                {
+                    Booking_ID = booking.Booking_ID,
+                    User_ID = member.User_ID,
+                    Booking_Date = booking.Booking_Date,
+                    Payment_Deadline = booking.Payment_Deadline,
+                    Total_Amount = booking.Total_Amount,
+                    Status = booking.Status,
+                    Seats = formattedSeats,
+
+                    // Thêm thông tin từ các đối tượng con
+                    MovieName = booking.Showtime.Movie.Movie_Name,
+                    RoomName = booking.Showtime.CinemaRoom.Room_Name,
+                    Show_Date = booking.Showtime.Show_Date,
+                    Start_Time = booking.Showtime.Start_Time,
+
+                    // Thêm thông tin về điểm hiện tại
+                    CurrentPoints = currentPoints,
+
+                    // Thêm thông tin về thành viên
+                    MemberInfo = new MemberInfoDTO
+                    {
+                        User_ID = member.User_ID,
+                        Full_Name = member.Full_Name,
+                        Phone_Number = member.Phone_Number,
+                        Email = member.Email
+                    }
+                };
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi liên kết booking {bookingId} với thành viên {memberIdentifier}");
                 throw;
             }
         }
