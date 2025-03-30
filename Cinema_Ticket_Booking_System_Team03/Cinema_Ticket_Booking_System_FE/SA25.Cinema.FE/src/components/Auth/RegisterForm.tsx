@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 import { Form, Input, Button } from 'antd';
 import { useState } from 'react';
+
 const RegisterForm: React.FC = () => {
   const [formData, setFormData] = useState({
     email: '',
@@ -13,7 +14,7 @@ const RegisterForm: React.FC = () => {
     dateOfBirth: '',
     sex: '',
     phoneNumber: '',
-    address: ''
+    address: '',
   });
 
   const [error, setError] = useState('');
@@ -23,9 +24,9 @@ const RegisterForm: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -44,7 +45,9 @@ const RegisterForm: React.FC = () => {
     // Kiểm tra mật khẩu
     const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordPattern.test(values.password)) {
-      setError('Password must be at least 8 characters long, contain letters, numbers, and at least one special character.');
+      setError(
+        'Password must be at least 8 characters long, contain letters, numbers, and at least one special character.'
+      );
       setIsLoading(false);
       return;
     }
@@ -58,7 +61,7 @@ const RegisterForm: React.FC = () => {
     // Kiểm tra ngày sinh
     const today = new Date();
     const birthDate = new Date(values.dateOfBirth);
-    const age = today.getFullYear() - birthDate.getFullYear();
+    let age = today.getFullYear() - birthDate.getFullYear(); // Đã sửa từ const thành let
     const monthDiff = today.getMonth() - birthDate.getMonth();
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
@@ -100,9 +103,7 @@ const RegisterForm: React.FC = () => {
         <div className="flex justify-center mb-6">
           <UserPlus className="h-12 w-12 text-indigo-600" />
         </div>
-        <h2 className="text-center text-3xl font-extrabold text-gray-900 mb-6">
-          Create your account
-        </h2>
+        <h2 className="text-center text-3xl font-extrabold text-gray-900 mb-6">Create your account</h2>
 
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -132,15 +133,19 @@ const RegisterForm: React.FC = () => {
             name="password"
             rules={[
               { required: true, message: 'Please enter your password!' },
-              { 
+              {
                 validator: (_, value) => {
                   const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
                   if (!value || passwordPattern.test(value)) {
                     return Promise.resolve();
                   }
-                  return Promise.reject(new Error('Password must be at least 8 characters long, contain letters, numbers, and at least one special character.'));
-                }
-              }
+                  return Promise.reject(
+                    new Error(
+                      'Password must be at least 8 characters long, contain letters, numbers, and at least one special character.'
+                    )
+                  );
+                },
+              },
             ]}
             validateTrigger={['onChange', 'onBlur']}
           >

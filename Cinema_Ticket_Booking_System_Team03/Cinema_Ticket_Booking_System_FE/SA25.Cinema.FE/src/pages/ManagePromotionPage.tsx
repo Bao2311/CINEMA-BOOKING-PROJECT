@@ -558,6 +558,9 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
 
   const validateStep = () => {
     const newErrors: { [key: string]: string } = {};
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0); // Đặt thời gian về 00:00:00 để so sánh chỉ ngày
+  
     if (step === 1) {
       if (!formData.name) newErrors.name = 'Tên khuyến mãi là bắt buộc';
       if (!formData.code) newErrors.code = 'Mã khuyến mãi là bắt buộc';
@@ -568,11 +571,13 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
       if (!formData.startDate) newErrors.startDate = 'Ngày bắt đầu là bắt buộc';
       if (!formData.endDate) newErrors.endDate = 'Ngày kết thúc là bắt buộc';
       if (formData.startDate && formData.endDate && new Date(formData.startDate) >= new Date(formData.endDate)) newErrors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu';
+      if (formData.startDate && new Date(formData.startDate) < currentDate) newErrors.startDate = 'Ngày bắt đầu không được là quá khứ';
     }
     if (step === 3 && formData.applicableItems.length === 0) newErrors.applicableItems = 'Vui lòng chọn ít nhất một mục áp dụng';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+  
 
   const handleNext = () => { if (validateStep()) setStep(prev => prev + 1); };
   const handlePrev = () => setStep(prev => prev - 1);
