@@ -511,6 +511,16 @@ namespace STP.Repository.Services
                             seat.Last_Updated = DateTime.Now;
                         }
 
+                        // Cập nhật trạng thái của các ticket liên quan
+                        var tickets = await _context.Tickets
+                            .Where(t => t.Booking_ID == bookingId)
+                            .ToListAsync();
+
+                        foreach (var ticket in tickets)
+                        {
+                            ticket.Status = "Active"; // Khôi phục trạng thái ticket
+                        }
+
                         await _context.SaveChangesAsync();
                     }
                     else // Trạng thái là Pending
@@ -705,6 +715,16 @@ namespace STP.Repository.Services
                     };
 
                     _context.BookingHistories.Add(bookingHistory);
+
+                    // Cập nhật trạng thái của các ticket liên quan
+                    var tickets = await _context.Tickets
+                        .Where(t => t.Booking_ID == bookingId)
+                        .ToListAsync();
+
+                    foreach (var ticket in tickets)
+                    {
+                        ticket.Status = "Cancelled";
+                    }
 
                     // THÊM MỚI: Hoàn trả điểm nếu booking có sử dụng điểm
                     int refundedPoints = 0;
@@ -1144,6 +1164,16 @@ namespace STP.Repository.Services
                         seat.Seat_Status = "Available";
                         seat.Last_Updated = DateTime.Now;
                         seat.Booking_ID = null; // Xóa liên kết với Booking_ID
+                    }
+
+                    // Cập nhật trạng thái của các ticket liên quan
+                    var tickets = await _context.Tickets
+                        .Where(t => t.Booking_ID == bookingId)
+                        .ToListAsync();
+
+                    foreach (var ticket in tickets)
+                    {
+                        ticket.Status = "Cancelled";
                     }
 
                     // Thêm lịch sử hủy đơn

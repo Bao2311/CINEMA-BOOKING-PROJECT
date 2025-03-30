@@ -57,6 +57,8 @@ namespace STP.Repository.Models
         /// </summary>
         public DateTime? Check_In_Time { get; set; }
 
+        public string? Status { get; set; }
+
         /// <summary>
         /// Đơn đặt vé mà vé này thuộc về
         /// </summary>

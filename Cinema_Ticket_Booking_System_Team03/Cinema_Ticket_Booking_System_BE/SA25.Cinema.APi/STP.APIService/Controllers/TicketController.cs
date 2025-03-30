@@ -543,27 +543,11 @@ namespace STP.Web.Controllers
             if (request == null || request.BookingId <= 0)
                 return BadRequest("Dữ liệu không hợp lệ");
 
-            bool success = await _ticketService.SendTicketByEmailAsync(request.BookingId, request.Email);
+            bool success = await _ticketService.SendTicketFromTemplateByEmailAsync(request.BookingId, request.Email);
             if (!success)
                 return BadRequest("Không thể gửi vé qua email, vui lòng thử lại");
 
             return Ok(new { Success = true, Message = "Gửi vé qua email thành công" });
-        }
-
-        /// <summary>
-        /// Gửi thông tin vé qua SMS
-        /// </summary>
-        [HttpPost("send/sms")]
-        public async Task<IActionResult> SendTicketBySms([FromBody] SendTicketSmsRequest request)
-        {
-            if (request == null || request.BookingId <= 0)
-                return BadRequest("Dữ liệu không hợp lệ");
-
-            bool success = await _ticketService.SendTicketBySmsAsync(request.BookingId, request.PhoneNumber);
-            if (!success)
-                return BadRequest("Không thể gửi thông tin vé qua SMS, vui lòng thử lại");
-
-            return Ok(new { Success = true, Message = "Gửi thông tin vé qua SMS thành công" });
         }
     }
 
