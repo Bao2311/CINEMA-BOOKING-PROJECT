@@ -108,12 +108,13 @@ interface Promotion {
   promotion_Code: string;
   promotion_Detail: string;
   discount_Type: string;
-  discount_Value: number;
+  discount_Value: number; // Được định nghĩa là number không có xử lý đặc biệt
   start_Date: string;
   end_Date: string;
   status: string;
   is_Active: boolean;
 }
+
 
 interface Customer {
   name: string;
@@ -515,6 +516,38 @@ const ManageBookings: React.FC = () => {
       setLoading(false);
     }
   };
+// Thêm sau các khai báo state và trước các hàm xử lý
+const BookingInfoAlert = () => {
+  if (!bookingId) return null;
+  
+  const handleUseBookingInfo = async () => {
+    if (bookingId && member?.email) {
+      await linkMemberToBooking(bookingId, member.email);
+    } else {
+      message.error('Không thể liên kết: thiếu thông tin đặt vé hoặc thành viên');
+    }
+  };
+  
+  return (
+    <Alert
+      message={
+        <div className="flex justify-between items-center">
+          <span>Đơn đặt vé #{bookingId}</span>
+          <Button 
+            type="primary" 
+            size="small"
+            onClick={handleUseBookingInfo}
+          >
+            Sử dụng thông tin
+          </Button>
+        </div>
+      }
+      type="info"
+      icon={<InfoCircleOutlined />}
+      className="mb-4"
+    />
+  );
+};
 
   // Fetch promotions from API
   const fetchPromotions = async () => {
@@ -544,7 +577,8 @@ const ManageBookings: React.FC = () => {
       message.error('Không thể tải danh sách mã khuyến mãi');
     }
   };
-
+  
+  
   // Handle clicking on a promotion code
   const handlePromotionClick = (code: string) => {
     if (!appliedPromotion) {
@@ -701,27 +735,82 @@ const ManageBookings: React.FC = () => {
       setMember(null);
     } finally {
       setLookupLoading(false);
+      if (response.data) {
+        // Map API response to Member interface
+        const memberData: Member = {
+          user_ID: response.data.user_ID,
+          full_Name: response.data.full_Name,
+          email: response.data.email,
+          phone_Number: response.data.phone_Number,
+          currentPoints: response.data.currentPoints,
+          isVip: response.data.isVip,
+          membershipStatus: response.data.membershipStatus,
+          sex: response.data.sex || 'Other'
+        };
+        setMember(memberData);
+        customerForm.setFieldsValue({
+          name: response.data.full_Name,
+          phone: response.data.phone_Number,
+          email: response.data.email,
+          sex: response.data.sex || 'Other'
+        });
+        setCustomer({
+          name: response.data.full_Name,
+          phone: response.data.phone_Number,
+          email: response.data.email,
+          sex: response.data.sex || 'Other'
+        });
+        
+        fetchMemberDiscount(response.data.membershipStatus);
+        message.success('Tìm thấy thông tin thành viên!');
+        
+        // Add this block to link the member when found
+        if (bookingId) {
+          await linkMemberToBooking(bookingId, value);
+        }
+      } else {
+        setMember(null);
+        message.info('Không tìm thấy thành viên với thông tin cung cấp');
+      }
     }
   };
 
   // Apply member info to the form
-  const applyMemberInfo = () => {
-    if (!member) return;
-    
-    customerForm.setFieldsValue({
-      name: member.full_Name,
-      phone: member.phone_Number,
-      email: member.email,
-      sex: member.sex || 'Other'
-    });
-    setCustomer({
-      name: member.full_Name,
-      phone: member.phone_Number,
-      email: member.email,
-      sex: member.sex || 'Other'
-    });
+  // Apply member info to the form
+const applyMemberInfo = async () => {
+  if (!member) return;
+  
+  customerForm.setFieldsValue({
+    name: member.full_Name,
+    phone: member.phone_Number,
+    email: member.email,
+    sex: member.sex || 'Other'
+  });
+  
+  setCustomer({
+    name: member.full_Name,
+    phone: member.phone_Number,
+    email: member.email,
+    sex: member.sex || 'Other'
+  });
+  
+  // If we have both booking ID and member info, link them using email as identifier
+  if (bookingId && member.email) {
+    const linked = await linkMemberToBooking(bookingId, member.email);
+    if (linked) {
+      message.success('Đã áp dụng thông tin thành viên và liên kết với đơn đặt vé!');
+    } else {
+      message.success('Đã áp dụng thông tin thành viên!');
+      message.warning('Không thể liên kết thành viên với đơn đặt vé');
+    }
+  } else {
     message.success('Đã áp dụng thông tin thành viên!');
-  };
+    if (!bookingId) {
+      message.warning('Chưa có đơn đặt vé để liên kết với thành viên');
+    }
+  }
+};
+
 
   // Fetch member discount based on membership level
   const fetchMemberDiscount = async (membershipLevel: string) => {
@@ -741,60 +830,147 @@ const ManageBookings: React.FC = () => {
       setMemberDiscountAmount(0);
     }
   };
+  // Function to link member to booking
+const linkMemberToBooking = async (bookingId: number, memberIdentifier: string) => {
+  if (!bookingId || !memberIdentifier) {
+    message.warning('Cần có thông tin đặt vé và thành viên để liên kết');
+    return false;
+  }
+  
+  try {
+    setLoading(true);
+    const token = getAuthToken();
+    
+    const response = await axios.post('https://localhost:7168/api/Member/link-member', {
+      bookingId: bookingId,
+      memberIdentifier: memberIdentifier
+    }, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : undefined,
+        'Content-Type': 'application/json'
+      },
+    });
+    
+    if (response.data) {
+      message.success('Liên kết thành viên với đơn đặt vé thành công!');
+      
+      // If needed, update the member's current points from the response
+      if (response.data.currentPoints !== undefined && member) {
+        setMember({
+          ...member,
+          currentPoints: response.data.currentPoints
+        });
+      }
+      
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error linking member to booking:', error);
+    message.error('Không thể liên kết thành viên với đơn đặt vé');
+    return false;
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Apply promotion code using new API
+  // Hàm áp dụng mã khuyến mãi
   const applyPromotionCode = async () => {
-    if (!promotionCode || !bookingId) {
-      message.warning('Vui lòng nhập mã khuyến mãi và đảm bảo đã tạo đơn đặt vé');
+    if (!promotionCode) {
+      message.error('Vui lòng nhập mã khuyến mãi');
       return;
     }
-    
+  
+    if (!bookingId) {
+      message.error('Không tìm thấy thông tin đặt vé');
+      return;
+    }
+  
+    setLoading(true);
     try {
-      setLoading(true);
-      const token = getAuthToken();
+      // Lấy token xác thực từ localStorage hoặc từ state của ứng dụng
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       
-      // Tìm promotion ID từ mã khuyến mãi
-      const promotion = promotions.find(p => p.promotion_Code === promotionCode);
-      if (!promotion) {
-        message.error('Không tìm thấy mã khuyến mãi');
-        setLoading(false);
-        return;
-      }
-      
-      // Sử dụng API mới để áp dụng khuyến mãi
-      const response = await axios.post('https://localhost:7168/api/Member/discount/promotion', {
-        userId: member?.user_ID || 0,
+      console.log('Sending data:', {
         bookingId: bookingId,
-        promotionId: promotion.promotion_ID
-      }, {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : undefined,
-          'Content-Type': 'application/json'
-        },
+        promotionCode: promotionCode
       });
-      
-      if (response.data) {
-        // Giả định rằng API trả về thông tin về khuyến mãi đã áp dụng
-        const discountAmount = calculateSubtotal() * (promotion.discount_Value / 100);
-        
+  
+      const response = await axios.post(
+        'https://localhost:7168/api/Promotion/apply', // Endpoint chính xác theo API documentation
+        {
+          bookingId: bookingId,
+          promotionCode: promotionCode
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+          }
+        }
+      );
+  
+      if (response.data && response.data.success) {
+        // Cập nhật thông tin khuyến mãi đã áp dụng
         setAppliedPromotion({
-          promotion_ID: promotion.promotion_ID,
-          code: promotion.promotion_Code,
-          name: promotion.promotion_Detail,
-          discount_Value: promotion.discount_Value,
-          discount_Amount: discountAmount
+          promotion_ID: response.data.promotion_id,
+          code: response.data.promotion_code,
+          discount_Amount: response.data.discount_amount
         });
+  
+        // Cập nhật tổng tiền
+        setBookingSummary(prev => ({
+          ...prev,
+          promotionDiscount: response.data.discount_amount,
+          total: response.data.new_total || (prev.subtotal - response.data.discount_amount)
+        }));
+  
+        // Gọi hàm cập nhật tổng quan đặt vé
+        updateBookingSummary();
         
-        message.success('Áp dụng mã khuyến mãi thành công!');
-        updateBookingSummary(selectedSeats, memberDiscountAmount, discountAmount, pointsToUse);
+        message.success(response.data.message || 'Áp dụng mã khuyến mãi thành công!');
+        setPromotionCode(''); // Xóa mã khuyến mãi sau khi áp dụng thành công
+      } else {
+        message.error(response.data?.message || 'Mã khuyến mãi không hợp lệ');
       }
     } catch (error) {
-      console.error('Error applying promotion:', error);
-      message.error('Mã khuyến mãi không hợp lệ hoặc không áp dụng được');
+      console.error('Error applying promotion code:', error);
+      
+      // Hiển thị thông báo lỗi chi tiết hơn
+      if (error.response) {
+        // Lỗi từ server với response
+        message.error(error.response.data?.message || 'Mã khuyến mãi không hợp lệ hoặc không áp dụng được');
+      } else if (error.request) {
+        // Không nhận được response
+        message.error('Không thể kết nối đến máy chủ');
+      } else {
+        // Lỗi khác
+        message.error('Có lỗi xảy ra khi áp dụng mã khuyến mãi');
+      }
     } finally {
       setLoading(false);
     }
   };
+  
+  
+  
+  
+
+// Hàm tính toán giá trị khuyến mãi dựa trên loại khuyến mãi
+const calculateDiscountAmount = (value: number, type: string, subtotal: number): number => {
+  // Đảm bảo value là số
+  const discountValue = parseFloat(value.toString());
+  
+  if (type.toLowerCase() === 'percentage') {
+    // Nếu là phần trăm, tính % của tổng tiền
+    return (discountValue / 100) * subtotal;
+  } else {
+    // Nếu là giá trị cố định, trả về giá trị đó
+    return discountValue;
+  }
+};
 
   // Apply points discount using new API
   const applyPointsDiscount = async () => {
@@ -990,19 +1166,40 @@ const ManageBookings: React.FC = () => {
     return selectedSeats.reduce((total, seat) => total + seat.price, 0);
   };
 
-  const updateBookingSummary = (seats: Seat[], memberDiscount: number, promotionDiscount: number, pointsDiscount: number) => {
-    const subtotal = seats.reduce((total, seat) => total + seat.price, 0);
-    const memberDiscountAmount = (memberDiscount / 100) * subtotal;
-    const totalDiscounts = memberDiscountAmount + promotionDiscount + pointsDiscount;
+  const updateBookingSummary = () => {
+    const subtotal = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
+    
+    // Tính khuyến mãi thành viên
+    let memberDiscount = 0;
+    if (member && memberDiscountAmount > 0) {
+      memberDiscount = (memberDiscountAmount / 100) * subtotal;
+    }
+    
+    // Tính khuyến mãi từ mã giảm giá
+    let promotionDiscount = 0;
+    if (appliedPromotion) {
+      promotionDiscount = appliedPromotion.discount_Amount;
+    }
+    
+    // Tính điểm tích lũy sử dụng
+    const pointsDiscount = pointsToUse * 1000;
+    
+    // Tổng giảm giá
+    const totalDiscounts = memberDiscount + promotionDiscount + pointsDiscount;
+    
+    // Tổng tiền sau giảm giá
+    const total = Math.max(0, subtotal - totalDiscounts);
     
     setBookingSummary({
       subtotal,
       discounts: totalDiscounts,
-      memberDiscount: memberDiscountAmount,
-      promotionDiscount: promotionDiscount,
-      total: subtotal - totalDiscounts
+      memberDiscount,
+      promotionDiscount,
+      pointsDiscount,
+      total
     });
   };
+  
 
   // Handle customer form submission
   const handleCustomerSubmit = async (values: any) => {
@@ -1229,181 +1426,96 @@ const ManageBookings: React.FC = () => {
   };
 
   // Enhanced Member Details Component
-  const MemberDetailsView = ({ member }) => {
-    if (!member) return null;
-    
-    return (
-      <div className="member-details bg-blue-50 rounded-lg p-6 mb-6">
-        <div className="flex items-start">
-          <Avatar 
-            size={80} 
-            icon={<UserOutlined />} 
-            className="mr-6"
-            style={{ backgroundColor: member.isVip ? '#f59e0b' : '#3b82f6' }}
-          />
-          <div className="flex-grow">
-            <div className="flex justify-between items-center mb-2">
-              <Typography.Text strong className="text-xl">{member.full_Name}</Typography.Text>
-              <Tag color={member.isVip ? 'gold' : 'blue'} className="text-sm px-3 py-1">
-                {member.membershipStatus}
-              </Tag>
-            </div>
-            
-            <Descriptions column={1} size="small" className="mb-3">
-              <Descriptions.Item label="Mã thành viên">{member.user_ID}</Descriptions.Item>
-              <Descriptions.Item label="Số điện thoại">{member.phone_Number}</Descriptions.Item>
-              <Descriptions.Item label="Email">{member.email}</Descriptions.Item>
-              <Descriptions.Item label="Giới tính">{member.sex || 'Không xác định'}</Descriptions.Item>
-              <Descriptions.Item label="Điểm tích lũy">
-                <span className="font-semibold">{member.currentPoints}</span> điểm
-              </Descriptions.Item>
-            </Descriptions>
-            
-            {memberDiscountAmount > 0 && (
-              <Alert 
-                message={`Ưu đãi thành viên: Giảm ${memberDiscountAmount}% tổng hóa đơn`}
-                type="success" 
-                showIcon 
-                className="mt-2"
-              />
-            )}
-            
-            {member.currentPoints > 0 && (
-              <div className="mt-4 bg-green-50 p-3 rounded-lg">
-                <div className="mb-2">
-                  <Text strong>Sử dụng điểm tích lũy:</Text>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Input 
-                    type="number"
-                    placeholder="Nhập số điểm muốn sử dụng" 
-                    value={pointsToUse}
-                    onChange={(e) => setPointsToUse(parseInt(e.target.value) || 0)}
-                    min={0}
-                    max={member.currentPoints}
-                    style={{ width: '200px' }}
-                  />
-                  <Button 
-                    type="primary" 
-                    onClick={applyPointsDiscount}
-                    disabled={!bookingId || pointsToUse <= 0}
-                  >
-                    Áp dụng
-                  </Button>
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  Bạn có thể sử dụng tối đa {member.currentPoints} điểm
-                </div>
-              </div>
-            )}
-            
-            <div className="mt-4">
-              <Button type="primary" onClick={() => applyMemberInfo()}>
-                Sử dụng thông tin này
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  // Inside your MemberDetailsView component
+const MemberDetailsView = ({ member }) => {
+  if (!member) return null;
+  
+  // Add this function inside the component
+  const handleLinkMember = async () => {
+    if (bookingId && member.email) {
+      await linkMemberToBooking(bookingId, member.email);
+    } else {
+      message.error('Không thể liên kết: thiếu thông tin đặt vé hoặc thành viên');
+    }
   };
+  
+  return (
+    <div className="member-details bg-blue-50 rounded-lg p-6 mb-6">
+      {/* Keep your existing avatar and member info */}
+      
+      {/* Add this block after the Descriptions component */}
+      {bookingId && (
+        <Alert 
+          message={`Đơn đặt vé #${bookingId}`}
+          description={
+            <Button type="primary" size="small" onClick={handleLinkMember} className="mt-2">
+              Liên kết thành viên với đơn đặt vé
+            </Button>
+          }
+          type="info" 
+          showIcon 
+          className="mt-2 mb-4"
+        />
+      )}
+      
+      {/* Keep the rest of your component unchanged */}
+    </div>
+  );
+};
+
 
   // Enhanced Promotion Section
-  const EnhancedPromotionSection = () => {
-    return (
-      <div className="promotion-section mb-6">
-        <Title level={5}>Mã khuyến mãi</Title>
-        
-        <div className="flex items-center mb-4">
+  // Component EnhancedPromotionSection
+const EnhancedPromotionSection = () => {
+  return (
+    <>
+      <div className="mb-4">
+        <Input.Group compact>
           <Input
+            style={{ width: 'calc(100% - 100px)' }}
             placeholder="Nhập mã khuyến mãi"
             value={promotionCode}
-            onChange={e => setPromotionCode(e.target.value)}
-            disabled={!!appliedPromotion}
-            className="mr-2 flex-grow"
-            prefix={<PercentageOutlined className="text-gray-400" />}
-            size="large"
+            onChange={(e) => setPromotionCode(e.target.value)}
+            disabled={loading || appliedPromotion}
           />
           {appliedPromotion ? (
-            <Button 
-              danger 
-              icon={<CloseCircleOutlined />} 
-              onClick={removePromotion}
-              size="large"
+            <Button
+              type="default"
+              danger
+              onClick={() => {
+                setAppliedPromotion(null);
+                updateBookingSummary();
+              }}
+              loading={loading}
             >
-              Xóa
+              Hủy
             </Button>
           ) : (
-            <Button 
-              type="primary" 
-              icon={<CheckCircleOutlined />} 
+            <Button
+              type="primary"
               onClick={applyPromotionCode}
               loading={loading}
-              disabled={!bookingId}
-              size="large"
+              style={{ width: '100px' }}
             >
               Áp dụng
             </Button>
           )}
-        </div>
-        
-        {/* Display discount amount when promotion is applied */}
-        {appliedPromotion && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <Text strong className="text-green-700">Mã khuyến mãi đã áp dụng:</Text>
-                <div className="mt-1">
-                  <Tag color="green" className="text-sm">{appliedPromotion.code}</Tag>
-                  <Text className="ml-2">{appliedPromotion.name}</Text>
-                </div>
-              </div>
-              <div className="text-right">
-                <Text type="secondary">Giảm giá:</Text>
-                <div className="text-green-600 font-bold text-lg">
-                  -{appliedPromotion.discount_Amount.toLocaleString()} VND
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Available promotions list */}
-        {promotions.length > 0 && !appliedPromotion && (
-          <div className="mt-4">
-            <Text strong>Khuyến mãi có sẵn:</Text>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-              {promotions.map(promo => (
-                <Card 
-                  key={promo.promotion_ID} 
-                  size="small" 
-                  className="cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => handlePromotionClick(promo.promotion_Code)}
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <Text strong>{promo.promotion_Code}</Text>
-                      <div className="text-xs text-gray-500">{promo.promotion_Detail}</div>
-                    </div>
-                    <Button 
-                      type="link" 
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePromotionClick(promo.promotion_Code);
-                      }}
-                    >
-                      Áp dụng
-                    </Button>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
+        </Input.Group>
       </div>
-    );
-  };
+      
+      {appliedPromotion && (
+        <Alert
+          message="Mã khuyến mãi đã được áp dụng"
+          description={`Mã: ${appliedPromotion.code} - Giảm: ${appliedPromotion.discount_Amount.toLocaleString()} VND`}
+          type="success"
+          showIcon
+          className="mb-4"
+        />
+      )}
+    </>
+  );
+};
+
 
   // Payment methods options
   const paymentMethods: PaymentMethod[] = [
@@ -1944,11 +2056,12 @@ const ManageBookings: React.FC = () => {
                   )}
                   
                   {appliedPromotion && (
-                    <div className="flex justify-between mb-2 text-green-600">
-                      <Text>Mã khuyến mãi ({appliedPromotion.code}):</Text>
-                      <Text>-{bookingSummary.promotionDiscount.toLocaleString()} VND</Text>
-                    </div>
-                  )}
+  <div className="flex justify-between mb-2 text-green-600">
+    <Text>Mã khuyến mãi ({appliedPromotion.code}):</Text>
+    <Text>-{bookingSummary.promotionDiscount.toLocaleString()} VND</Text>
+  </div>
+)}
+
                   
                   {pointsToUse > 0 && (
                     <div className="flex justify-between mb-2 text-green-600">

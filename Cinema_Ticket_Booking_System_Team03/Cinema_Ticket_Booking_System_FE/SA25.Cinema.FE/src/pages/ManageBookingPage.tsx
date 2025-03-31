@@ -462,7 +462,7 @@ const ManageBooking: React.FC = () => {
 
   return (
     <div style={{ padding: '24px' }}>
-      <Card title="My Bookings" bordered={false}>
+      <Card title="Manage Booking" bordered={false}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
           <Button 
             icon={<FilterOutlined />} 
@@ -736,7 +736,7 @@ const ManageBooking: React.FC = () => {
                           title: 'Seat',
                           dataIndex: 'seat',
                           key: 'seat',
-                          render: (seat) => `${seat.row}${seat.number}`
+                          render: (seat) => seat ? `${seat.row}${seat.number}` : 'N/A'
                         },
                         {
                           title: 'Type',

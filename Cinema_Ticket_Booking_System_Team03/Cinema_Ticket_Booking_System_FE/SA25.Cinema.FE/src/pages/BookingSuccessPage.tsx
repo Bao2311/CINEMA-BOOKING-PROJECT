@@ -95,9 +95,6 @@ const BookingSuccessPage: React.FC = () => {
     );
   }
 
-  // Tạo mã QR giả định
-  const qrValue = `BOOKING-${state.bookingId}-${new Date().getTime()}`;
-
   // Hàm in vé
   const handlePrint = () => {
     window.print();
@@ -133,19 +130,9 @@ const BookingSuccessPage: React.FC = () => {
         <Title level={4} className="text-center mb-6">Chi tiết đặt vé</Title>
         
         <TicketContainer>
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <Title level={3} style={{ margin: 0 }}>{state.movieName}</Title>
-              <Text type="secondary">Mã đặt vé: #{state.bookingId}</Text>
-            </div>
-            <div className="text-right">
-              <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${qrValue}`}
-                alt="QR Code" 
-                width={80} 
-                height={80}
-              />
-            </div>
+          <div className="mb-4">
+            <Title level={3} style={{ margin: 0 }}>{state.movieName}</Title>
+            <Text type="secondary">Mã đặt vé: #{state.bookingId}</Text>
           </div>
 
           <Divider style={{ margin: '16px 0' }} />
@@ -206,7 +193,7 @@ const BookingSuccessPage: React.FC = () => {
           <Paragraph>
             <Text strong>Lưu ý:</Text>
             <ul>
-              <li>Vui lòng xuất trình mã QR khi đến rạp để nhận vé.</li>
+              <li>Vui lòng xuất trình mã đặt vé khi đến rạp để nhận vé.</li>
               <li>Mỗi vé chỉ có giá trị sử dụng một lần.</li>
               <li>Không sử dụng thiết bị ghi hình trong rạp chiếu phim.</li>
               <li>Giữ im lặng và tắt điện thoại khi xem phim.</li>
