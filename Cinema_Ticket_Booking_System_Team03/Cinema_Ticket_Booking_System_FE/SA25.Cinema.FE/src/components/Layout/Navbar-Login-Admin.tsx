@@ -1,28 +1,37 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
-import { Dropdown, Menu as AntdMenu } from 'antd';
-import { useAuth } from '../../context/AuthContext'; // Kiểm tra lại AuthContext
-import avatar from '../../Images/avata.jpg';
-import { UserOutlined, LogoutOutlined, HomeOutlined, EditOutlined, SettingOutlined, ScheduleOutlined } from '@ant-design/icons';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Menu, X } from "lucide-react";
+import { Dropdown, Menu as AntdMenu } from "antd";
+import { useAuth } from "../../context/AuthContext"; // Ensure the path to AuthContext is correct
+import avatar from "../../Images/avata.jpg";
+import {
+  UserOutlined,
+  LogoutOutlined,
+  HomeOutlined,
+  EditOutlined,
+  SettingOutlined,
+  ScheduleOutlined,
+  FileSearchOutlined, // Icon for Manage Booking
+} from "@ant-design/icons";
 
 const NavbarLoginAdmin: React.FC = () => {
-  const { user, isAuthenticated, setUserRole, setFullname, setIsLoggedIn } = useAuth(); // Đảm bảo rằng useAuth được định nghĩa đúng
+  const { user, isAuthenticated } = useAuth(); // Ensure useAuth is defined correctly
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const navigate = useNavigate(); // Sử dụng useNavigate để điều hướng
+  const navigate = useNavigate(); // Using useNavigate for routing
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('fullname');
-    localStorage.removeItem('isLoggedIn');
-     window.location.href = '/';
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("fullname");
+    localStorage.removeItem("isLoggedIn");
+    window.location.href = "/";
   };
 
+  // Admin dropdown menu
   const adminMenu = (
     <AntdMenu>
       <AntdMenu.Item key="1" icon={<HomeOutlined />}>
@@ -40,7 +49,15 @@ const NavbarLoginAdmin: React.FC = () => {
       <AntdMenu.Item key="5" icon={<SettingOutlined />}>
         <Link to="/manage-accounts">Manage Accounts</Link>
       </AntdMenu.Item>
-      <AntdMenu.Item key="6" icon={<LogoutOutlined />} danger onClick={handleLogout}>
+      <AntdMenu.Item key="6" icon={<FileSearchOutlined />}>
+        <Link to="/manage-booking">Manage Booking</Link>
+      </AntdMenu.Item>
+      <AntdMenu.Item
+        key="7"
+        icon={<LogoutOutlined />}
+        danger
+        onClick={handleLogout}
+      >
         Log out
       </AntdMenu.Item>
     </AntdMenu>
@@ -57,32 +74,67 @@ const NavbarLoginAdmin: React.FC = () => {
           </div>
 
           <div className="hidden md:flex items-center space-x-4">
-            <Link to="/movies" className="px-3 py-2 rounded-md hover:bg-indigo-800">
+            <Link
+              to="/movies"
+              className="px-3 py-2 rounded-md hover:bg-indigo-800"
+            >
               Movies
             </Link>
-            <Link to="/showtimes" className="px-3 py-2 rounded-md hover:bg-indigo-800">
+            <Link
+              to="/showtimes"
+              className="px-3 py-2 rounded-md hover:bg-indigo-800"
+            >
               Showtimes
             </Link>
-            <Link to="/manage-promotion" className="px-3 py-2 rounded-md hover:bg-indigo-800">
+            <Link
+              to="/manage-promotion"
+              className="px-3 py-2 rounded-md hover:bg-indigo-800"
+            >
               Manage Promotions
             </Link>
-            <Link to="/manage-movies" className="px-3 py-2 rounded-md hover:bg-indigo-800">
+            <Link
+              to="/manage-movies"
+              className="px-3 py-2 rounded-md hover:bg-indigo-800"
+            >
               Manage Movies
             </Link>
-            <Link to="/manage-showtimes" className="px-3 py-2 rounded-md hover:bg-indigo-800">
+            <Link
+              to="/manage-showtimes"
+              className="px-3 py-2 rounded-md hover:bg-indigo-800"
+            >
               Manage Showtimes
             </Link>
-            <Link to="/manage-accounts" className="px-3 py-2 rounded-md hover:bg-indigo-800">
+            <Link
+              to="/manage-accounts"
+              className="px-3 py-2 rounded-md hover:bg-indigo-800"
+            >
               Manage Accounts
             </Link>
-            <Link to="/manage-cinemaroom" className="px-3 py-2 rounded-md hover:bg-indigo-800">
-             Manage Cinema Room
+            <Link
+              to="/manage-cinemaroom"
+              className="px-3 py-2 rounded-md hover:bg-indigo-800"
+            >
+              Manage Cinema Room
+            </Link>
+            <Link
+              to="/manage-booking"
+              className="px-3 py-2 rounded-md hover:bg-indigo-800"
+            >
+              Manage Booking
             </Link>
 
             {isAuthenticated && user && (
-              <Dropdown overlay={adminMenu} trigger={['click']} placement="bottomRight">
+              <Dropdown
+                overlay={adminMenu}
+                trigger={["click"]}
+                placement="bottomRight"
+              >
                 <div className="flex items-center cursor-pointer">
-                  <img src={avatar} alt="User Avatar" className="h-10 w-10 rounded-full" />
+                  <img
+                    src={avatar}
+                    alt="User Avatar"
+                    className="h-10 w-10 rounded-full"
+                  />
                   <span className="ml-2">{user?.full_Name}</span>
                 </div>
               </Dropdown>
@@ -94,7 +146,11 @@ const NavbarLoginAdmin: React.FC = () => {
               onClick={toggleMenu}
               className="inline-flex items-center justify-center p-2 rounded-md text-white hover:bg-indigo-800 focus:outline-none"
             >
-              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {isMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </button>
           </div>
         </div>
@@ -145,12 +201,29 @@ const NavbarLoginAdmin: React.FC = () => {
             >
               Manage Accounts
             </Link>
+            <Link
+              to="/manage-booking"
+              className="block px-3 py-2 rounded-md hover:bg-indigo-700"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Manage Booking
+            </Link>
 
             {isAuthenticated && user && (
-              <Dropdown overlay={adminMenu} trigger={['click']} placement="bottomRight">
+              <Dropdown
+                overlay={adminMenu}
+                trigger={["click"]}
+                placement="bottomRight"
+              >
                 <div className="flex items-center cursor-pointer">
-                  <img src={avatar} alt="User Avatar" className="h-10 w-10 rounded-full" />
-                  <span className="ml-2">{user?.full_Name}</span>
+                  <img
+                    src={avatar}
+                    alt="User Avatar"
+                    className="h-10 w-10 rounded-full"
+                  />
+                  <span className="ml-3 text-base font-medium">
+                    {user?.full_Name}
+                  </span>
                 </div>
               </Dropdown>
             )}

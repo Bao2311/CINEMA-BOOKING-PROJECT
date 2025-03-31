@@ -490,6 +490,15 @@ const ManageCinemaRoomPage: React.FC = () => {
   const [seatPricesMap, setSeatPricesMap] = useState<{ [key: number]: number }>({});
   const [isSeatTypesPricesLoaded, setIsSeatTypesPricesLoaded] = useState(false);
 
+  const isPrime = (num: number) => {
+    if (num <= 1) return false;
+    for (let i = 2; i <= Math.sqrt(num); i++) {
+      if (num % i === 0) return false;
+    }
+    return true;
+  };
+  
+
   // Fetch seat types and prices
   const fetchSeatTypesPrices = async () => {
     const token = localStorage.getItem('token');
@@ -840,11 +849,23 @@ const handleDeleteSeatLayout = async () => {
   // Room CRUD operations
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
+
+     // Kiểm tra số ghế không phải là số nguyên tố
+     if (isPrime(newRoom.seat_Quantity)) {
+      toast.error('Số ghế không được là số nguyên tố!');
+      return;
+    }
     if (newRoom.seat_Quantity <= 0) {
       toast.error('Number of seats must be greater than 0!');
       return;
     }
-
+    if (newRoom.seat_Quantity >= 200) {
+      toast.error('Số ghế phải nhỏ hơn 200!');
+      return;
+    }
+  
+   
+  
     const token = localStorage.getItem('token');
     if (!token) {
       toast.error('You need to be logged in to create a room.');
@@ -876,6 +897,19 @@ const handleDeleteSeatLayout = async () => {
     }
 
     try {
+       // Kiểm tra số ghế không hợp lệ khi cập nhật
+  if (isPrime(newRoom.seat_Quantity)) {
+    toast.error('Số ghế không được là số nguyên tố!');
+    return;
+  }
+  if (newRoom.seat_Quantity <= 0) {
+    toast.error('Số ghế phải lớn hơn 0!');
+    return;
+  }
+  if (newRoom.seat_Quantity >= 200) {
+    toast.error('Số ghế phải nhỏ hơn 200!');
+    return;
+  }
       const response = await axios.put(`https://localhost:7168/api/CinemaRoom/${currentRoomId}`, newRoom, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1123,7 +1157,7 @@ const handleDeleteSeatLayout = async () => {
           {rowsInput ? (
             <>
               Total seats should be equal to rows × columns. For this room:{' '}
-              {totalRows} rows × {columnsPerRow} columns = {calculatedSeats}{' '}
+              {totalRows} rows × {columnsPerRow} columns = {calculatedSeats}{' '} 
               seats (Room capacity: {newRoom.seat_Quantity})
               {!matchesCapacity && (
                 <div className="font-medium mt-1">
@@ -1139,6 +1173,7 @@ const handleDeleteSeatLayout = async () => {
     );
   };
 
+  
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
