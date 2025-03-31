@@ -21,19 +21,22 @@ namespace STP.APIService.Controllers
         private readonly BookingService _bookingService;
         private readonly CinemaDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly PointsService _pointsService;
 
         public PayOSController(
             ILogger<PayOSController> logger,
             PayOSNugetService payosService,
             BookingService bookingService,
             CinemaDbContext context,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            PointsService pointsService)
         {
             _logger = logger;
             _payosService = payosService;
             _bookingService = bookingService;
             _context = context;
             _configuration = configuration;
+            _pointsService = pointsService;
         }
 
         /// <summary>
@@ -457,7 +460,7 @@ namespace STP.APIService.Controllers
                     return Redirect($"{_configuration["PayOS:CancelUrl"]}?status=error&message=invalid_order");
                 }
 
-                // LẤY BOOKING TRỰC TIẾP TỪ ENTITY FRAMEWORK
+                // Lấy thông tin booking từ database
                 var booking = await _context.TicketBookings
                     .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
 
@@ -467,46 +470,135 @@ namespace STP.APIService.Controllers
                     return Redirect($"{_configuration["PayOS:CancelUrl"]}?status=error&message=booking_not_found");
                 }
 
-                // Kiểm tra trạng thái thanh toán từ PayOS
+                // Kiểm tra trạng thái thanh toán từ PayOS API
                 var paymentStatus = await _payosService.CheckPaymentStatus(orderCode);
 
-                // Nếu thanh toán bị hủy và booking đang ở trạng thái Pending, cập nhật thành Cancelled
-                if (booking.Status == "Pending")
+                // PHẦN FIX: Kiểm tra trạng thái thanh toán từ PayOS và từ tham số status
+                bool isPaid = (paymentStatus.Success && paymentStatus.Status == "PAID") || status == "PAID";
+
+                _logger.LogInformation($"Trạng thái thanh toán: API={paymentStatus.Status}, Tham số={status}, IsPaid={isPaid}");
+
+                // Nếu thanh toán đã thành công, cập nhật booking thành confirmed thay vì hủy
+                if (isPaid && booking.Status == "Pending")
                 {
-                    _logger.LogInformation($"Hủy đơn đặt vé {bookingId}");
+                    _logger.LogInformation($"Thanh toán đã thành công cho đơn đặt vé {bookingId}, cập nhật thành Confirmed");
 
-                    // CẬP NHẬT TRỰC TIẾP QUA ENTITY FRAMEWORK
-                    booking.Status = "Cancelled";
-
-                    // Thêm lịch sử hủy đơn
-                    var history = new BookingHistory
+                    try
                     {
-                        Booking_ID = bookingId,
-                        Date = DateTime.Now,
-                        Status = "Cancelled"
-                    };
-                    _context.BookingHistories.Add(history);
+                        // Sử dụng BookingService để cập nhật trạng thái thành Confirmed
+                        await _bookingService.UpdateBookingPayment(bookingId, booking.User_ID.Value);
+                        _logger.LogInformation($"Đã cập nhật đơn đặt vé {bookingId} thành Confirmed");
 
-                    // Cập nhật trạng thái ghế
-                    var seats = await _context.Seats.Where(s => s.Booking_ID == bookingId).ToListAsync();
-                    foreach (var seat in seats)
-                    {
-                        seat.Seat_Status = "Available";
-                        seat.Booking_ID = null;
-                        seat.Last_Updated = DateTime.Now;
+                        // Chuyển hướng tới trang thành công với thông tin 
+                        return Redirect($"{_configuration["PayOS:ReturnUrl"]}?status=success&orderCode={orderCode}&bookingId={bookingId}");
                     }
-
-                    // Lưu tất cả thay đổi
-                    await _context.SaveChangesAsync();
-                    _logger.LogInformation($"Đã hủy đơn đặt vé {bookingId} thành công");
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Lỗi khi cập nhật trạng thái booking {bookingId} sau thanh toán thành công: {ex.Message}");
+                        // Vẫn chuyển hướng tới URL success nhưng có thông báo lỗi
+                        return Redirect($"{_configuration["PayOS:ReturnUrl"]}?status=success&orderCode={orderCode}&bookingId={bookingId}&message=update_error");
+                    }
                 }
 
-                // Chuyển về trang profile với thông tin hủy
-                return Redirect($"{_configuration["PayOS:CancelUrl"]}?status=cancelled&orderCode={orderCode}&bookingId={bookingId}");
+                // Chỉ hủy booking nếu status không phải PAID và booking đang ở trạng thái Pending
+                else if (!isPaid && booking.Status == "Pending")
+                {
+                    _logger.LogInformation($"Hủy đơn đặt vé {bookingId} do thanh toán bị hủy");
+
+                    // Sử dụng transaction để đảm bảo tính nhất quán dữ liệu
+                    using (var transaction = await _context.Database.BeginTransactionAsync())
+                    {
+                        try
+                        {
+                            // Cập nhật trạng thái booking
+                            booking.Status = "Cancelled";
+
+                            // Thêm lịch sử hủy đơn
+                            var history = new BookingHistory
+                            {
+                                Booking_ID = bookingId,
+                                Date = DateTime.Now,
+                                Status = "Cancelled",
+                                Notes = "Hủy đơn do người dùng hủy thanh toán"
+                            };
+                            _context.BookingHistories.Add(history);
+
+                            // Cập nhật trạng thái ghế
+                            var seats = await _context.Seats.Where(s => s.Booking_ID == bookingId).ToListAsync();
+                            foreach (var seat in seats)
+                            {
+                                seat.Seat_Status = "Available";
+                                seat.Booking_ID = null;
+                                seat.Last_Updated = DateTime.Now;
+                            }
+
+                            // Hoàn trả điểm nếu có
+                            if (booking.Points_Used > 0 && booking.User_ID.HasValue)
+                            {
+                                try
+                                {
+                                    await _pointsService.RefundPointsForExpiredBookingAsync(
+                                        bookingId,
+                                        booking.User_ID.Value,
+                                        booking.Points_Used
+                                    );
+
+                                    // Ghi log việc hoàn điểm
+                                    _context.BookingHistories.Add(new BookingHistory
+                                    {
+                                        Booking_ID = bookingId,
+                                        Date = DateTime.Now,
+                                        Status = "Points Refunded",
+                                        Notes = $"Hoàn trả {booking.Points_Used} điểm do hủy đơn"
+                                    });
+
+                                    // Đặt lại số điểm đã sử dụng
+                                    booking.Points_Used = 0;
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogError(ex, $"Lỗi khi hoàn trả điểm cho booking {bookingId}: {ex.Message}");
+                                    // Tiếp tục quá trình hủy booking
+                                }
+                            }
+
+                            // Lưu tất cả thay đổi
+                            await _context.SaveChangesAsync();
+
+                            // Commit transaction
+                            await transaction.CommitAsync();
+
+                            _logger.LogInformation($"Đã hủy đơn đặt vé {bookingId} thành công");
+                        }
+                        catch (Exception ex)
+                        {
+                            // Rollback nếu có lỗi
+                            await transaction.RollbackAsync();
+                            _logger.LogError(ex, $"Lỗi khi hủy đơn đặt vé {bookingId}: {ex.Message}");
+                            throw;
+                        }
+                    }
+
+                    // Chuyển về trang profile với thông tin hủy
+                    return Redirect($"{_configuration["PayOS:CancelUrl"]}?status=cancelled&orderCode={orderCode}&bookingId={bookingId}");
+                }
+                else
+                {
+                    // Trường hợp booking đã ở trạng thái khác Pending
+                    _logger.LogInformation($"Không cần hủy đơn đặt vé {bookingId}, trạng thái hiện tại: {booking.Status}");
+
+                    // Quyết định URL chuyển hướng dựa trên trạng thái booking
+                    string redirectStatus = booking.Status.ToLower();
+                    string redirectUrl = (booking.Status == "Confirmed" || booking.Status == "Completed")
+                        ? _configuration["PayOS:ReturnUrl"]
+                        : _configuration["PayOS:CancelUrl"];
+
+                    return Redirect($"{redirectUrl}?status={redirectStatus}&orderCode={orderCode}&bookingId={bookingId}");
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi xử lý PayOS cancel URL");
+                _logger.LogError(ex, $"Lỗi không xử lý được khi xử lý PayOS cancel URL: {ex.Message}");
                 return Redirect($"{_configuration["PayOS:CancelUrl"]}?status=error&message=internal_error");
             }
         }
