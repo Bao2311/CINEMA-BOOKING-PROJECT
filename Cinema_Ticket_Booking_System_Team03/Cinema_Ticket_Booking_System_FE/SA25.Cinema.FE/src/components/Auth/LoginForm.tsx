@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { 
   LogIn, Eye, EyeOff, Mail, Lock, CheckCircle, AlertCircle, 
   ShieldCheck, Loader2, ArrowRight, Info
@@ -38,6 +38,7 @@ const LoginForm: React.FC = () => {
   const passwordInputRef = useRef<HTMLInputElement>(null);
   
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   // Focus on email input when component mounts
@@ -120,106 +121,62 @@ const LoginForm: React.FC = () => {
     e.preventDefault();
     setFormSubmitted(true);
     
-    // Mark all fields as touched to show validation errors
-    setTouched({
-      email: true,
-      password: true,
-    });
-    
-    // Check if there are any validation errors
+    // Kiểm tra lỗi
     const newErrors: {email?: string; password?: string; general?: string} = {};
+    if (!formData.email) newErrors.email = 'Email is required';
+    else if (!validateEmail(formData.email)) newErrors.email = 'Please enter a valid email address';
     
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
+    if (!formData.password) newErrors.password = 'Password is required';
+    else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
     
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-    
-    setErrors(newErrors);
-    
-    // If there are errors, don't submit
+    // Nếu có lỗi, không tiếp tục
     if (Object.keys(newErrors).length > 0) {
-      toast.error('Please correct the errors before submitting');
-      // Shake the form to indicate error
-      const formElement = document.querySelector('form');
-      formElement?.classList.add('animate-shake');
-      setTimeout(() => {
-        formElement?.classList.remove('animate-shake');
-      }, 500);
+      setErrors(newErrors);
+      setTouched({ email: true, password: true });
       return;
     }
-
+    
+    // Bắt đầu xử lý đăng nhập
+    setIsLoading(true);
+    
     try {
-      setIsLoading(true);
-      setLoginAttempts(prev => prev + 1);
+      const result = await login(formData.email, formData.password);
       
-      // Remember me functionality
+      // Kiểm tra nếu cần đổi mật khẩu
+      if (result && result.requiresPasswordChange) {
+        // Chuyển hướng đến trang profile với state yêu cầu đổi mật khẩu
+        navigate('/profile', { 
+          state: { 
+            passwordChangeRequired: true, 
+            from: location // Lưu vị trí hiện tại để quay lại sau
+          } 
+        });
+        toast.info('Please change your password before continuing.');
+        return;
+      }
+      
+      // Đăng nhập thành công
+      toast.success('Login successful!');
+      
+      // Lưu thông tin đăng nhập nếu chọn "Remember me"
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', formData.email);
       } else {
         localStorage.removeItem('rememberedEmail');
       }
-
-      await login(formData.email, formData.password);
-
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Token was not saved correctly');
-      }
-
-      // Success animation and notification
-      toast.success('Login successful! Redirecting...', {
-        icon: "🎉"
-      });
       
-      // Add a slight delay before redirecting for better UX
-      setTimeout(() => {
-        navigate('/');
-      }, 800);
-    } catch (err: any) {
-      console.error('Login error:', err);
+      // Chuyển hướng đến trang chính
+      navigate('/');
+    } catch (error) {
+      console.error('Login error:', error);
       setLoginAttempts(prev => prev + 1);
       
-      // Handle different types of errors
-      if (err.response?.status === 401) {
-        newErrors.general = 'Invalid email or password';
-        toast.error('Invalid email or password', {
-          icon: "🔒"
-        });
-      } else if (err.response?.status === 429) {
-        newErrors.general = 'Too many login attempts. Please try again later.';
-        toast.error('Too many login attempts. Please try again later.', {
-          icon: "⏱️"
-        });
-      } else {
-        const errorMessage = err.response?.data?.message || 'Login failed. Please check your credentials.';
-        newErrors.general = errorMessage;
-        toast.error(errorMessage);
-      }
+      // Hiển thị thông báo lỗi
+      setErrors({
+        general: 'Login failed. Please check your credentials.'
+      });
       
-      // Set specific field errors if available from API
-      if (err.response?.data?.errors) {
-        const apiErrors = err.response.data.errors;
-        setErrors({
-          ...newErrors,
-          ...apiErrors
-        });
-      } else {
-        setErrors(newErrors);
-      }
-      
-      // Shake the form to indicate error
-      const formElement = document.querySelector('form');
-      formElement?.classList.add('animate-shake');
-      setTimeout(() => {
-        formElement?.classList.remove('animate-shake');
-      }, 500);
+      toast.error('Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -444,17 +401,5 @@ const LoginForm: React.FC = () => {
     </div>
   );
 };
-
-// Add keyframe animations to your global CSS
-// @keyframes shake {
-//   0%, 100% { transform: translateX(0); }
-//   20% { transform: translateX(-10px); }
-//   40% { transform: translateX(10px); }
-//   60% { transform: translateX(-5px); }
-//   80% { transform: translateX(5px); }
-// }
-// .animate-shake {
-//   animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-// }
 
 export default LoginForm;

@@ -4,7 +4,7 @@ import api from '../config/axios'; // Import file cấu hình axios API
 import { toast } from 'react-toastify';
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ requiresPasswordChange?: boolean } | void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   updateUser: (user: User) => void;
@@ -84,42 +84,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Login function
   const login = async (email: string, password: string) => {
-    setAuthState(prevState => ({ ...prevState, isLoading: true }));
-  
+    setAuthState(prevState => ({ ...prevState, isLoading: true, error: null }));
+
     try {
       const response = await api.post('/Auth/login', { email, password });
-  
-      const { token, userId, fullName, email: userEmail, tokenExpiration, role } = response.data;
-  
-      if (!token) {
+      const userData = response.data;
+
+      if (!userData.token) {
         throw new Error('Token is null or undefined');
       }
-  
+
       // Store user information in localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('userId', userId.toString());
-      localStorage.setItem('fullName', fullName);
-      localStorage.setItem('email', userEmail);
-      localStorage.setItem('tokenExpiration', tokenExpiration);
-      localStorage.setItem('role', role);
-  
+      localStorage.setItem('token', userData.token);
+      localStorage.setItem('userId', userData.userId.toString());
+      localStorage.setItem('fullName', userData.fullName);
+      localStorage.setItem('email', userData.email);
+      localStorage.setItem('tokenExpiration', userData.tokenExpiration);
+      localStorage.setItem('role', userData.role);
+
+      // Kiểm tra nếu tài khoản yêu cầu đổi mật khẩu
+      if (userData.requiresPasswordChange) {
+        localStorage.setItem('requiresPasswordChange', 'true');
+        
+        // Cập nhật state để đánh dấu đã đăng nhập
+        setAuthState({
+          user: userData,
+          token: userData.token,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null
+        });
+        
+        // Trả về thông tin về yêu cầu đổi mật khẩu để component gọi có thể xử lý
+        return { requiresPasswordChange: true };
+      }
+
+      // Cập nhật state với thông tin người dùng (trường hợp bình thường)
       setAuthState(prevState => ({
         ...prevState,
-        user: response.data,
-        token,
+        user: userData,
+        token: userData.token,
         isAuthenticated: true,
         isLoading: false,
         error: null,
       }));
-  
+
     } catch (error: any) {
       console.error('Login Error:', error);
       setAuthState(prevState => ({
         ...prevState,
         error: error?.response?.data?.message || 'Invalid credentials',
         isLoading: false,
+        isAuthenticated: false,
       }));
-  
+
       // Hiển thị thông báo lỗi cho người dùng
       if (error.response?.data?.message) {
         toast.error(error.response?.data?.message);  // Hiển thị thông báo lỗi trả về từ server
@@ -171,6 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('email');
     localStorage.removeItem('tokenExpiration');
     localStorage.removeItem('role');
+    localStorage.removeItem('requiresPasswordChange'); // Đảm bảo xóa cả flag này khi đăng xuất
     setAuthState({
       user: null,
       token: null,
