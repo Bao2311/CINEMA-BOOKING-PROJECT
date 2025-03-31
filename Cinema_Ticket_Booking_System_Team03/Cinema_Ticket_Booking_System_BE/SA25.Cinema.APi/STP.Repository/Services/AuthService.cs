@@ -71,7 +71,8 @@ namespace STP.Repository.Services
             // Trường hợp 1: So sánh trực tiếp (nếu mật khẩu được lưu dưới dạng plain text)
             if (password == storedPassword)
                 return true;
-
+            
+            // cần xóa 
             // Trường hợp 2: So sánh hash (nếu mật khẩu đã được hash)
             string hashedPassword = HashPasswordWithSHA256(password);
             return hashedPassword == storedPassword;

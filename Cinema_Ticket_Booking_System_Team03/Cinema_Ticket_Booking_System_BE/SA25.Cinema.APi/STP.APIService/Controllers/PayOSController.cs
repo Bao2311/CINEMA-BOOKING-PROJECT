@@ -160,13 +160,11 @@ namespace STP.APIService.Controllers
             try
             {
                 _logger.LogInformation($"Creating PayOS payment for booking ID: {request.BookingId}");
-
                 // Lấy thông tin người dùng từ token
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
                     User.FindFirst("nameid")?.Value ??
                     User.FindFirst("UserId")?.Value ??
                     User.FindFirst("userId")?.Value;
-
                 if (string.IsNullOrEmpty(userId))
                 {
                     return Unauthorized(new { message = "Không thể xác định người dùng" });
@@ -179,8 +177,15 @@ namespace STP.APIService.Controllers
                     return NotFound(new { success = false, message = "Không tìm thấy đơn đặt vé" });
                 }
 
-                // Kiểm tra quyền của người dùng
-                if (booking.User_ID != int.Parse(userId))
+                // Lấy vai trò người dùng từ token
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                bool isStaffOrAdmin = userRole == "Staff" || userRole == "Admin";
+
+                // ĐIỂM THAY ĐỔI: Kiểm tra quyền của người dùng
+                // Cho phép tiếp tục nếu:
+                // 1. Người dùng là chủ sở hữu booking HOẶC
+                // 2. Người dùng là nhân viên/admin (có thể thanh toán cho bất kỳ booking nào)
+                if (booking.User_ID != int.Parse(userId) && !isStaffOrAdmin)
                 {
                     return Unauthorized(new { success = false, message = "Bạn không có quyền thanh toán đơn đặt vé này" });
                 }
