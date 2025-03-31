@@ -1,339 +1,12 @@
-// import React, { useState, useEffect } from 'react';
-// import Layout from '../components/Layout/Layout';
-// import { motion } from 'framer-motion';
-// import { ChevronLeft, ChevronRight } from 'lucide-react';
-// import { useNavigate } from 'react-router-dom';
-// import { useAuth } from '../context/AuthContext';
-
-
-// interface Movie {
-//   movie_ID: number;
-//   movie_Name: string;
-//   director: string;
-//   genre: string;
-//   cast: string;
-//   poster_URL: string;
-// }
-
-
-// interface Showtime {
-//   showtime_ID: number;
-//   movie_ID: number;
-//   cinema_Room_ID: number;
-//   room_Name: string;
-//   show_Date: string;
-//   start_Time: string;
-//   end_Time: string;
-//   price_Tier: string;
-//   base_Price: number;
-//   status: string;
-//   movie?: Movie;
-// }
-
-
-// const ShowtimesPage = () => {
-//   const [selectedDate, setSelectedDate] = useState(new Date());
-//   const [showtimes, setShowtimes] = useState<Showtime[]>([]);
-//   const [movies, setMovies] = useState<Movie[]>([]);
-//   const [loading, setLoading] = useState<boolean>(true);
-//   const [error, setError] = useState<string>('');
-//   const [currentPage, setCurrentPage] = useState(1);
-//   const showtimesPerPage = 5;
- 
-//   const navigate = useNavigate();
-//   const { token } = useAuth();
-
-
-//   // Calculate pagination
-//   const indexOfLastShowtime = currentPage * showtimesPerPage;
-//   const indexOfFirstShowtime = indexOfLastShowtime - showtimesPerPage;
-//   const currentShowtimes = showtimes.slice(indexOfFirstShowtime, indexOfLastShowtime);
-//   const totalPages = Math.ceil(showtimes.length / showtimesPerPage);
-
-
-//   useEffect(() => {
-//     const fetchShowtimesAndMovies = async () => {
-//       try {
-//         const showtimesResponse = await fetch('https://localhost:7168/api/Showtimes', {
-//           headers: {
-//             'Content-Type': 'application/json',
-//             'Authorization': `Bearer ${token}`
-//           },
-//         });
-
-
-//         if (!showtimesResponse.ok) {
-//           if (showtimesResponse.status === 401) {
-//             throw new Error('Unauthorized access. Please log in again.');
-//           }
-//           throw new Error('Failed to fetch showtimes');
-//         }
-
-
-//         const showtimesData = await showtimesResponse.json();
-//         const showtimes = showtimesData['$values'];
-
-
-//         const moviesResponse = await fetch('https://localhost:7168/api/Movie', {
-//           headers: {
-//             'Content-Type': 'application/json',
-//             'Authorization': `Bearer ${token}`
-//           },
-//         });
-
-
-//         if (!moviesResponse.ok) {
-//           if (moviesResponse.status === 401) {
-//             throw new Error('Unauthorized access. Please log in again.');
-//           }
-//           throw new Error('Failed to fetch movies');
-//         }
-
-
-//         const moviesData = await moviesResponse.json();
-//         const movies = moviesData['$values'];
-
-
-//         const mergedShowtimes = showtimes.map((showtime: Showtime) => {
-//           const movie = movies.find((movie: Movie) => movie.movie_ID === showtime.movie_ID);
-//           return { ...showtime, movie };
-//         });
-
-
-//         setShowtimes(mergedShowtimes);
-//         setMovies(movies);
-//       } catch (err: any) {
-//         setError(err.message || 'Error fetching data, please try again.');
-//         if (err.message.includes('Unauthorized')) {
-//           navigate('/login');
-//         }
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-
-//     if (token) {
-//       fetchShowtimesAndMovies();
-//     } else {
-//       setError('Please log in to view showtimes.');
-//       setLoading(false);
-//     }
-//   }, [token, navigate]);
-
-
-//   const getFormattedDate = (date: string) =>
-//     new Date(date).toLocaleDateString('en-US', {
-//       weekday: 'short',
-//       month: 'short',
-//       day: 'numeric'
-//     });
-
-
-//   const handlePageChange = (pageNumber: number) => {
-//     setCurrentPage(pageNumber);
-//   };
-
-
-//   const handlePrevDate = () => {
-//     const newDate = new Date(selectedDate);
-//     newDate.setDate(newDate.getDate() - 1);
-//     setSelectedDate(newDate);
-//   };
-
-
-//   const handleNextDate = () => {
-//     const newDate = new Date(selectedDate);
-//     newDate.setDate(newDate.getDate() + 1);
-//     setSelectedDate(newDate);
-//   };
-
-
-//   const handleShowtimeClick = (movieId: number) => {
-//     navigate(`/movie/${movieId}`);
-//   };
-
-
-//   return (
-//     <Layout>
-//       <motion.div
-//         initial={{ opacity: 0, y: 20 }}
-//         animate={{ opacity: 1, y: 0 }}
-//         transition={{ duration: 0.5 }}
-//         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12"
-//       >
-//         {/* Date Selection Header */}
-//         <motion.div
-//           initial={{ opacity: 0 }}
-//           animate={{ opacity: 1 }}
-//           transition={{ delay: 0.2 }}
-//           className="mb-6"
-//         >
-//           <h2 className="text-2xl font-bold mb-4 text-gray-800 tracking-tight">Showtimes</h2>
-//           <div className="flex items-center gap-3 overflow-x-auto pb-2">
-//             <button
-//               onClick={handlePrevDate}
-//               className="p-2 rounded-full bg-gray-200 hover:bg-gray-300"
-//             >
-//               <ChevronLeft className="h-5 w-5" />
-//             </button>
-//             {[...Array(7)].map((_, index) => {
-//               const date = new Date();
-//               date.setDate(date.getDate() + index);
-//               return (
-//                 <motion.button
-//                   whileHover={{ scale: 1.05 }}
-//                   whileTap={{ scale: 0.95 }}
-//                   key={index}
-//                   className={`px-6 py-3 rounded-xl transition-all duration-200 ${
-//                     selectedDate.toDateString() === date.toDateString()
-//                       ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
-//                       : 'bg-white hover:bg-gray-50 border border-gray-200'
-//                   }`}
-//                   onClick={() => setSelectedDate(date)}
-//                 >
-//                   {date.toLocaleDateString('en-US', {
-//                     weekday: 'short',
-//                     month: 'short',
-//                     day: 'numeric'
-//                   })}
-//                 </motion.button>
-//               );
-//             })}
-//             <button
-//               onClick={handleNextDate}
-//               className="p-2 rounded-full bg-gray-200 hover:bg-gray-300"
-//             >
-//               <ChevronRight className="h-5 w-5" />
-//             </button>
-//           </div>
-//         </motion.div>
-
-
-//         {/* Showtimes Content */}
-//         {loading ? (
-//           <div className="text-center text-gray-600">Loading showtimes...</div>
-//         ) : error ? (
-//           <div className="text-center text-red-600">{error}</div>
-//         ) : (
-//           <div className="space-y-8">
-//             {currentShowtimes.map((showtime, idx) => (
-//               <motion.div
-//                 initial={{ opacity: 0, x: -20 }}
-//                 animate={{ opacity: 1, x: 0 }}
-//                 transition={{ delay: idx * 0.1 + 0.3 }}
-//                 key={showtime.showtime_ID}
-//                 className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer"
-//                 onClick={() => handleShowtimeClick(showtime.movie_ID)}
-//               >
-//                 {showtime.movie ? (
-//                   <>
-//                     <div className="flex justify-between items-center mb-6">
-//                       <h3 className="text-2xl font-bold text-gray-800">
-//                         {showtime.movie.movie_Name}
-//                       </h3>
-//                       <div className="flex items-center space-x-4 text-sm">
-//                         <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full">
-//                           {showtime.price_Tier}
-//                         </span>
-//                         <span className="text-gray-400">
-//                           {showtime.base_Price.toLocaleString()} VND
-//                         </span>
-//                       </div>
-//                     </div>
-
-
-//                     <div className="flex flex-wrap gap-3">
-//                       <img
-//                         src={showtime.movie.poster_URL}
-//                         alt={showtime.movie.movie_Name}
-//                         className="h-32 w-24 object-cover rounded-lg"
-//                       />
-//                       <div className="text-gray-800">
-//                         <p><strong>Directed by:</strong> {showtime.movie.director}</p>
-//                         <p><strong>Genre:</strong> {showtime.movie.genre}</p>
-//                         <p><strong>Cast:</strong> {showtime.movie.cast}</p>
-//                         <p>
-//                           <strong>Showtime:</strong> {getFormattedDate(showtime.show_Date)} - {showtime.start_Time} to {showtime.end_Time}
-//                         </p>
-//                       </div>
-//                     </div>
-//                   </>
-//                 ) : (
-//                   <div className="text-gray-800">No movie data available</div>
-//                 )}
-//               </motion.div>
-//             ))}
-
-
-//             {/* Pagination Controls */}
-// {totalPages > 1 && (
-//   <div className="mt-6 flex justify-center items-center space-x-2">
-//     {/* Left Arrow Button */}
-//     <button
-//       onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-//       disabled={currentPage === 1}
-//       className={`px-4 py-2 rounded-md ${
-//         currentPage === 1
-//           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-//           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-//       }`}
-//     >
-//       <ChevronLeft className="h-5 w-5" />
-//     </button>
-
-
-//     {/* Page Number Buttons */}
-//     {[...Array(totalPages)].map((_, index) => (
-//       <button
-//         key={index}
-//         onClick={() => handlePageChange(index + 1)}
-//         className={`px-4 py-2 rounded-md ${
-//           currentPage === index + 1
-//             ? 'bg-blue-600 text-white'
-//             : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-//         }`}
-//       >
-//         {index + 1}
-//       </button>
-//     ))}
-
-
-//     {/* Right Arrow Button */}
-//     <button
-//       onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-//       disabled={currentPage === totalPages}
-//       className={`px-4 py-2 rounded-md ${
-//         currentPage === totalPages
-//           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-//           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-//       }`}
-//     >
-//       <ChevronRight className="h-5 w-5" />
-//     </button>
-//   </div>
-// )}
-
-
-// {/* Pagination Info */}
-// <div className="text-center text-gray-600 mt-2">
-//   Showing {indexOfFirstShowtime + 1} to {Math.min(indexOfLastShowtime, showtimes.length)} of {showtimes.length} showtimes
-// </div>
-//           </div>
-//         )}
-//       </motion.div>
-//     </Layout>
-//   );
-// };
-
-
-// export default ShowtimesPage;
-
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout/Layout';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { Modal } from 'antd';
+import axios from 'axios';
 
 interface Movie {
   movie_ID: number;
@@ -369,6 +42,9 @@ const ShowtimesPage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [groupedShowtimes, setGroupedShowtimes] = useState<Record<number, Showtime[]>>({});
   const navigate = useNavigate();
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [pendingBookingId, setPendingBookingId] = useState<number | null>(null);
+  const [selectedShowtimeInfo, setSelectedShowtimeInfo] = useState<{showtimeId: number, movieId: number} | null>(null);
 
   useEffect(() => {
     const fetchShowtimesAndMovies = async () => {
@@ -461,9 +137,69 @@ const ShowtimesPage = () => {
     setSelectedDate(newDate);
   };
 
-  const handleShowtimeClick = (showtimeId: number, movieId: number) => {
-    navigate(`/cinema-room/${showtimeId}?movieId=${movieId}`);
-};
+  const handleShowtimeClick = async (showtimeId: number, movieId: number) => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await axios.get('https://localhost:7168/api/Booking/check-pending', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+
+      const data = await response.data;
+      
+      if (data.canCreateNewBooking) {
+        // If user can create new booking, navigate to cinema room page
+        navigate(`/cinema-room/${showtimeId}?movieId=${movieId}`);
+      } else {
+        // If user has pending booking, show modal to cancel it
+        setPendingBookingId(data.pendingBooking.booking_ID);
+        setSelectedShowtimeInfo({ showtimeId, movieId });
+        setIsModalVisible(true);
+      }
+    } catch (error) {
+      console.error('Error checking booking status:', error);
+      toast.error("Có lỗi xảy ra khi kiểm tra trạng thái đặt vé. Vui lòng thử lại sau.", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }
+  };
+
+  const handleCancelBooking = async () => {
+    try {
+      if (!pendingBookingId) return;
+      
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await axios.put(
+        `https://localhost:7168/api/Booking/${pendingBookingId}/cancel`,
+        {},
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.status === 200) {
+        toast.success("Đã hủy đơn đặt vé thành công!");
+        setIsModalVisible(false);
+        // Navigate to new booking if there was a selected showtime
+        if (selectedShowtimeInfo) {
+          navigate(`/cinema-room/${selectedShowtimeInfo.showtimeId}?movieId=${selectedShowtimeInfo.movieId}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error canceling booking:', error);
+      toast.error("Có lỗi xảy ra khi hủy đơn đặt vé. Vui lòng thử lại sau.");
+    }
+  };
 
   const handlePrevMonth = () => {
     const newMonth = new Date(currentMonth);
@@ -533,6 +269,18 @@ const ShowtimesPage = () => {
 
   return (
     <div>
+      <ToastContainer />
+      <Modal
+        title="Đơn đặt vé chưa thanh toán"
+        open={isModalVisible}
+        onOk={handleCancelBooking}
+        onCancel={() => setIsModalVisible(false)}
+        okText="Hủy đơn đặt vé"
+        cancelText="Đóng"
+        okButtonProps={{ type: 'primary', danger: true }}
+      >
+        <p>Bạn đang có đơn đặt vé chưa thanh toán. Bạn có muốn hủy đơn đặt vé này để tiếp tục đặt vé mới không?</p>
+      </Modal>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

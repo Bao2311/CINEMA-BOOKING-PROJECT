@@ -5,16 +5,16 @@ export const GlobalStyle = createGlobalStyle`
   body {
     margin: 0;
     padding: 0;
-    font-family: 'Poppins', sans-serif; /* Font hiện đại hơn */
-    background: linear-gradient(135deg, #f5f5f7 0%, #e0e0e5 100%); /* Gradient nền nhẹ */
+    font-family: 'Poppins', sans-serif; /* Font hiá»‡n Ä‘áº¡i hÆ¡n */
+    background: linear-gradient(135deg, #f5f5f7 0%, #e0e0e5 100%); /* Gradient ná»n nháº¹ */
     color: #2d2d2d;
     overflow-x: hidden;
   }
   * { box-sizing: border-box; }
   :root {
-    --primary: #1e3a8a; /* Màu xanh đậm hơn */
+    --primary: #1e3a8a; /* MÃ u xanh Ä‘áº­m hÆ¡n */
     --primary-hover: #1e40af;
-    --secondary: #22c55e; /* Xanh lá tươi sáng */
+    --secondary: #22c55e; /* Xanh lÃ¡ tÆ°Æ¡i sÃ¡ng */
     --accent: #ef4444;
     --dark: #1f2937;
     --light: #f9fafb;
@@ -475,12 +475,37 @@ export const PaymentContainer = styled.div`
   padding: 2.5rem;
 `;
 
-export const PaymentHeader = styled.h2`
-  margin: 0 0 2.5rem;
-  color: var(--dark);
-  text-align: center;
-  font-size: 1.8rem;
-  font-weight: 700;
+export const PaymentHeader = styled.div`
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+export const CountdownTimer = styled.div<{ $warning: boolean }>`
+  font-size: 18px;
+  color: ${props => props.$warning ? '#ff4d4f' : '#52c41a'};
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 4px;
+  background-color: ${props => props.$warning ? '#fff1f0' : '#f6ffed'};
+  border: 1px solid ${props => props.$warning ? '#ffa39e' : '#b7eb8f'};
+  animation: ${props => props.$warning ? 'pulse 1s infinite' : 'none'};
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
 `;
 
 export const PaymentGrid = styled.div`
@@ -489,8 +514,9 @@ export const PaymentGrid = styled.div`
   gap: 2.5rem;
   @media (max-width: 768px) { grid-template-columns: 1fr; }
 `;
-
 export const OrderSummary = styled.div`
+  margin-left:330px;
+  width:500px;
   background: #f9fafb;
   border-radius: 10px;
   padding: 2rem;
@@ -510,7 +536,6 @@ export const SummaryItem = styled.div<{ $total?: boolean }>`
   margin-bottom: 0.9rem;
   font-weight: ${props => props.$total ? '700' : '500'};
   font-size: ${props => props.$total ? '1.2rem' : '0.95rem'};
-  color: var(--text);
 `;
 
 export const SummaryDivider = styled.div`

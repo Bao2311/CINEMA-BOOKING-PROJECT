@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Modal } from 'antd';
@@ -116,6 +116,7 @@ const CinemaRoomPage: React.FC = () => {
   const { showtimeId } = useParams<{ showtimeId: string }>();
   const query = new URLSearchParams(useLocation().search);
   const movieId = query.get('movieId');
+  const navigate = useNavigate();
 
   const [selectedSeats, setSelectedSeats] = useState<SeatType[]>([]);
   const [seats, setSeats] = useState<SeatType[]>([]);
@@ -133,6 +134,8 @@ const CinemaRoomPage: React.FC = () => {
   const [discountedTotal, setDiscountedTotal] = useState<number | null>(null);
   const [promotionCode, setPromotionCode] = useState<string>('');
   const [newTotal, setNewTotal] = useState<number | null>(null);
+  const [countdown, setCountdown] = useState(300); // 5 minutes in seconds
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const fetchMovieDetails = async () => {
@@ -235,7 +238,55 @@ const CinemaRoomPage: React.FC = () => {
     setTotalPrice(price);
   }, [selectedSeats]);
 
-  
+  useEffect(() => {
+    if (step === 'payment' && countdown > 0) {
+      countdownRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownRef.current!);
+            handlePaymentTimeout();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+      }
+    };
+  }, [step, countdown]);
+
+  const handlePaymentTimeout = async () => {
+    if (bookingId) {
+      try {
+        const token = localStorage.getItem('token');
+        await axios.put(
+          `https://localhost:7168/api/Booking/${bookingId}/cancel`,
+          { id: bookingId },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+          }
+        );
+        alert('Đã hết thời gian thanh toán. Vé của bạn đã bị hủy.');
+        navigate('/showtimes');
+      } catch (error) {
+        console.error('Error cancelling booking:', error);
+        alert('Có lỗi xảy ra khi hủy vé. Vui lòng thử lại.');
+      }
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
 
   const sendBookingRequest = async () => {
     if (selectedSeats.length === 0) {
@@ -346,22 +397,33 @@ const CinemaRoomPage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       const userId = localStorage.getItem('userId');
-      if (!userId) return;
+      if (!userId || !token) {
+        console.error('User ID or token not found');
+        return;
+      }
 
-      const response = await axios.get(`https://localhost:7168/api/Points/users/${userId}`, {
+      const response = await axios.get(`https://localhost:7168/api/Points/my-points`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      setUserPoints(response.data.total_Points);
+      
+      if (response.data && typeof response.data.total_Points === 'number') {
+        setUserPoints(response.data.total_Points);
+        console.log('Points fetched:', response.data.total_Points);
+      } else {
+        console.error('Invalid points data:', response.data);
+      }
     } catch (error) {
       console.error('Error fetching user points:', error);
     }
   };
 
   useEffect(() => {
-    fetchUserPoints();
-  }, []);
+    if (step === 'payment') {
+      fetchUserPoints();
+    }
+  }, [step]);
 
   const handleApplyPoints = async () => {
     try {
@@ -535,7 +597,12 @@ const CinemaRoomPage: React.FC = () => {
             {step === 'payment' && (
               <motion.div key="payment" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} transition={{ duration: 0.3 }}>
                 <Styles.PaymentContainer>
-                  <Styles.PaymentHeader>Hoàn tất đặt vé</Styles.PaymentHeader>
+                  <Styles.PaymentHeader>
+                    Hoàn tất đặt vé
+                    <Styles.CountdownTimer $warning={countdown <= 60}>
+                      Thời gian còn lại: {formatTime(countdown)}
+                    </Styles.CountdownTimer>
+                  </Styles.PaymentHeader>
                   <Styles.PaymentGrid>
                     <Styles.OrderSummary>
                       <Styles.SummaryTitle>Thông tin đặt vé</Styles.SummaryTitle>
@@ -544,7 +611,7 @@ const CinemaRoomPage: React.FC = () => {
                       <Styles.SummaryItem><span>Ghế</span><span>{selectedSeats.map(s => s.id).join(', ')}</span></Styles.SummaryItem>
                       <Styles.SummaryItem>
                         <span>Điểm tích lũy của bạn</span>
-                        <span>{userPoints} điểm</span>
+                        <span>{userPoints.toLocaleString('vi-VN')} điểm</span>
                       </Styles.SummaryItem>
                       <Styles.PointsInputContainer>
                         <Styles.PointsInput
@@ -554,6 +621,7 @@ const CinemaRoomPage: React.FC = () => {
                           placeholder="Nhập số điểm muốn sử dụng"
                           min="0"
                           max={userPoints}
+                          step="1000"
                         />
                         <Styles.ApplyPointsButton
                           onClick={handleApplyPoints}
@@ -585,7 +653,7 @@ const CinemaRoomPage: React.FC = () => {
                           return (
                             <Styles.SummaryItem key={type}>
                               <span>{type === 'standard' ? 'Ghế thường' : 'Ghế VIP'} ({seatsOfType.length})</span>
-                              <span>{subtotal}k</span>
+                              <span>{(subtotal * 1000).toLocaleString('vi-VN')} VNĐ</span>
                             </Styles.SummaryItem>
                           );
                         })}
@@ -594,20 +662,20 @@ const CinemaRoomPage: React.FC = () => {
                       <Styles.PriceCalculation>
                         <Styles.CalculationItem>
                           <span>Giá gốc:</span>
-                          <span>{totalPrice}k</span>
+                          <span>{(totalPrice * 1000).toLocaleString('vi-VN')} VNĐ</span>
                         </Styles.CalculationItem>
                         
                         {discountedTotal && discountedTotal < totalPrice && (
                           <Styles.CalculationItem>
                             <span>Giảm giá từ điểm:</span>
-                            <span>-{(totalPrice - discountedTotal)}k</span>
+                            <span>-{((totalPrice - discountedTotal) * 1000).toLocaleString('vi-VN')} VNĐ</span>
                           </Styles.CalculationItem>
                         )}
                         
                         {newTotal && newTotal < (discountedTotal || totalPrice) && (
                           <Styles.CalculationItem>
                             <span>Giảm giá từ mã khuyến mãi:</span>
-                            <span>-{(discountedTotal || totalPrice) - newTotal}k</span>
+                            <span>-{(((discountedTotal || totalPrice) - newTotal) * 1000).toLocaleString('vi-VN')} VNĐ</span>
                           </Styles.CalculationItem>
                         )}
                         
@@ -615,7 +683,7 @@ const CinemaRoomPage: React.FC = () => {
                         
                         <Styles.SummaryItem $total>
                           <span>Tổng cộng:</span>
-                          <span>{newTotal || discountedTotal || totalPrice}k</span>
+                          <span>{((newTotal || discountedTotal || totalPrice) * 1000).toLocaleString('vi-VN')} VNĐ</span>
                         </Styles.SummaryItem>
                       </Styles.PriceCalculation>
                     </Styles.OrderSummary>
