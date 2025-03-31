@@ -19,13 +19,16 @@ namespace STP.Repository.Services
         private readonly PayOSNugetService _payosService;
         private readonly PointsService _pointsService;
         private readonly MemberService _memberService;
-        public BookingService(CinemaDbContext context, ILogger<BookingService> logger, PayOSNugetService payosService, PointsService pointsService, MemberService memberService)
+        private readonly TicketService _ticketService;
+
+        public BookingService(CinemaDbContext context, ILogger<BookingService> logger, PayOSNugetService payosService, PointsService pointsService, MemberService memberService, TicketService ticketService)
         {
             _context = context;
             _logger = logger;
             _payosService = payosService;
             _pointsService = pointsService;
             _memberService = memberService;
+            _ticketService = ticketService;
         }
 
         public async Task<IEnumerable<BookingHistoryDTO>> GetAllBookings()
@@ -649,6 +652,41 @@ namespace STP.Repository.Services
                     // CRITICAL: Commit the transaction - the missing piece!
                     await transaction.CommitAsync();
                     _logger.LogInformation($"Transaction successfully committed for booking {bookingId}");
+
+                    // GỬI EMAIL SAU KHI TRANSACTION THÀNH CÔNG
+                    try
+                    {
+                        if (booking.User_ID.HasValue)
+                        {
+                            var user = await _context.Users.FindAsync(booking.User_ID.Value);
+                            if (user != null && !string.IsNullOrEmpty(user.Email))
+                            {
+                                // Gọi dịch vụ gửi email (ưu tiên dùng template nếu có)
+                                bool emailSent = await _ticketService.SendTicketFromTemplateByEmailAsync(bookingId);
+                                if (emailSent)
+                                {
+                                    _logger.LogInformation($"Đã gửi email thành công đến {user.Email} cho booking {bookingId}");
+                                }
+                                else
+                                {
+                                    _logger.LogWarning($"Không thể gửi email cho booking {bookingId} đến {user.Email}");
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogWarning($"Không tìm thấy thông tin email của người dùng ID: {booking.User_ID}");
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogInformation($"Booking {bookingId} không có User_ID, bỏ qua việc gửi email");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Bắt lỗi nhưng không ảnh hưởng đến kết quả thanh toán
+                        _logger.LogError(ex, $"Lỗi khi gửi email xác nhận đặt vé cho booking {bookingId}");
+                    }
 
                     // Lấy thông tin ghế đã định dạng
                     string formattedSeats = await GetFormattedSeatPositions(bookingId);
