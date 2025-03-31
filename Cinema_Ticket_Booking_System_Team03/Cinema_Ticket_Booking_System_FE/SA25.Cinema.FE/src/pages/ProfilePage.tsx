@@ -8,7 +8,7 @@ import {
 import axios from 'axios';
 import { format, parseISO, isFuture } from 'date-fns';
 import { vi } from 'date-fns/locale';
-
+import { useLocation } from 'react-router-dom';
 // Định nghĩa kiểu dữ liệu UserProfile
 interface UserProfile {
   full_Name: string;
@@ -77,6 +77,13 @@ interface Notification {
   isRead: boolean;
   type: 'promo' | 'system' | 'booking';
 }
+interface LocationState {
+  from?: {
+    pathname: string;
+  };
+  passwordChangeRequired?: boolean;
+}
+
 
 // Component cho hiển thị thông báo
 const AlertMessage: React.FC<{
@@ -301,6 +308,14 @@ const ProfilePage: React.FC = () => {
     if (activeTab === 'bookings') fetchBookings();
     else if (activeTab === 'notifications') fetchNotifications();
   }, [activeTab, fetchBookings, fetchNotifications]);
+useEffect(() => {
+  if (location.state?.passwordChangeRequired) {
+    setMustChangePassword(true);
+    setActiveTab('profile');
+    setActiveSubTab('security');
+    showAlert('info', 'Vui lòng đổi mật khẩu trước khi tiếp tục sử dụng hệ thống.');
+  }
+}, [location.state]);
 
   const handleLogout = () => {
     if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
@@ -389,13 +404,25 @@ const ProfilePage: React.FC = () => {
         NewPassword: passwordForm.newPassword,
         ConfirmNewPassword: passwordForm.confirmNewPassword
       }, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
+      
+      // Nếu thành công, xóa flag requiresPasswordChange
+      localStorage.removeItem('requiresPasswordChange');
+      setMustChangePassword(false);
+      
       showAlert('success', 'Đổi mật khẩu thành công!');
       setPasswordForm({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
+      
+      // Nếu có trang trước đó, chuyển hướng về trang đó
+      const state = location.state as LocationState | null;
+      if (state && state.from && state.from.pathname !== '/profile') {
+        navigate(state.from.pathname);
+      }
     } catch (error) {
       console.error("Error changing password:", error);
       showAlert('error', 'Đã xảy ra lỗi khi đổi mật khẩu. Vui lòng thử lại sau.');
     }
   };
+
 
   const handleNotificationSettingsChange = (setting: keyof typeof notificationSettings) => {
     setNotificationSettings(prev => ({ ...prev, [setting]: !prev[setting] }));
