@@ -21,7 +21,6 @@ import ManageCinemaRoomPage from './pages/ManageCinemaRoomPage';
 import ManagePromotionPage from './pages/ManagePromotionPage';
 import UserPromotionsPage from './pages/PromotionPage';
 import TicketSellingByStaff from './pages/StaffPage';
-import StaffPage from './pages/StaffPage';
 import BookingSuccessPage from './pages/BookingSuccessPage';
 import ManageBookingPage from './pages/ManageBookingPage';
 function App() {

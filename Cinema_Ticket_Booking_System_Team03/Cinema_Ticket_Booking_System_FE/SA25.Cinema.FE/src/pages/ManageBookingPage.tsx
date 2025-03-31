@@ -1,1515 +1,782 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { format } from 'date-fns';
-import { vi } from 'date-fns/locale';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Dialog } from '@headlessui/react';
-import { Tab } from '@headlessui/react';
+import React, { useState, useEffect } from 'react';
+import { Table, Card, Space, Tag, Button, message, Modal, Tooltip, Select, DatePicker, Form, Row, Col, Divider, Input } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import { EyeOutlined, DeleteOutlined, SearchOutlined, ExportOutlined, FilterOutlined, ClearOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+import moment from 'moment';
+import { CSVLink } from 'react-csv';
 import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
-import {
-  FiSearch,
-  FiFilter,
-  FiGrid,
-  FiList,
-  FiDownload,
-  FiClock,
-  FiCalendar,
-  FiUser,
-  FiChevronDown,
-  FiEye,
-  FiXCircle,
-  FiEdit,
-  FiCheckCircle,
-  FiAlertCircle,
-  FiPrinter
-} from 'react-icons/fi';
 
-// Types
+const { Option } = Select;
+const { RangePicker } = DatePicker;
+const { CheckableTag } = Tag;
+
+interface Movie {
+  movie_ID: number;
+  movie_Name: string;
+}
+
+interface Room {
+  cinema_Room_ID: number;
+  room_Name: string;
+}
+
+interface Showtime {
+  showtime_ID: number;
+  show_Date: string;
+  start_Time: string;
+  movie: Movie;
+  room: Room;
+}
+
 interface Booking {
-  booking_ID: string;
-  user_ID: string;
-  showtime_ID: string;
+  booking_ID: number;
   booking_Date: string;
+  status: string;
   total_Amount: number;
-  status: string;
-  payment_Method: string;
-  payment_Date: string;
-  cancellation_Date?: string;
-  cancellation_Reason?: string;
-  seats?: string;
-  showtime: {
-    showtime_ID: string;
-    movie: {
-      movie_ID: string;
-      movie_Name: string;
-      duration: number;
-      poster_URL: string;
-    };
-    room: {
-      room_ID: string;
-      room_Name: string;
-      room_Type: string;
-    };
-    show_Date: string;
-    start_Time: string;
-  };
+  showtime: Showtime;
 }
 
-interface BookingListItem {
-  booking_ID: string;
-  user_ID: string;
-  customerName: string;
-  customerPhone: string;
-  movieName: string;
-  showDate: string;
-  startTime: string;
-  roomName: string;
-  status: string;
-  amount: number;
-  paymentMethod: string;
-  seats?: string;
-}
+const API_BASE_URL = 'https://localhost:7168';
 
-interface BookingFilters {
-  customerName: string;
-  customerContact: string;
-  movieName: string;
-  startDate: string;
-  endDate: string;
-  status: string;
-  paymentMethod: string;
-}
+const ManageBooking: React.FC = () => {
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [bookingDetails, setBookingDetails] = useState<any>(null);
+  const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [selectedMovies, setSelectedMovies] = useState<number[]>([]);
+  const [selectedRooms, setSelectedRooms] = useState<number[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<any>(null);
+  const [bookingIdFilter, setBookingIdFilter] = useState<string>('');
+  const { token } = useAuth();
+  const [form] = Form.useForm();
 
-// API Service
-const BookingService = {
-  getAllBookings: async (): Promise<Booking[]> => {
+  // Debug useEffect to monitor filter visibility changes
+  useEffect(() => {
+    console.log("Filter visibility changed:", isFilterVisible);
+  }, [isFilterVisible]);
+
+  // Status options for filter tags
+  const statusOptions = [
+    { value: 'Pending', color: 'gold' },
+    { value: 'Confirmed', color: 'green' },
+    { value: 'Cancelled', color: 'red' },
+    { value: 'Completed', color: 'blue' },
+    { value: 'Unused', color: 'purple' },
+    { value: 'Used', color: 'cyan' },
+    { value: 'Refunded', color: 'volcano' }
+  ];
+
+  // Payment method options for filter tags
+  const paymentMethodOptions = [
+    { value: 'Cash', color: 'default' },
+    { value: 'Card', color: 'blue' },
+    { value: 'E-Wallet', color: 'orange' }
+  ];
+
+  useEffect(() => {
+    fetchMyBookings();
+    fetchMovies();
+    fetchRooms();
+  }, []);
+
+  const fetchMyBookings = async () => {
     try {
-      const response = await axios.get('/api/Booking');
-      return response.data;
+      setLoading(true);
+      console.log("Fetching bookings with token:", token ? "Token exists" : "No token");
+      const response = await axios.get(`${API_BASE_URL}/api/Booking`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      console.log("Bookings API response:", response.data);
+      if (response.data.$values) {
+        setBookings(response.data.$values);
+      }
     } catch (error) {
       console.error('Error fetching bookings:', error);
-      throw error;
+      message.error('Failed to fetch bookings');
+    } finally {
+      setLoading(false);
     }
-  },
-  
-  getBookingById: async (id: string): Promise<Booking> => {
+  };
+
+  const fetchMovies = async () => {
     try {
-      const response = await axios.get(`/api/Booking/${id}`);
+      const response = await axios.get(`${API_BASE_URL}/api/Movie`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      console.log("Movies API response:", response.data);
+      if (response.data.$values) {
+        setMovies(response.data.$values);
+      }
+    } catch (error) {
+      console.error('Error fetching movies:', error);
+    }
+  };
+
+  const fetchRooms = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/CinemaRoom`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      console.log("Rooms API response:", response.data);
+      if (response.data.$values) {
+        setRooms(response.data.$values);
+      }
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+    }
+  };
+
+  const fetchBookingDetails = async (bookingId: number) => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_BASE_URL}/api/Booking/${bookingId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      console.log("Booking details API response:", response.data);
+      setBookingDetails(response.data);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching booking ${id}:`, error);
-      throw error;
+      console.error('Error fetching booking details:', error);
+      message.error('Failed to fetch booking details');
+      return null;
+    } finally {
+      setLoading(false);
     }
-  },
-  
-  searchBookings: async (query: string): Promise<Booking[]> => {
+  };
+
+  const handleViewDetails = async (booking: Booking) => {
+    console.log("Viewing details for booking:", booking.booking_ID);
+    setSelectedBooking(booking);
+    await fetchBookingDetails(booking.booking_ID);
+    setIsModalVisible(true);
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
+    setSelectedBooking(null);
+    setBookingDetails(null);
+  };
+
+  const handleCancelBooking = async (bookingId: number) => {
     try {
-      const response = await axios.get(`/api/Booking/search?query=${encodeURIComponent(query)}`);
-      return response.data;
+      console.log("Cancelling booking:", bookingId);
+      await axios.put(`${API_BASE_URL}/api/Booking/${bookingId}/cancel`, {}, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      message.success('Booking cancelled successfully');
+      fetchMyBookings();
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
+      message.error('Failed to cancel booking');
+    }
+  };
+
+  const getStatusTag = (status: string) => {
+    const colorMap: { [key: string]: string } = {
+      Pending: 'gold',
+      Confirmed: 'green',
+      Cancelled: 'red',
+      Completed: 'blue',
+      Unused: 'purple',
+      Used: 'cyan',
+      Refunded: 'volcano'
+    };
+    return <Tag color={colorMap[status] || 'default'}>{status}</Tag>;
+  };
+
+  const handleSearch = async () => {
+    try {
+      setLoading(true);
+      const params: any = {};
+      
+      // Add selected filters to params
+      if (bookingIdFilter) params.bookingCode = bookingIdFilter;
+      if (selectedMovies.length > 0) params.movieIds = selectedMovies.join(',');
+      if (selectedRooms.length > 0) params.roomIds = selectedRooms.join(',');
+      if (selectedStatuses.length > 0) params.statuses = selectedStatuses.join(',');
+      if (selectedPaymentMethods.length > 0) params.paymentMethods = selectedPaymentMethods.join(',');
+      
+      // Format date range if provided
+      if (dateRange && dateRange.length === 2) {
+        params.fromDate = dateRange[0].format('YYYY-MM-DD');
+        params.toDate = dateRange[1].format('YYYY-MM-DD');
+      }
+
+      console.log("Searching with params:", params);
+      const response = await axios.get(`${API_BASE_URL}/api/Booking/search`, {
+        params,
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      console.log("Search API response:", response.data);
+      if (response.data.$values) {
+        setBookings(response.data.$values);
+      }
+      
+      // Close filter panel after search
+      setIsFilterVisible(false);
     } catch (error) {
       console.error('Error searching bookings:', error);
-      throw error;
+      message.error('Failed to search bookings');
+    } finally {
+      setLoading(false);
     }
-  },
-  
-  cancelBooking: async (id: string, reason: string): Promise<any> => {
-    try {
-      const response = await axios.put(`/api/Booking/${id}/cancel`, { reason });
-      return response.data;
-    } catch (error) {
-      console.error(`Error cancelling booking ${id}:`, error);
-      throw error;
-    }
-  },
-  
-  updatePayment: async (id: string, paymentData: any): Promise<any> => {
-    try {
-      const response = await axios.put(`/api/Booking/${id}/payment`, paymentData);
-      return response.data;
-    } catch (error) {
-      console.error(`Error updating payment for booking ${id}:`, error);
-      throw error;
-    }
-  },
-  
-  exportBookings: async (format: string): Promise<Blob> => {
-    try {
-      const response = await axios.get(`/api/Booking/export?format=${format}`, {
-        responseType: 'blob'
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error exporting bookings:', error);
-      throw error;
-    }
-  }
-};
+  };
 
-// Helper Components
-const BookingStatusBadge: React.FC<{ status: string }> = ({ status }) => {
-  let variant = 'default';
-  let label = 'Không xác định';
-  
-  switch (status) {
-    case 'Confirmed':
-      variant = 'success';
-      label = 'Đã xác nhận';
-      break;
-    case 'Cancelled':
-      variant = 'error';
-      label = 'Đã hủy';
-      break;
-    case 'Completed':
-      variant = 'info';
-      label = 'Đã hoàn thành';
-      break;
-    case 'Refunded':
-      variant = 'warning';
-      label = 'Đã hoàn tiền';
-      break;
-    case 'Pending':
-      variant = 'secondary';
-      label = 'Đang chờ';
-      break;
-  }
-  
-  return <Badge variant={variant as any}>{label}</Badge>;
-};
+  const handleClearFilters = () => {
+    console.log("Clearing filters");
+    setSelectedMovies([]);
+    setSelectedRooms([]);
+    setSelectedStatuses([]);
+    setSelectedPaymentMethods([]);
+    setDateRange(null);
+    setBookingIdFilter('');
+    fetchMyBookings();
+    setIsFilterVisible(false);
+  };
 
-const PaymentMethodBadge: React.FC<{ method: string }> = ({ method }) => {
-  let variant = 'default';
-  let label = method;
-  
-  switch (method) {
-    case 'Cash':
-      variant = 'success';
-      label = 'Tiền mặt';
-      break;
-    case 'Card':
-      variant = 'info';
-      label = 'Thẻ';
-      break;
-    case 'Online':
-      variant = 'purple';
-      label = 'Thanh toán online';
-      break;
-    case 'Payos':
-      variant = 'secondary';
-      label = 'PayOS';
-      break;
-  }
-  
-  return <Badge variant={variant as any}>{label}</Badge>;
-};
+  const handleExport = async (format: 'csv' | 'excel') => {
+    if (format === 'excel' || format === 'csv') {
+      if (bookings.length === 0) {
+        message.warning('No data to export');
+        return;
+      }
 
-// Utility functions
-const formatDate = (dateString: string): string => {
-  try {
-    return format(new Date(dateString), 'dd/MM/yyyy', { locale: vi });
-  } catch (error) {
-    return 'Không xác định';
-  }
-};
-
-const formatTime = (timeString: string): string => {
-  try {
-    // Handle both full datetime strings and time-only strings
-    if (timeString.includes('T')) {
-      return format(new Date(timeString), 'HH:mm', { locale: vi });
+      console.log(`Exporting as ${format}`);
+      if (format === 'excel') {
+        handleExportExcel();
+      }
+      // For CSV, we're using the CSVLink component which handles the export
     } else {
-      // Assuming time format like "14:30:00"
-      const [hours, minutes] = timeString.split(':');
-      return `${hours}:${minutes}`;
+      try {
+        setLoading(true);
+        // Get export criteria from filter selections
+        const params: any = {};
+        
+        if (selectedMovies.length > 0) params.movieIds = selectedMovies.join(',');
+        if (selectedRooms.length > 0) params.roomIds = selectedRooms.join(',');
+        if (selectedStatuses.length > 0) params.statuses = selectedStatuses.join(',');
+        if (selectedPaymentMethods.length > 0) params.paymentMethods = selectedPaymentMethods.join(',');
+        
+        if (dateRange && dateRange.length === 2) {
+          params.fromDate = dateRange[0].format('YYYY-MM-DD');
+          params.toDate = dateRange[1].format('YYYY-MM-DD');
+        }
+        params.format = format;
+        
+        console.log(`Exporting with params:`, params);
+        const response = await axios.get(`${API_BASE_URL}/api/Booking/export`, {
+          params,
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          responseType: 'blob'
+        });
+        
+        // Create download link
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `bookings-${moment().format('DD-MM-YYYY')}.${format}`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } catch (error) {
+        console.error(`Error exporting bookings as ${format}:`, error);
+        message.error(`Failed to export bookings as ${format}`);
+      } finally {
+        setLoading(false);
+      }
     }
-  } catch (error) {
-    return 'Không xác định';
-  }
-};
+  };
 
-const downloadCSV = (data: any[], filename: string) => {
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Bookings');
-  const excelBuffer = XLSX.write(workbook, { bookType: 'csv', type: 'array' });
-  const blob = new Blob([excelBuffer], { type: 'text/csv;charset=utf-8' });
-  saveAs(blob, `${filename}.csv`);
-};
+  const handleExportCSV = () => {
+    console.log("Preparing CSV data");
+    const csvData = bookings.map(booking => ({
+      booking_ID: booking.booking_ID,
+      movie_Name: booking.showtime.movie.movie_Name,
+      show_Date: moment(booking.showtime.show_Date).format('DD/MM/YYYY'),
+      start_Time: moment(booking.showtime.start_Time, 'HH:mm:ss').format('HH:mm'),
+      room_Name: booking.showtime.room.room_Name,
+      total_Amount: booking.total_Amount,
+      status: booking.status,
+      booking_Date: moment(booking.booking_Date).format('DD/MM/YYYY HH:mm')
+    }));
 
-const downloadExcel = (data: any[], filename: string) => {
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Bookings');
-  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-  const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  saveAs(blob, `${filename}.xlsx`);
-};
+    return csvData;
+  };
 
-// Main Component
-const ManageTicketPage: React.FC = () => {
-  // State
-  const [bookings, setBookings] = useState<BookingListItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [searchResults, setSearchResults] = useState<BookingListItem[]>([]);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
-  const [isAdvancedFilterOpen, setIsAdvancedFilterOpen] = useState<boolean>(false);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
-  const [isCancelModalOpen, setIsCancelModalOpen] = useState<boolean>(false);
-  const [isStatusUpdateModalOpen, setIsStatusUpdateModalOpen] = useState<boolean>(false);
-  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
-  const [selectedBookingDetails, setSelectedBookingDetails] = useState<Booking | null>(null);
-  const [cancellationReason, setCancellationReason] = useState<string>('');
-  const [newTicketStatus, setNewTicketStatus] = useState<string>('');
-  const [filters, setFilters] = useState<BookingFilters>({
-    customerName: '',
-    customerContact: '',
-    movieName: '',
-    startDate: '',
-    endDate: '',
-    status: '',
-    paymentMethod: ''
-  });
-  
-  // Fetch bookings on component mount
-  useEffect(() => {
-    fetchBookings();
-  }, []);
-  
-  // Fetch booking details when a booking is selected
-  useEffect(() => {
-    if (selectedBookingId) {
-      fetchBookingDetails(selectedBookingId);
-    }
-  }, [selectedBookingId]);
-  
-  // Fetch all bookings
-  const fetchBookings = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const data = await BookingService.getAllBookings();
-      
-      // Transform data for display
-      const transformedData: BookingListItem[] = data.map(booking => ({
-        booking_ID: booking.booking_ID,
-        user_ID: booking.user_ID,
-        customerName: booking.user_ID, // In a real app, you'd fetch user details
-        customerPhone: 'N/A', // In a real app, you'd fetch user details
-        movieName: booking.showtime.movie.movie_Name,
-        showDate: booking.showtime.show_Date,
-        startTime: booking.showtime.start_Time,
-        roomName: booking.showtime.room.room_Name,
-        status: booking.status,
-        amount: booking.total_Amount,
-        paymentMethod: booking.payment_Method,
-        seats: booking.seats
-      }));
-      
-      setBookings(transformedData);
-    } catch (err) {
-      setError('Không thể tải dữ liệu đặt vé. Vui lòng thử lại sau.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const handleExportExcel = () => {
+    console.log("Exporting to Excel");
+    const worksheet = XLSX.utils.json_to_sheet(handleExportCSV());
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Bookings');
+    XLSX.writeFile(workbook, `bookings-${moment().format('DD-MM-YYYY')}.xlsx`);
   };
-  
-  // Fetch booking details by ID
-  const fetchBookingDetails = async (id: string) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const data = await BookingService.getBookingById(id);
-      setSelectedBookingDetails(data);
-      setIsDetailModalOpen(true);
-    } catch (err) {
-      setError('Không thể tải chi tiết đặt vé. Vui lòng thử lại sau.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Handle search
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    
-    setLoading(true);
-    
-    try {
-      const data = await BookingService.searchBookings(searchQuery);
-      
-      // Transform data for display
-      const transformedData: BookingListItem[] = data.map(booking => ({
-        booking_ID: booking.booking_ID,
-        user_ID: booking.user_ID,
-        customerName: booking.user_ID, // In a real app, you'd fetch user details
-        customerPhone: 'N/A', // In a real app, you'd fetch user details
-        movieName: booking.showtime.movie.movie_Name,
-        showDate: booking.showtime.show_Date,
-        startTime: booking.showtime.start_Time,
-        roomName: booking.showtime.room.room_Name,
-        status: booking.status,
-        amount: booking.total_Amount,
-        paymentMethod: booking.payment_Method,
-        seats: booking.seats
-      }));
-      
-      setSearchResults(transformedData);
-    } catch (err) {
-      setError('Không thể tìm kiếm đặt vé. Vui lòng thử lại sau.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Handle booking selection
-  const handleSelectBooking = (id: string) => {
-    setSelectedBookingId(id);
-  };
-  
-  // Handle booking cancellation
-  const handleCancelBooking = async () => {
-    if (!selectedBookingId || !cancellationReason.trim()) {
-      return;
-    }
-    
-    setLoading(true);
-    
-    try {
-      await BookingService.cancelBooking(selectedBookingId, cancellationReason);
-      
-      // Refresh bookings
-      await fetchBookings();
-      
-      // Close modals
-      setIsCancelModalOpen(false);
-      setIsDetailModalOpen(false);
-      setCancellationReason('');
-      
-      // Show success message (in a real app, you'd use a toast/notification system)
-      alert('Đặt vé đã được hủy thành công.');
-    } catch (err) {
-      setError('Không thể hủy đặt vé. Vui lòng thử lại sau.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Handle ticket status update
-  const handleUpdateTicketStatus = async () => {
-    if (!selectedBookingId || !newTicketStatus) {
-      return;
-    }
-    
-    setLoading(true);
-    
-    try {
-      // Using the payment endpoint to update status since there's no dedicated status update endpoint
-      await BookingService.updatePayment(selectedBookingId, { status: newTicketStatus });
-      
-      // Refresh bookings
-      await fetchBookings();
-      
-      // Close modals
-      setIsStatusUpdateModalOpen(false);
-      setIsDetailModalOpen(false);
-      setNewTicketStatus('');
-      
-      // Show success message (in a real app, you'd use a toast/notification system)
-      alert('Trạng thái đặt vé đã được cập nhật thành công.');
-    } catch (err) {
-      setError('Không thể cập nhật trạng thái đặt vé. Vui lòng thử lại sau.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Handle filter change
-  const handleFilterChange = (field: keyof BookingFilters, value: string) => {
-    setFilters(prev => ({ ...prev, [field]: value }));
-  };
-  
-  // Reset filters
-  const resetFilters = () => {
-    setFilters({
-      customerName: '',
-      customerContact: '',
-      movieName: '',
-      startDate: '',
-      endDate: '',
-      status: '',
-      paymentMethod: ''
+
+  // Handler for movie selection
+  const handleMovieChange = (movieId: number, checked: boolean) => {
+    setSelectedMovies(prevSelected => {
+      if (checked) {
+        return [...prevSelected, movieId];
+      } else {
+        return prevSelected.filter(id => id !== movieId);
+      }
     });
   };
-  
-  // Handle export
-  const handleExport = async (format: 'csv' | 'excel') => {
-    setLoading(true);
-    
-    try {
-      const data = searchResults.length > 0 ? searchResults : bookings;
-      
-      if (format === 'csv') {
-        downloadCSV(data, `bookings-export-${new Date().toISOString().split('T')[0]}`);
+
+  // Handler for room selection
+  const handleRoomChange = (roomId: number, checked: boolean) => {
+    setSelectedRooms(prevSelected => {
+      if (checked) {
+        return [...prevSelected, roomId];
       } else {
-        downloadExcel(data, `bookings-export-${new Date().toISOString().split('T')[0]}`);
+        return prevSelected.filter(id => id !== roomId);
       }
-    } catch (err) {
-      setError('Không thể xuất dữ liệu. Vui lòng thử lại sau.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    });
   };
-  
-  // Filter bookings based on filters
-  const filteredBookings = useMemo(() => {
-    let result = searchResults.length > 0 ? searchResults : bookings;
-    
-    if (filters.customerName) {
-      result = result.filter(booking => 
-        booking.customerName.toLowerCase().includes(filters.customerName.toLowerCase())
-      );
-    }
-    
-    if (filters.customerContact) {
-      result = result.filter(booking => 
-        booking.customerPhone.toLowerCase().includes(filters.customerContact.toLowerCase())
-      );
-    }
-    
-    if (filters.movieName) {
-      result = result.filter(booking => 
-        booking.movieName.toLowerCase().includes(filters.movieName.toLowerCase())
-      );
-    }
-    
-    if (filters.startDate) {
-      const startDate = new Date(filters.startDate);
-      result = result.filter(booking => {
-        const bookingDate = new Date(booking.showDate);
-        return bookingDate >= startDate;
-      });
-    }
-    
-    if (filters.endDate) {
-      const endDate = new Date(filters.endDate);
-      endDate.setHours(23, 59, 59, 999); // End of day
-      result = result.filter(booking => {
-        const bookingDate = new Date(booking.showDate);
-        return bookingDate <= endDate;
-      });
-    }
-    
-    if (filters.status) {
-      result = result.filter(booking => booking.status === filters.status);
-    }
-    
-    if (filters.paymentMethod) {
-      result = result.filter(booking => booking.paymentMethod === filters.paymentMethod);
-    }
-    
-    return result;
-  }, [bookings, searchResults, filters]);
-  
-  // Paginate results
-  const paginatedResults = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredBookings.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredBookings, currentPage, itemsPerPage]);
-  
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quản lý đặt vé</h1>
-          <p className="text-gray-500 mt-1">Quản lý tất cả các đặt vé trong hệ thống</p>
-        </div>
-        
-        <div className="flex flex-wrap gap-2 mt-4 md:mt-0">
-          <Button
-            variant="outline"
-            icon={<FiDownload />}
-            onClick={() => handleExport('csv')}
-          >
-            Xuất CSV
-          </Button>
-          <Button
-            variant="outline"
-            icon={<FiDownload />}
-            onClick={() => handleExport('excel')}
-          >
-            Xuất Excel
-          </Button>
-        </div>
-      </div>
-      
-      {/* Search and filter bar */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-grow">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Tìm kiếm theo tên khách hàng, email, số điện thoại, mã đặt vé..."
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSearch();
-                  }
-                }}
+
+  // Handler for status selection
+  const handleStatusChange = (status: string, checked: boolean) => {
+    setSelectedStatuses(prevSelected => {
+      if (checked) {
+        return [...prevSelected, status];
+      } else {
+        return prevSelected.filter(s => s !== status);
+      }
+    });
+  };
+
+  // Handler for payment method selection
+  const handlePaymentMethodChange = (method: string, checked: boolean) => {
+    setSelectedPaymentMethods(prevSelected => {
+      if (checked) {
+        return [...prevSelected, method];
+      } else {
+        return prevSelected.filter(m => m !== method);
+      }
+    });
+  };
+
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (bookingIdFilter) count++;
+    if (selectedMovies.length > 0) count++;
+    if (selectedRooms.length > 0) count++;
+    if (selectedStatuses.length > 0) count++;
+    if (selectedPaymentMethods.length > 0) count++;
+    if (dateRange) count++;
+    return count;
+  };
+
+  const columns: ColumnsType<Booking> = [
+    {
+      title: 'Booking ID',
+      dataIndex: 'booking_ID',
+      key: 'booking_ID',
+    },
+    {
+      title: 'Movie',
+      dataIndex: ['showtime', 'movie', 'movie_Name'],
+      key: 'movieName',
+    },
+    {
+      title: 'Show Date',
+      dataIndex: ['showtime', 'show_Date'],
+      key: 'showDate',
+      render: (date: string) => moment(date).format('DD/MM/YYYY'),
+    },
+    {
+      title: 'Show Time',
+      dataIndex: ['showtime', 'start_Time'],
+      key: 'showTime',
+      render: (time: string) => moment(time, 'HH:mm:ss').format('HH:mm'),
+    },
+    {
+      title: 'Room',
+      dataIndex: ['showtime', 'room', 'room_Name'],
+      key: 'roomName',
+    },
+    {
+      title: 'Total Amount',
+      dataIndex: 'total_Amount',
+      key: 'totalAmount',
+      render: (amount: number) => `${amount.toLocaleString()} VND`,
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: getStatusTag,
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <Space size="middle">
+          <Tooltip title="View Details">
+            <Button 
+              icon={<EyeOutlined />} 
+              onClick={() => handleViewDetails(record)}
+            />
+          </Tooltip>
+          {record.status === 'Pending' && (
+            <Tooltip title="Cancel Booking">
+              <Button 
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => handleCancelBooking(record.booking_ID)}
               />
-              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button
-              variant="primary"
-              onClick={handleSearch}
-            >
-              Tìm kiếm
-            </Button>
-            
-            <Button
-              variant={isAdvancedFilterOpen ? 'secondary' : 'outline'}
-              icon={<FiFilter />}
-              onClick={() => setIsAdvancedFilterOpen(!isAdvancedFilterOpen)}
-            >
-              Bộ lọc
-            </Button>
-            
-            <div className="hidden md:flex border border-gray-300 rounded-md overflow-hidden">
-              <button
-                className={`px-3 py-2 ${viewMode === 'list' ? 'bg-gray-100' : 'bg-white'}`}
-                onClick={() => setViewMode('list')}
-              >
-                <FiList />
-              </button>
-              <button
-                className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-gray-100' : 'bg-white'}`}
-                onClick={() => setViewMode('grid')}
-              >
-                <FiGrid />
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Advanced filter panel */}
-        <AnimatePresence>
-          {isAdvancedFilterOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="border-t border-gray-200 mt-4 pt-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Customer name filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tên khách hàng
-                    </label>
-                    <Input
-                      type="text"
-                      placeholder="Nhập tên khách hàng"
-                      value={filters.customerName}
-                      onChange={(e) => handleFilterChange('customerName', e.target.value)}
-                    />
-                  </div>
-                  
-                  {/* Customer contact filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Số điện thoại/Email
-                    </label>
-                    <Input
-                      type="text"
-                      placeholder="Nhập số điện thoại hoặc email"
-                      value={filters.customerContact}
-                      onChange={(e) => handleFilterChange('customerContact', e.target.value)}
-                    />
-                  </div>
-                  
-                  {/* Movie name filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tên phim
-                    </label>
-                    <Input
-                      type="text"
-                      placeholder="Nhập tên phim"
-                      value={filters.movieName}
-                      onChange={(e) => handleFilterChange('movieName', e.target.value)}
-                    />
-                  </div>
-                  
-                  {/* Date range filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Từ ngày
-                    </label>
-                    <Input
-                      type="date"
-                      value={filters.startDate}
-                      onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Đến ngày
-                    </label>
-                    <Input
-                      type="date"
-                      value={filters.endDate}
-                      onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                    />
-                  </div>
-                  
-                  {/* Status filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Trạng thái
-                    </label>
-                    <Select
-                      value={filters.status}
-                      onChange={(e) => handleFilterChange('status', e.target.value)}
-                      className="w-full"
-                    >
-                      <option value="">Tất cả trạng thái</option>
-                      <option value="Confirmed">Đã xác nhận</option>
-                      <option value="Cancelled">Đã hủy</option>
-                      <option value="Completed">Đã hoàn thành</option>
-                      <option value="Refunded">Đã hoàn tiền</option>
-                    </Select>
-                  </div>
-                  
-                  {/* Payment method filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phương thức thanh toán
-                    </label>
-                    <Select
-                      value={filters.paymentMethod}
-                      onChange={(e) => handleFilterChange('paymentMethod', e.target.value)}
-                      className="w-full"
-                    >
-                      <option value="">Tất cả phương thức</option>
-                      <option value="Cash">Tiền mặt</option>
-                      <option value="Card">Thẻ</option>
-                      <option value="Online">Thanh toán online</option>
-                      <option value="Payos">PayOS</option>
-                    </Select>
-                  </div>
-                </div>
-                
-                <div className="flex justify-end mt-4 space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={resetFilters}
-                  >
-                    Đặt lại
-                  </Button>
-                  <Button
-                    variant="primary"
-                    onClick={() => setIsAdvancedFilterOpen(false)}
-                  >
-                    Áp dụng
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
+            </Tooltip>
           )}
-        </AnimatePresence>
-      </div>
-      
-      {/* Results count and pagination controls */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-4">
-        <div className="text-sm text-gray-600 mb-2 md:mb-0">
-          Hiển thị {filteredBookings.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} - {Math.min(currentPage * itemsPerPage, filteredBookings.length)} trên {filteredBookings.length} kết quả
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-600">Hiển thị:</span>
-          <Select
-            value={itemsPerPage}
-            onChange={(e) => {
-              setItemsPerPage(Number(e.target.value));
-              setCurrentPage(1);
+        </Space>
+      ),
+    },
+  ];
+
+  const activeFiltersCount = getActiveFiltersCount();
+
+  return (
+    <div style={{ padding: '24px' }}>
+      <Card title="My Bookings" bordered={false}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <Button 
+            icon={<FilterOutlined />} 
+            onClick={() => {
+              console.log("Filter button clicked, current state:", isFilterVisible);
+              setIsFilterVisible(!isFilterVisible);
             }}
-            className="w-20"
+            type={isFilterVisible ? 'primary' : 'default'}
           >
-            <option value="10">10</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-          </Select>
-        </div>
-      </div>
-      
-      {/* Loading state */}
-      {loading && (
-        <div className="flex justify-center items-center py-12">
-          <Spinner size="lg" />
-          <span className="ml-2 text-gray-600">Đang tải dữ liệu...</span>
-        </div>
-      )}
-      
-      {/* Error state */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-          <p>{error}</p>
-        </div>
-      )}
-      
-      {/* No results */}
-      {!loading && !error && paginatedResults.length === 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <FiSearch className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-lg font-medium text-gray-900">Không tìm thấy kết quả</h3>
-          <p className="mt-1 text-gray-500">
-            Không có đơn đặt vé nào phù hợp với tiêu chí tìm kiếm.
-          </p>
-          <div className="mt-6">
-            <Button
-              variant="outline"
-              onClick={resetFilters}
-            >
-              Xóa bộ lọc
+            Filters {activeFiltersCount > 0 && <Tag color="blue">{activeFiltersCount}</Tag>}
+          </Button>
+          
+          <Space>
+            <Button icon={<ExportOutlined />} onClick={() => handleExport('excel')}>
+              Export Excel
             </Button>
-          </div>
-        </div>
-      )}
-      
-      {/* Results - List view */}
-      {!loading && !error && paginatedResults.length > 0 && viewMode === 'list' && (
-        <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Mã đặt vé
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Khách hàng
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Phim
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ngày chiếu
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Giờ chiếu
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Phòng
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Trạng thái
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tổng tiền
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Thao tác
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {paginatedResults.map((booking) => (
-                <tr key={booking.booking_ID} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {booking.booking_ID}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {booking.customerName}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {booking.movieName}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(booking.showDate)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatTime(booking.startTime)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {booking.roomName}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <BookingStatusBadge status={booking.status} />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(booking.amount)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleSelectBooking(booking.booking_ID)}
-                        className="text-indigo-600 hover:text-indigo-900"
-                        title="Xem chi tiết"
-                      >
-                        <FiEye size={18} />
-                      </button>
-                      
-                      {booking.status !== 'Cancelled' && (
-                        <button
-                          onClick={() => {
-                            setSelectedBookingId(booking.booking_ID);
-                            setIsCancelModalOpen(true);
-                          }}
-                          className="text-red-600 hover:text-red-900"
-                          title="Hủy đặt vé"
-                        >
-                          <FiXCircle size={18} />
-                        </button>
-                      )}
-                      
-                      <button
-                        onClick={() => {
-                          setSelectedBookingId(booking.booking_ID);
-                          setIsStatusUpdateModalOpen(true);
-                        }}
-                        className="text-green-600 hover:text-green-900"
-                        title="Cập nhật trạng thái"
-                      >
-                        <FiEdit size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      
-      {/* Results - Grid view */}
-      {!loading && !error && paginatedResults.length > 0 && viewMode === 'grid' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {paginatedResults.map((booking) => (
-            <Card
-              key={booking.booking_ID}
-              className="cursor-pointer"
-              onClick={() => handleSelectBooking(booking.booking_ID)}
+            <CSVLink 
+              data={handleExportCSV()} 
+              filename={`bookings-${moment().format('DD-MM-YYYY')}.csv`}
+              className="ant-btn"
             >
-              <div className="flex justify-between">
-                <h3 className="text-gray-900 font-medium">#{booking.booking_ID}</h3>
-                <BookingStatusBadge status={booking.status} />
-              </div>
-              
-              <div className="mt-2">
-                <h4 className="text-gray-900 font-bold">{booking.movieName}</h4>
-                <div className="flex items-center mt-1 text-sm text-gray-500">
-                  <FiCalendar className="mr-1" />
-                  <span>{formatDate(booking.showDate)}</span>
-                </div>
-                <div className="flex items-center mt-1 text-sm text-gray-500">
-                  <FiClock className="mr-1" />
-                  <span>{formatTime(booking.startTime)} - {booking.roomName}</span>
-                </div>
-              </div>
-              
-              <div className="mt-3 pt-3 border-t border-gray-100">
-                <div className="flex justify-between">
-                  <div className="flex items-center text-sm text-gray-500">
-                    <FiUser className="mr-1" />
-                    <span>{booking.customerName}</span>
-                  </div>
-                  <span className="font-medium text-gray-900">
-                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(booking.amount)}
-                  </span>
-                </div>
-              </div>
-            </Card>
-          ))}
+              <ExportOutlined /> Export CSV
+            </CSVLink>
+          </Space>
         </div>
-      )}
-      
-      {/* Pagination */}
-      {!loading && !error && filteredBookings.length > 0 && (
-        <div className="mt-6">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={Math.ceil(filteredBookings.length / itemsPerPage)}
-            onPageChange={setCurrentPage}
-          />
-        </div>
-      )}
-      
-      {/* Booking Detail Modal */}
-      {isDetailModalOpen && selectedBookingDetails && (
-        <Dialog
-          open={isDetailModalOpen}
-          onClose={() => setIsDetailModalOpen(false)}
-          className="fixed inset-0 z-50 overflow-y-auto"
-        >
-          <div className="flex items-center justify-center min-h-screen p-4">
-            <Dialog.Overlay className="fixed inset-0 bg-black opacity-30" />
-            
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl z-10">
-              <div className="flex justify-between items-center border-b px-6 py-4">
-                <Dialog.Title className="text-lg font-medium">
-                  Chi tiết đặt vé #{selectedBookingDetails.booking_ID}
-                </Dialog.Title>
-                <button
-                  onClick={() => setIsDetailModalOpen(false)}
-                  className="text-gray-400 hover:text-gray-500"
-                >
-                  <FiXCircle size={24} />
-                </button>
-              </div>
-              
-              <div className="p-6">
-                <div className="flex flex-col md:flex-row gap-6">
-                  {/* Movie poster and info */}
-                  <div className="w-full md:w-1/3">
-                    <div className="aspect-[2/3] rounded-lg overflow-hidden bg-gray-200">
-                      {selectedBookingDetails.showtime.movie.poster_URL ? (
-                        <img
-                          src={selectedBookingDetails.showtime.movie.poster_URL}
-                          alt={selectedBookingDetails.showtime.movie.movie_Name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400">
-                          No poster
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="mt-4">
-                      <h3 className="text-lg font-medium text-gray-900">
-                        {selectedBookingDetails.showtime.movie.movie_Name}
-                      </h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Thời lượng: {selectedBookingDetails.showtime.movie.duration} phút
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Booking details */}
-                  <div className="w-full md:w-2/3">
-                    <Tab.Group>
-                      <Tab.List className="flex space-x-1 rounded-xl bg-gray-100 p-1">
-                        <Tab
-                          className={({ selected }) =>
-                            `w-full rounded-lg py-2.5 text-sm font-medium leading-5
-                            ${
-                              selected
-                                ? 'bg-white text-indigo-600 shadow'
-                                : 'text-gray-500 hover:bg-white/[0.12] hover:text-gray-700'
-                            }`
-                          }
-                        >
-                          Thông tin đặt vé
-                        </Tab>
-                        <Tab
-                          className={({ selected }) =>
-                            `w-full rounded-lg py-2.5 text-sm font-medium leading-5
-                            ${
-                              selected
-                                ? 'bg-white text-indigo-600 shadow'
-                                : 'text-gray-500 hover:bg-white/[0.12] hover:text-gray-700'
-                            }`
-                          }
-                        >
-                          Thông tin khách hàng
-                        </Tab>
-                      </Tab.List>
-                      <Tab.Panels className="mt-4">
-                        <Tab.Panel className="rounded-xl p-3">
-                          <div className="space-y-4">
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Trạng thái:</span>
-                              <BookingStatusBadge status={selectedBookingDetails.status} />
-                            </div>
-                            
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Ngày đặt vé:</span>
-                              <span>{formatDate(selectedBookingDetails.booking_Date)}</span>
-                            </div>
-                            
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Ngày chiếu:</span>
-                              <span>{formatDate(selectedBookingDetails.showtime.show_Date)}</span>
-                            </div>
-                            
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Giờ chiếu:</span>
-                              <span>{formatTime(selectedBookingDetails.showtime.start_Time)}</span>
-                            </div>
-                            
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Phòng:</span>
-                              <span>{selectedBookingDetails.showtime.room.room_Name} ({selectedBookingDetails.showtime.room.room_Type})</span>
-                            </div>
-                            
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Ghế:</span>
-                              <span>{selectedBookingDetails.seats || 'N/A'}</span>
-                            </div>
-                            
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Phương thức thanh toán:</span>
-                              <PaymentMethodBadge method={selectedBookingDetails.payment_Method} />
-                            </div>
-                            
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Ngày thanh toán:</span>
-                              <span>{selectedBookingDetails.payment_Date ? formatDate(selectedBookingDetails.payment_Date) : 'N/A'}</span>
-                            </div>
-                            
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Tổng tiền:</span>
-                              <span className="font-medium text-gray-900">
-                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(selectedBookingDetails.total_Amount)}
-                              </span>
-                            </div>
-                            
-                            {selectedBookingDetails.status === 'Cancelled' && (
-                              <>
-                                <div className="flex justify-between">
-                                  <span className="text-gray-500">Ngày hủy:</span>
-                                  <span>{selectedBookingDetails.cancellation_Date ? formatDate(selectedBookingDetails.cancellation_Date) : 'N/A'}</span>
-                                </div>
-                                
-                                <div className="flex justify-between">
-                                  <span className="text-gray-500">Lý do hủy:</span>
-                                  <span>{selectedBookingDetails.cancellation_Reason || 'N/A'}</span>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </Tab.Panel>
-                        
-                        <Tab.Panel className="rounded-xl p-3">
-                          <div className="space-y-4">
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">ID khách hàng:</span>
-                              <span>{selectedBookingDetails.user_ID}</span>
-                            </div>
-                            
-                            {/* In a real app, you would display more user details here */}
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Tên khách hàng:</span>
-                              <span>{selectedBookingDetails.user_ID}</span>
-                            </div>
-                            
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Email:</span>
-                              <span>N/A</span>
-                            </div>
-                            
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Số điện thoại:</span>
-                              <span>N/A</span>
-                            </div>
-                          </div>
-                        </Tab.Panel>
-                      </Tab.Panels>
-                    </Tab.Group>
-                    
-                    <div className="mt-6 pt-6 border-t border-gray-200">
-                      <div className="flex justify-end space-x-3">
-                        <Button
-                          variant="outline"
-                          onClick={() => setIsDetailModalOpen(false)}
-                        >
-                          Đóng
-                        </Button>
-                        
-                        <Button
-                          variant="outline"
-                          icon={<FiPrinter />}
-                          onClick={() => window.print()}
-                        >
-                          In vé
-                        </Button>
-                        
-                        {selectedBookingDetails.status !== 'Cancelled' && (
-                          <>
-                            <Button
-                              variant="danger"
-                              icon={<FiXCircle />}
-                              onClick={() => {
-                                setIsDetailModalOpen(false);
-                                setIsCancelModalOpen(true);
-                              }}
-                            >
-                              Hủy đặt vé
-                            </Button>
-                            
-                            <Button
-                              variant="primary"
-                              icon={<FiEdit />}
-                              onClick={() => {
-                                setIsDetailModalOpen(false);
-                                setIsStatusUpdateModalOpen(true);
-                              }}
-                            >
-                              Cập nhật trạng thái
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Dialog>
-      )}
-      
-      {/* Cancel Booking Modal */}
-      {isCancelModalOpen && (
-        <Dialog
-          open={isCancelModalOpen}
-          onClose={() => setIsCancelModalOpen(false)}
-          className="fixed inset-0 z-50 overflow-y-auto"
-        >
-          <div className="flex items-center justify-center min-h-screen p-4">
-            <Dialog.Overlay className="fixed inset-0 bg-black opacity-30" />
-            
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md z-10">
-              <div className="flex justify-between items-center border-b px-6 py-4">
-                <Dialog.Title className="text-lg font-medium">
-                  Hủy đặt vé
-                </Dialog.Title>
-                <button
-                  onClick={() => setIsCancelModalOpen(false)}
-                  className="text-gray-400 hover:text-gray-500"
-                >
-                  <FiXCircle size={24} />
-                </button>
-              </div>
-              
-              <div className="p-6">
-                <div className="flex items-center mb-4 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                  <FiAlertCircle className="text-yellow-500 mr-2" size={20} />
-                  <p className="text-yellow-700 text-sm">
-                    Việc hủy đặt vé sẽ không thể hoàn tác. Vui lòng xác nhận hành động này.
-                  </p>
-                </div>
-                
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Lý do hủy đặt vé
-                  </label>
-                  <textarea
-                    rows={3}
-                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    placeholder="Nhập lý do hủy đặt vé..."
-                    value={cancellationReason}
-                    onChange={(e) => setCancellationReason(e.target.value)}
-                  ></textarea>
-                </div>
-                
-                <div className="mt-6 flex justify-end space-x-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsCancelModalOpen(false)}
-                  >
-                    Hủy bỏ
-                  </Button>
-                  <Button
-                    variant="danger"
-                    icon={<FiXCircle />}
-                    onClick={handleCancelBooking}
-                    disabled={!cancellationReason.trim()}
-                  >
-                    Xác nhận hủy
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Dialog>
-      )}
-      
-      {/* Update Status Modal */}
-      {isStatusUpdateModalOpen && selectedBookingDetails && (
-        <Dialog
-          open={isStatusUpdateModalOpen}
-          onClose={() => setIsStatusUpdateModalOpen(false)}
-          className="fixed inset-0 z-50 overflow-y-auto"
-        >
-          <div className="flex items-center justify-center min-h-screen p-4">
-            <Dialog.Overlay className="fixed inset-0 bg-black opacity-30" />
-            
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md z-10">
-              <div className="flex justify-between items-center border-b px-6 py-4">
-                <Dialog.Title className="text-lg font-medium">
-                  Cập nhật trạng thái đặt vé
-                </Dialog.Title>
-                <button
-                  onClick={() => setIsStatusUpdateModalOpen(false)}
-                  className="text-gray-400 hover:text-gray-500"
-                >
-                  <FiXCircle size={24} />
-                </button>
-              </div>
-              
-              <div className="p-6">
-                <div className="mb-4">
-                  <h3 className="text-gray-900 font-medium mb-2">
-                    Thay đổi trạng thái đặt vé #{selectedBookingDetails.booking_ID}
-                  </h3>
-                  <p className="text-gray-500 text-sm">
-                    Trạng thái hiện tại: <span className="font-medium">{selectedBookingDetails.status}</span>
-                  </p>
-                </div>
-                
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Trạng thái mới
-                  </label>
-                  <Select
-                    value={newTicketStatus}
-                    onChange={(e) => setNewTicketStatus(e.target.value)}
-                    className="w-full"
-                  >
-                    <option value="">Chọn trạng thái</option>
-                    <option value="Confirmed">Đã xác nhận</option>
-                    <option value="Completed">Đã hoàn thành</option>
-                    <option value="Refunded">Đã hoàn tiền</option>
-                  </Select>
-                </div>
-                
-                <div className="mt-6 flex justify-end space-x-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsStatusUpdateModalOpen(false)}
-                  >
-                    Hủy bỏ
-                  </Button>
-                  <Button
-                    variant="primary"
-                    icon={<FiCheckCircle />}
-                    onClick={handleUpdateTicketStatus}
-                    disabled={!newTicketStatus}
-                  >
-                    Cập nhật
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Dialog>
-      )}
-    </div>
-  );
-};
-
-// UI Components (simplified for brevity)
-const Button: React.FC<{
-  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'success';
-  icon?: React.ReactNode;
-  className?: string;
-  onClick?: () => void;
-  disabled?: boolean;
-  children: React.ReactNode;
-}> = ({ variant = 'primary', icon, className = '', onClick, disabled = false, children }) => {
-  const baseClasses = "inline-flex items-center px-4 py-2 border rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
-  
-  const variantClasses = {
-    primary: "border-transparent text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500",
-    secondary: "border-transparent text-white bg-gray-600 hover:bg-gray-700 focus:ring-gray-500",
-    outline: "border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:ring-indigo-500",
-    danger: "border-transparent text-white bg-red-600 hover:bg-red-700 focus:ring-red-500",
-    success: "border-transparent text-white bg-green-600 hover:bg-green-700 focus:ring-green-500"
-  };
-  
-  return (
-    <button
-      type="button"
-      className={`${baseClasses} ${variantClasses[variant]} ${className}`}
-      onClick={onClick}
-      disabled={disabled}
-    >
-      {icon && <span className="mr-2">{icon}</span>}
-      {children}
-    </button>
-  );
-};
-
-const Input: React.FC<{
-  type: string;
-  placeholder?: string;
-  className?: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}> = ({ type, placeholder, className = '', value, onChange }) => {
-  return (
-    <input
-      type={type}
-      placeholder={placeholder}
-      className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${className}`}
-      value={value}
-      onChange={onChange}
-    />
-  );
-};
-
-const Select: React.FC<{
-  value: string | number;
-  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  className?: string;
-  children: React.ReactNode;
-}> = ({ value, onChange, className = '', children }) => {
-  return (
-    <select
-      value={value}
-      onChange={onChange}
-      className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${className}`}
-    >
-      {children}
-    </select>
-  );
-};
-
-const Badge: React.FC<{
-  variant?: 'default' | 'success' | 'warning' | 'error' | 'info' | 'secondary' | 'purple';
-  icon?: React.ReactNode;
-  children: React.ReactNode;
-}> = ({ variant = 'default', icon, children }) => {
-  const variantClasses = {
-    default: "bg-gray-100 text-gray-800",
-    success: "bg-green-100 text-green-800",
-    warning: "bg-yellow-100 text-yellow-800",
-    error: "bg-red-100 text-red-800",
-    info: "bg-blue-100 text-blue-800",
-    secondary: "bg-gray-100 text-gray-800",
-    purple: "bg-purple-100 text-purple-800"
-  };
-  
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variantClasses[variant]}`}>
-      {icon && <span className="mr-1 -ml-0.5">{icon}</span>}
-      {children}
-    </span>
-  );
-};
-
-const Card: React.FC<{
-  className?: string;
-  onClick?: () => void;
-  children: React.ReactNode;
-}> = ({ className = '', onClick, children }) => {
-  return (
-    <div
-      className={`bg-white rounded-lg border border-gray-200 overflow-hidden ${className}`}
-      onClick={onClick}
-    >
-      <div className="p-4">
-        {children}
-      </div>
-    </div>
-  );
-};
-
-const Spinner: React.FC<{
-  size?: 'sm' | 'md' | 'lg';
-}> = ({ size = 'md' }) => {
-  const sizeClasses = {
-    sm: "w-4 h-4",
-    md: "w-6 h-6",
-    lg: "w-8 h-8"
-  };
-  
-  return (
-    <div className={`animate-spin rounded-full border-t-2 border-b-2 border-indigo-500 ${sizeClasses[size]}`}></div>
-  );
-};
-
-const Pagination: React.FC<{
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-}> = ({ currentPage, totalPages, onPageChange }) => {
-  const pages = [];
-  
-  // Always show first and last page, and 1 page before and after current page
-  for (let i = 1; i <= totalPages; i++) {
-    if (
-      i === 1 ||
-      i === totalPages ||
-      (i >= currentPage - 1 && i <= currentPage + 1)
-    ) {
-      pages.push(i);
-    } else if (
-      (i === currentPage - 2 && currentPage > 3) ||
-      (i === currentPage + 2 && currentPage < totalPages - 2)
-    ) {
-      pages.push('...');
-    }
-  }
-  
-  return (
-    <div className="flex justify-center">
-      <nav className="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-        <button
-          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-          disabled={currentPage === 1}
-          className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <span className="sr-only">Previous</span>
-          <FiChevronDown className="h-5 w-5 rotate-90" />
-        </button>
         
-        {pages.map((page, index) => (
-          <React.Fragment key={index}>
-            {page === '...' ? (
-              <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                ...
-              </span>
-            ) : (
-              <button
-                onClick={() => onPageChange(page as number)}
-                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                  page === currentPage
-                  ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                  : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-              }`}
-            >
-              {page}
-            </button>
-          )}
-        </React.Fragment>
-      ))}
-      
-      <button
-        onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-        disabled={currentPage === totalPages}
-        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        {/* Add a debug message to confirm if condition is being evaluated */}
+        <div style={{ marginBottom: '10px' }}>
+          {console.log("Rendering filter panel, isFilterVisible =", isFilterVisible)}
+          {isFilterVisible ? "Filter panel should be visible" : "Filter panel is hidden"}
+        </div>
+        
+        {isFilterVisible && (
+          <Card style={{ marginBottom: '16px', backgroundColor: 'rgba(240, 240, 240, 0.5)' }}>
+            <div style={{ marginBottom: '16px' }}>
+              <Row gutter={[16, 16]}>
+                <Col span={8}>
+                  <div style={{ marginBottom: '8px' }}>
+                    <strong>Booking ID:</strong>
+                  </div>
+                  <Input 
+                    placeholder="Enter Booking ID" 
+                    value={bookingIdFilter} 
+                    onChange={(e) => setBookingIdFilter(e.target.value)}
+                    style={{ width: '100%' }}
+                  />
+                </Col>
+                <Col span={16}>
+                  <div style={{ marginBottom: '8px' }}>
+                    <strong>Date Range:</strong>
+                  </div>
+                  <RangePicker 
+                    value={dateRange}
+                    onChange={(dates) => setDateRange(dates)}
+                    style={{ width: '100%' }}
+                  />
+                </Col>
+              </Row>
+            </div>
+            
+            <Divider orientation="left">Movies</Divider>
+            <div style={{ marginBottom: '16px' }}>
+              {movies.map(movie => (
+                <CheckableTag
+                  key={movie.movie_ID}
+                  checked={selectedMovies.includes(movie.movie_ID)}
+                  onChange={(checked) => handleMovieChange(movie.movie_ID, checked)}
+                  style={{ marginBottom: '8px', fontSize: '14px' }}
+                >
+                  {movie.movie_Name}
+                </CheckableTag>
+              ))}
+            </div>
+            
+            <Divider orientation="left">Rooms</Divider>
+            <div style={{ marginBottom: '16px' }}>
+              {rooms.map(room => (
+                <CheckableTag
+                  key={room.cinema_Room_ID}
+                  checked={selectedRooms.includes(room.cinema_Room_ID)}
+                  onChange={(checked) => handleRoomChange(room.cinema_Room_ID, checked)}
+                  style={{ marginBottom: '8px', fontSize: '14px' }}
+                >
+                  {room.room_Name}
+                </CheckableTag>
+              ))}
+            </div>
+            
+            <Divider orientation="left">Status</Divider>
+            <div style={{ marginBottom: '16px' }}>
+              {statusOptions.map(status => (
+                <CheckableTag
+                  key={status.value}
+                  checked={selectedStatuses.includes(status.value)}
+                  onChange={(checked) => handleStatusChange(status.value, checked)}
+                  style={{ marginBottom: '8px', fontSize: '14px' }}
+                >
+                  <Tag color={status.color} style={{ marginRight: 0 }}>{status.value}</Tag>
+                </CheckableTag>
+              ))}
+            </div>
+            
+            <Divider orientation="left">Payment Method</Divider>
+            <div style={{ marginBottom: '16px' }}>
+              {paymentMethodOptions.map(method => (
+                <CheckableTag
+                  key={method.value}
+                  checked={selectedPaymentMethods.includes(method.value)}
+                  onChange={(checked) => handlePaymentMethodChange(method.value, checked)}
+                  style={{ marginBottom: '8px', fontSize: '14px' }}
+                >
+                  <Tag color={method.color} style={{ marginRight: 0 }}>{method.value}</Tag>
+                </CheckableTag>
+              ))}
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+              <Space>
+                <Button icon={<ClearOutlined />} onClick={handleClearFilters}>
+                  Clear Filters
+                </Button>
+                <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
+                  Apply Filters
+                </Button>
+              </Space>
+            </div>
+          </Card>
+        )}
+        
+        {/* Display active filters */}
+        {activeFiltersCount > 0 && (
+          <div style={{ marginBottom: '16px' }}>
+            <Space wrap>
+              {bookingIdFilter && (
+                <Tag closable onClose={() => setBookingIdFilter('')}>
+                  ID: {bookingIdFilter}
+                </Tag>
+              )}
+              
+              {selectedMovies.length > 0 && (
+                <Tag closable onClose={() => setSelectedMovies([])}>
+                  Movies: {selectedMovies.length}
+                </Tag>
+              )}
+              
+              {selectedRooms.length > 0 && (
+                <Tag closable onClose={() => setSelectedRooms([])}>
+                  Rooms: {selectedRooms.length}
+                </Tag>
+              )}
+              
+              {selectedStatuses.map(status => (
+                <Tag 
+                  key={status} 
+                  color={statusOptions.find(s => s.value === status)?.color}
+                  closable 
+                  onClose={() => handleStatusChange(status, false)}
+                >
+                  {status}
+                </Tag>
+              ))}
+              
+              {selectedPaymentMethods.map(method => (
+                <Tag 
+                  key={method}
+                  closable 
+                  onClose={() => handlePaymentMethodChange(method, false)}
+                >
+                  Payment: {method}
+                </Tag>
+              ))}
+              
+              {dateRange && (
+                <Tag closable onClose={() => setDateRange(null)}>
+                  Date: {dateRange[0].format('DD/MM/YYYY')} - {dateRange[1].format('DD/MM/YYYY')}
+                </Tag>
+              )}
+              
+              {activeFiltersCount > 1 && (
+                <Button size="small" onClick={handleClearFilters}>
+                  Clear All
+                </Button>
+              )}
+            </Space>
+          </div>
+        )}
+        
+        <Table
+          columns={columns}
+          dataSource={bookings}
+          rowKey="booking_ID"
+          loading={loading}
+          pagination={{ pageSize: 10 }}
+        />
+      </Card>
+
+      <Modal
+        title="Booking Details"
+        open={isModalVisible}
+        onCancel={handleCancel}
+        footer={[
+          <Button key="back" onClick={handleCancel}>
+            Close
+          </Button>
+        ]}
+        width={600}
       >
-        <span className="sr-only">Next</span>
-        <FiChevronDown className="h-5 w-5 -rotate-90" />
-      </button>
-    </nav>
-  </div>
-);
+        {selectedBooking && (
+          <div>
+            <Row gutter={[16, 8]}>
+              <Col span={12}>
+                <p><strong>Booking ID:</strong> {selectedBooking.booking_ID}</p>
+              </Col>
+              <Col span={12}>
+                <p><strong>Status:</strong> {getStatusTag(selectedBooking.status)}</p>
+              </Col>
+              <Col span={24}>
+                <p><strong>Movie:</strong> {selectedBooking.showtime.movie.movie_Name}</p>
+              </Col>
+              <Col span={12}>
+                <p><strong>Show Date:</strong> {moment(selectedBooking.showtime.show_Date).format('DD/MM/YYYY')}</p>
+              </Col>
+              <Col span={12}>
+                <p><strong>Show Time:</strong> {moment(selectedBooking.showtime.start_Time, 'HH:mm:ss').format('HH:mm')}</p>
+              </Col>
+              <Col span={12}>
+                <p><strong>Room:</strong> {selectedBooking.showtime.room.room_Name}</p>
+              </Col>
+              <Col span={12}>
+                <p><strong>Total Amount:</strong> {selectedBooking.total_Amount.toLocaleString()} VND</p>
+              </Col>
+              <Col span={24}>
+                <p><strong>Booking Date:</strong> {moment(selectedBooking.booking_Date).format('DD/MM/YYYY HH:mm')}</p>
+              </Col>
+            </Row>
+            
+            <Divider />
+            
+            {/* Display additional details fetched from the API if available */}
+            {bookingDetails && (
+              <div>
+                {bookingDetails.customer && (
+                  <Row gutter={[16, 8]}>
+                    <Col span={24}>
+                      <h4>Customer Information</h4>
+                    </Col>
+                    <Col span={24}>
+                      <p><strong>Name:</strong> {bookingDetails.customer.name}</p>
+                    </Col>
+                    <Col span={12}>
+                      <p><strong>Email:</strong> {bookingDetails.customer.email}</p>
+                    </Col>
+                    <Col span={12}>
+                      <p><strong>Phone:</strong> {bookingDetails.customer.phone}</p>
+                    </Col>
+                  </Row>
+                )}
+                
+                <Divider />
+                
+                {bookingDetails.tickets && bookingDetails.tickets.$values && (
+                  <div>
+                    <h4>Tickets</h4>
+                    <Table 
+                      dataSource={bookingDetails.tickets.$values}
+                      rowKey="ticket_ID"
+                      pagination={false}
+                      size="small"
+                      columns={[
+                        {
+                          title: 'Seat',
+                          dataIndex: 'seat',
+                          key: 'seat',
+                          render: (seat) => `${seat.row}${seat.number}`
+                        },
+                        {
+                          title: 'Type',
+                          dataIndex: ['ticket_Type', 'type_Name'],
+                          key: 'ticketType'
+                        },
+                        {
+                          title: 'Price',
+                          dataIndex: 'price',
+                          key: 'price',
+                          render: (price) => `${price.toLocaleString()} VND`
+                        }
+                      ]}
+                    />
+                  </div>
+                )}
+                
+                {bookingDetails.payment && (
+                  <div style={{ marginTop: '16px' }}>
+                    <Divider />
+                    <h4>Payment Information</h4>
+                    <p><strong>Method:</strong> {bookingDetails.payment.payment_Method}</p>
+                    {bookingDetails.payment.transaction_ID && (
+                      <p><strong>Transaction ID:</strong> {bookingDetails.payment.transaction_ID}</p>
+                    )}
+                    <p><strong>Payment Status:</strong> <Tag color={bookingDetails.payment.is_Paid ? 'green' : 'red'}>
+                      {bookingDetails.payment.is_Paid ? 'Paid' : 'Unpaid'}
+                    </Tag></p>
+                    {bookingDetails.payment.payment_Date && (
+                      <p><strong>Payment Date:</strong> {moment(bookingDetails.payment.payment_Date).format('DD/MM/YYYY HH:mm')}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
 };
 
-export default ManageTicketPage;
+export default ManageBooking;
