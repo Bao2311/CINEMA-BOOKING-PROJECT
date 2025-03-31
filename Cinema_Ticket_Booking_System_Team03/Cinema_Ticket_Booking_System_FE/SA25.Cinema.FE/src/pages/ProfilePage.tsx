@@ -8,7 +8,7 @@ import {
 import axios from 'axios';
 import { format, parseISO, isFuture } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { useLocation } from 'react-router-dom';
+
 // Định nghĩa kiểu dữ liệu UserProfile
 interface UserProfile {
   full_Name: string;
@@ -77,13 +77,54 @@ interface Notification {
   isRead: boolean;
   type: 'promo' | 'system' | 'booking';
 }
-interface LocationState {
-  from?: {
-    pathname: string;
-  };
-  passwordChangeRequired?: boolean;
+
+// Thêm các interface mới
+interface TicketSeatInfo {
+  seat_ID: number;
+  row_Label: string;
+  column_Number: number;
+  seat_Type: string;
+  seatLabel: string;
 }
 
+interface TicketMovieInfo {
+  movie_ID: number;
+  movie_Name: string;
+  duration: number;
+  rating: string;
+}
+
+interface TicketShowtimeInfo {
+  showtime_ID: number;
+  showDate: string;
+  startTime: string;
+  endTime: string;
+}
+
+interface TicketCinemaRoomInfo {
+  cinema_Room_ID: number;
+  room_Name: string;
+  room_Type: string;
+}
+
+interface TicketPriceInfo {
+  base_Price: number;
+  discount_Amount: number;
+  final_Price: number;
+}
+
+interface TicketDetail {
+  ticket_ID: number;
+  booking_ID: number;
+  ticket_Code: string;
+  seatInfo: TicketSeatInfo;
+  movieInfo: TicketMovieInfo;
+  showtimeInfo: TicketShowtimeInfo;
+  cinemaRoomInfo: TicketCinemaRoomInfo;
+  priceInfo: TicketPriceInfo;
+  is_Checked_In: boolean;
+  checkInTime: string | null;
+}
 
 // Component cho hiển thị thông báo
 const AlertMessage: React.FC<{
@@ -196,6 +237,9 @@ const ProfilePage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1); // Thêm state cho trang hiện tại
   const bookingsPerPage = 5; // Số booking mỗi trang
+  const [isPaymentLoading, setIsPaymentLoading] = useState<{ [key: string]: boolean }>({});
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [ticketDetails, setTicketDetails] = useState<TicketDetail[]>([]);
 
   const showAlert = (type: 'success' | 'error' | 'info', message: string) => {
     setAlert({ show: true, type, message });
@@ -308,14 +352,6 @@ const ProfilePage: React.FC = () => {
     if (activeTab === 'bookings') fetchBookings();
     else if (activeTab === 'notifications') fetchNotifications();
   }, [activeTab, fetchBookings, fetchNotifications]);
-useEffect(() => {
-  if (location.state?.passwordChangeRequired) {
-    setMustChangePassword(true);
-    setActiveTab('profile');
-    setActiveSubTab('security');
-    showAlert('info', 'Vui lòng đổi mật khẩu trước khi tiếp tục sử dụng hệ thống.');
-  }
-}, [location.state]);
 
   const handleLogout = () => {
     if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
@@ -404,25 +440,13 @@ useEffect(() => {
         NewPassword: passwordForm.newPassword,
         ConfirmNewPassword: passwordForm.confirmNewPassword
       }, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
-      
-      // Nếu thành công, xóa flag requiresPasswordChange
-      localStorage.removeItem('requiresPasswordChange');
-      setMustChangePassword(false);
-      
       showAlert('success', 'Đổi mật khẩu thành công!');
       setPasswordForm({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
-      
-      // Nếu có trang trước đó, chuyển hướng về trang đó
-      const state = location.state as LocationState | null;
-      if (state && state.from && state.from.pathname !== '/profile') {
-        navigate(state.from.pathname);
-      }
     } catch (error) {
       console.error("Error changing password:", error);
       showAlert('error', 'Đã xảy ra lỗi khi đổi mật khẩu. Vui lòng thử lại sau.');
     }
   };
-
 
   const handleNotificationSettingsChange = (setting: keyof typeof notificationSettings) => {
     setNotificationSettings(prev => ({ ...prev, [setting]: !prev[setting] }));
@@ -463,6 +487,89 @@ useEffect(() => {
 
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
+  };
+
+  const handlePayment = async (bookingId: string) => {
+    try {
+      setIsPaymentLoading(prev => ({ ...prev, [bookingId]: true }));
+      const token = localStorage.getItem('token');
+      if (!token) {
+        showAlert('error', 'Vui lòng đăng nhập để thanh toán.');
+        navigate('/login');
+        return;
+      }
+
+      const response = await axios.get(
+        `${apiBaseUrl}/payos/payment-url/${bookingId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data?.paymentUrl) {
+        window.location.href = response.data.paymentUrl;
+      } else {
+        showAlert('error', 'Không thể tạo liên kết thanh toán. Vui lòng thử lại.');
+      }
+    } catch (error) {
+      console.error("Error creating payment:", error);
+      showAlert('error', 'Đã xảy ra lỗi khi tạo thanh toán. Vui lòng thử lại sau.');
+    } finally {
+      setIsPaymentLoading(prev => ({ ...prev, [bookingId]: false }));
+    }
+  };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    // Hiển thị dialog xác nhận trước khi hủy
+    if (!window.confirm('Bạn có chắc chắn muốn hủy vé này không?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        showAlert('error', 'Vui lòng đăng nhập để thực hiện thao tác này.');
+        navigate('/login');
+        return;
+      }
+
+      const response = await axios.put(
+        `${apiBaseUrl}/Booking/${bookingId}/cancel`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.status === 200) {
+        showAlert('success', 'Đã hủy vé thành công.');
+        // Cập nhật lại danh sách đặt vé
+        fetchBookings();
+      }
+    } catch (error) {
+      console.error("Error cancelling booking:", error);
+      showAlert('error', 'Không thể hủy vé. Vui lòng thử lại sau.');
+    }
+  };
+
+  const handleViewDetails = async (bookingId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        showAlert('error', 'Vui lòng đăng nhập để xem chi tiết.');
+        navigate('/login');
+        return;
+      }
+
+      const response = await axios.get<{ $values: TicketDetail[] }>(
+        `${apiBaseUrl}/Ticket/booking/${bookingId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.$values) {
+        setTicketDetails(response.data.$values);
+        setIsDetailModalOpen(true);
+      }
+    } catch (error) {
+      console.error("Error fetching ticket details:", error);
+      showAlert('error', 'Không thể tải thông tin vé. Vui lòng thử lại sau.');
+    }
   };
 
   if (isProfileLoading) {
@@ -921,16 +1028,33 @@ useEffect(() => {
                                 <span>Đặt lúc: {formatDateTime(booking.bookingDate)}</span>
                               </div>
                               <div className="flex space-x-3">
-                                <button className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                                <button 
+                                  onClick={() => handleViewDetails(booking.id)}
+                                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                                >
                                   Xem chi tiết
                                 </button>
                                 {booking.status === 'Pending' && (
-                                  <button className="text-xs text-yellow-600 hover:text-yellow-800 font-medium">
-                                    Thanh toán
+                                  <button 
+                                    onClick={() => handlePayment(booking.id)}
+                                    disabled={isPaymentLoading[booking.id]}
+                                    className="text-xs text-yellow-600 hover:text-yellow-800 font-medium flex items-center"
+                                  >
+                                    {isPaymentLoading[booking.id] ? (
+                                      <>
+                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                        Đang xử lý...
+                                      </>
+                                    ) : (
+                                      'Thanh toán'
+                                    )}
                                   </button>
                                 )}
-                                {booking.status !== 'Cancelled' && (
-                                  <button className="text-xs text-red-600 hover:text-red-800 font-medium">
+                                {booking.status === 'Pending' && (
+                                  <button 
+                                    onClick={() => handleCancelBooking(booking.id)}
+                                    className="text-xs text-red-600 hover:text-red-800 font-medium"
+                                  >
                                     Hủy vé
                                   </button>
                                 )}
@@ -1248,6 +1372,93 @@ useEffect(() => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      </div>
+      <TicketDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        tickets={ticketDetails}
+      />
+    </div>
+  );
+};
+
+// Component Modal chi tiết vé
+const TicketDetailModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  tickets: TicketDetail[];
+}> = ({ isOpen, onClose, tickets }) => {
+  if (!isOpen || tickets.length === 0) return null;
+
+  const firstTicket = tickets[0];
+  const seatLabels = tickets.map(ticket => ticket.seatInfo.seatLabel).join(', ');
+  const totalPrice = tickets.reduce((sum, ticket) => sum + ticket.priceInfo.final_Price, 0);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg max-w-2xl w-full mx-4 overflow-hidden">
+        <div className="p-6">
+          <div className="flex justify-between items-start mb-6">
+            <h3 className="text-xl font-bold text-gray-900">Chi tiết đặt vé</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="bg-indigo-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-lg text-indigo-900 mb-2">{firstTicket.movieInfo.movie_Name}</h4>
+              <p className="text-indigo-700">Phân loại: {firstTicket.movieInfo.rating}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-500">Mã vé</p>
+                <p className="font-medium">{tickets.map(t => t.ticket_Code).join(', ')}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Ghế</p>
+                <p className="font-medium">{seatLabels}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Ngày chiếu</p>
+                <p className="font-medium">{firstTicket.showtimeInfo.showDate}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Giờ chiếu</p>
+                <p className="font-medium">
+                  {firstTicket.showtimeInfo.startTime} - {firstTicket.showtimeInfo.endTime}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Phòng chiếu</p>
+                <p className="font-medium">{firstTicket.cinemaRoomInfo.room_Name}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Loại phòng</p>
+                <p className="font-medium">{firstTicket.cinemaRoomInfo.room_Type}</p>
+              </div>
+            </div>
+
+            <div className="border-t pt-4 mt-4">
+              <div className="flex justify-between items-center">
+                <p className="text-lg font-semibold text-gray-900">Tổng tiền</p>
+                <p className="text-lg font-bold text-indigo-600">
+                  {totalPrice.toLocaleString('vi-VN')} đ
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+            >
+              Đóng
+            </button>
           </div>
         </div>
       </div>
