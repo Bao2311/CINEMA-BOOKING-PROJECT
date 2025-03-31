@@ -391,8 +391,12 @@ namespace STP.Repository.Services
             }
         }
 
-        public async Task<BookingResponseDTO> UpdateBookingPayment(int bookingId, int staffId)
+        public async Task<BookingResponseDTO> UpdateBookingPayment(int bookingId, int userId)
         {
+            _logger.LogInformation($"Starting UpdateBookingPayment for booking {bookingId} by user {userId}");
+
+            // Use transaction with explicit isolation level to prevent concurrency issues
+            using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
             try
             {
                 // Lấy thông tin đơn đặt vé
@@ -410,7 +414,28 @@ namespace STP.Repository.Services
                 if (booking == null)
                 {
                     _logger.LogError($"Không tìm thấy đơn đặt vé {bookingId}");
+                    await transaction.RollbackAsync();
                     throw new KeyNotFoundException($"Không tìm thấy đơn đặt vé {bookingId}");
+                }
+
+                // IMPORTANT: If already confirmed, just return success response
+                if (booking.Status == "Confirmed")
+                {
+                    _logger.LogInformation($"Booking {bookingId} already confirmed, skipping update process");
+                    await transaction.CommitAsync();
+
+                    // Return existing confirmed booking details
+                    return new BookingResponseDTO
+                    {
+                        Booking_ID = booking.Booking_ID,
+                        User_ID = booking.User_ID,
+                        Booking_Date = booking.Booking_Date,
+                        Total_Amount = booking.Total_Amount,
+                        Status = booking.Status,
+                        // Other properties...
+                        MovieName = booking.Showtime?.Movie?.Movie_Name,
+                        RoomName = booking.Showtime?.CinemaRoom?.Room_Name
+                    };
                 }
 
                 // Xác định đây là đơn đặt tại quầy hay đơn đặt online
@@ -423,10 +448,11 @@ namespace STP.Repository.Services
                     // CẢNH BÁO: Nếu mô hình phân quyền của bạn yêu cầu nghiêm ngặt hơn,
                     // có thể cần kiểm tra xem staffId có phải nhân viên hay không
                 }
-                else if (booking.User_ID != staffId)
+                else if (booking.User_ID != userId)
                 {
                     // Đối với đơn đặt online, chỉ khách hàng đặt mới có quyền thanh toán
-                    _logger.LogWarning($"Người dùng {staffId} không có quyền cập nhật đơn đặt vé {bookingId}");
+                    _logger.LogWarning($"Người dùng {userId} không có quyền cập nhật đơn đặt vé {bookingId}");
+                    await transaction.RollbackAsync();
                     throw new UnauthorizedAccessException("Bạn không có quyền cập nhật đơn đặt vé này");
                 }
 
@@ -434,6 +460,7 @@ namespace STP.Repository.Services
                 if (booking.Status != "Pending" && booking.Status != "Cancelled")
                 {
                     _logger.LogWarning($"Đơn đặt vé {bookingId} hiện có trạng thái {booking.Status}, không thể cập nhật");
+                    await transaction.RollbackAsync();
                     throw new InvalidOperationException("Đơn đặt vé không ở trạng thái cho phép thanh toán");
                 }
 
@@ -444,6 +471,9 @@ namespace STP.Repository.Services
 
                     try
                     {
+                        // Rollback current transaction before starting a new one
+                        await transaction.RollbackAsync();
+
                         // Tự động hủy đơn nếu quá hạn - sử dụng transaction bên trong AutoCancelExpiredBooking
                         var cancelResult = await AutoCancelExpiredBooking(bookingId);
                         _logger.LogInformation($"Đã hủy thành công đơn đặt vé quá hạn {bookingId}");
@@ -465,8 +495,6 @@ namespace STP.Repository.Services
                     }
                 }
 
-                // Sử dụng transaction để đảm bảo tất cả các thay đổi được áp dụng hoặc không có thay đổi nào được áp dụng
-                using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
                     // Nếu đơn đã bị hủy (Cancelled), cần phục hồi ghế
@@ -483,6 +511,7 @@ namespace STP.Repository.Services
                         if (ticketSeats.Count == 0)
                         {
                             _logger.LogWarning($"Không tìm thấy thông tin ghế cho đơn đặt vé {bookingId}");
+                            await transaction.RollbackAsync();
                             throw new InvalidOperationException("Không thể phục hồi đơn đặt vé vì không tìm thấy thông tin ghế");
                         }
 
@@ -495,6 +524,7 @@ namespace STP.Repository.Services
                         {
                             var bookedSeatIds = bookedSeats.Select(s => s.Seat_ID).ToList();
                             _logger.LogError($"Không thể khôi phục đơn đặt vé {bookingId} vì các ghế đã được đặt bởi đơn khác: {string.Join(", ", bookedSeatIds)}");
+                            await transaction.RollbackAsync();
                             throw new InvalidOperationException("Không thể khôi phục đơn đặt vé vì ghế đã được đặt bởi đơn khác");
                         }
 
@@ -616,6 +646,10 @@ namespace STP.Repository.Services
                         // Không throw exception ở đây để tránh ảnh hưởng đến quá trình thanh toán
                     }
 
+                    // CRITICAL: Commit the transaction - the missing piece!
+                    await transaction.CommitAsync();
+                    _logger.LogInformation($"Transaction successfully committed for booking {bookingId}");
+
                     // Lấy thông tin ghế đã định dạng
                     string formattedSeats = await GetFormattedSeatPositions(bookingId);
 
@@ -647,13 +681,15 @@ namespace STP.Repository.Services
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"Error updating booking payment for ID: {bookingId}");
+                    _logger.LogError(ex, $"Error updating booking payment for ID: {bookingId}. Rolling back transaction.");
+                    await transaction.RollbackAsync();
                     throw;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error updating booking payment for ID: {bookingId}");
+                _logger.LogError(ex, $"Outer exception in UpdateBookingPayment for ID: {bookingId}");
+                // Transaction is automatically rolled back if not committed when disposed
                 throw;
             }
         }
