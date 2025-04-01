@@ -8,7 +8,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import SettingsTab from './components/Profile/SettingsTab';
-
+import QRCodeScanner from './pages/QRCodeScan';
 // Pages
 import ManageEmployeesPage from './pages/ManageEmployeesPage';
 import LoginPage from './pages/LoginPage';
@@ -81,6 +81,11 @@ function AppContent() {
           <Route path="/" element={
             <ProtectedRoute>
               <HomePage />
+            </ProtectedRoute>
+          } />
+          <Route path="/ticket-scan" element={
+            <ProtectedRoute>
+              <QRCodeScanner />
             </ProtectedRoute>
           } />
           <Route path="/booking/:id" element={
