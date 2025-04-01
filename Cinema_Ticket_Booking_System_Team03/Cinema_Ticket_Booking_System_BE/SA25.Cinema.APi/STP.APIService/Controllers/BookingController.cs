@@ -558,5 +558,38 @@ namespace STP.APIService.Controllers
                 return StatusCode(500, new { message = "Đã xảy ra lỗi khi kiểm tra booking" });
             }
         }
+
+        [HttpGet("staff/check-pending")]
+        [Authorize(Roles = "Staff,Admin")]
+        public async Task<IActionResult> CheckPendingBookingForStaff()
+        {
+            try
+            {
+                // Lấy ID nhân viên từ token
+                int staffId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+
+                // Gọi service để kiểm tra booking Pending của nhân viên
+                var pendingBooking = await _bookingService.CheckPendingBookingForStaff(staffId);
+
+                if (pendingBooking == null)
+                {
+                    // Không có booking Pending, nhân viên có thể đặt vé mới
+                    return Ok(new { canCreateNewBooking = true });
+                }
+
+                // Trả về thông tin booking Pending để frontend hiển thị
+                return Ok(new
+                {
+                    canCreateNewBooking = false,
+                    pendingBooking = pendingBooking,
+                    message = "Bạn đang có đơn đặt vé chưa hoàn tất. Vui lòng hoàn tất hoặc hủy đơn đặt vé trước đó để tiếp tục."
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi kiểm tra booking Pending của nhân viên");
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi kiểm tra booking của nhân viên" });
+            }
+        }
     }
 }

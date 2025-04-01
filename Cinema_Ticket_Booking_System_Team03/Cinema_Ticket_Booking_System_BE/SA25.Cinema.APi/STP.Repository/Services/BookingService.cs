@@ -1408,6 +1408,81 @@ namespace STP.Repository.Services
         }
 
         /// <summary>
+        /// Kiểm tra xem nhân viên có booking đang ở trạng thái Pending không
+        /// Nếu có, nhân viên cần hủy booking cũ trước khi đặt mới
+        /// </summary>
+        /// <param name="staffId">ID của nhân viên</param>
+        /// <returns>Thông tin về booking Pending hoặc null nếu không có</returns>
+        public async Task<PendingBookingCheckDTO> CheckPendingBookingForStaff(int staffId)
+        {
+            try
+            {
+                _logger.LogInformation($"Kiểm tra booking Pending của nhân viên {staffId}");
+
+                // Tìm booking gần nhất đang ở trạng thái Pending được tạo bởi nhân viên
+                var pendingBooking = await _context.TicketBookings
+                    .Include(b => b.Showtime)
+                        .ThenInclude(s => s.Movie)
+                    .Include(b => b.Showtime)
+                        .ThenInclude(s => s.CinemaRoom)
+                    .Where(b => b.Created_By == staffId && b.Status == "Pending" && b.User_ID == null)
+                    .OrderByDescending(b => b.Booking_Date)
+                    .FirstOrDefaultAsync();
+
+                if (pendingBooking == null)
+                {
+                    _logger.LogInformation($"Không tìm thấy booking Pending cho nhân viên {staffId}");
+                    return null;
+                }
+
+                _logger.LogInformation($"Tìm thấy booking Pending ID: {pendingBooking.Booking_ID} của nhân viên {staffId}");
+
+                // Lấy thông tin ghế
+                string formattedSeats = await GetFormattedSeatPositions(pendingBooking.Booking_ID);
+
+                // Kiểm tra xem booking có quá hạn không
+                bool isExpired = DateTime.Now > pendingBooking.Payment_Deadline;
+
+                // Nếu booking đã quá hạn, tự động hủy và cho phép đặt mới
+                if (isExpired)
+                {
+                    _logger.LogInformation($"Booking {pendingBooking.Booking_ID} đã quá hạn thanh toán, tự động hủy");
+                    try
+                    {
+                        await AutoCancelExpiredBooking(pendingBooking.Booking_ID);
+                        return null; // Trả về null để cho phép đặt vé mới
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Lỗi khi tự động hủy booking quá hạn {pendingBooking.Booking_ID}");
+                        // Vẫn trả về thông tin booking để nhân viên tự hủy
+                    }
+                }
+
+                // Trả về thông tin về booking Pending
+                return new PendingBookingCheckDTO
+                {
+                    Booking_ID = pendingBooking.Booking_ID,
+                    Booking_Date = pendingBooking.Booking_Date,
+                    Payment_Deadline = pendingBooking.Payment_Deadline,
+                    IsExpired = isExpired,
+                    Seats = formattedSeats,
+                    Total_Amount = pendingBooking.Total_Amount,
+                    MovieName = pendingBooking.Showtime.Movie.Movie_Name,
+                    RoomName = pendingBooking.Showtime.CinemaRoom.Room_Name,
+                    Show_Date = pendingBooking.Showtime.Show_Date,
+                    Start_Time = pendingBooking.Showtime.Start_Time,
+                    RemainingMinutes = isExpired ? 0 : (int)Math.Ceiling((pendingBooking.Payment_Deadline - DateTime.Now).TotalMinutes)
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi kiểm tra booking Pending của nhân viên {staffId}");
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Liên kết booking với khách hàng thành viên
         /// </summary>
         /// <param name="bookingId">ID của booking</param>
