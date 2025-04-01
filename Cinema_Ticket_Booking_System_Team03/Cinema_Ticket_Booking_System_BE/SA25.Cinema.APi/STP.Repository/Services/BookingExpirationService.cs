@@ -100,8 +100,8 @@ namespace STP.Repository.Services
 
             try
             {
-                // 1. Hoàn trả điểm nếu có
-                if (booking.Points_Used > 0)
+                // 1. Hoàn trả điểm nếu có - CHỈ KHI CÓ USER_ID
+                if (booking.Points_Used > 0 && booking.User_ID.HasValue)
                 {
                     _logger.LogInformation($"Hoàn trả {booking.Points_Used} điểm cho User {booking.User_ID}");
 
@@ -113,7 +113,7 @@ namespace STP.Repository.Services
                         // Gọi phương thức hoàn điểm
                         await pointsService.RefundPointsForExpiredBookingAsync(
                             booking.Booking_ID,
-                            booking.User_ID.Value,
+                            booking.User_ID.Value, // An vì đã kiểm tra HasValue ở trên
                             pointsToRefund
                         );
 
@@ -138,6 +138,12 @@ namespace STP.Repository.Services
                         _logger.LogError(ex, $"Lỗi khi hoàn trả điểm cho booking {bookingId}, User ID: {booking.User_ID}");
                         throw; // Re-throw để đảm bảo transaction được rollback
                     }
+                }
+                else if (booking.Points_Used > 0)
+                {
+                    _logger.LogWarning($"Booking {bookingId} có {booking.Points_Used} điểm cần hoàn trả nhưng User_ID là null");
+                    // Reset points_used mà không cần hoàn trả
+                    booking.Points_Used = 0;
                 }
 
                 // 2. Cập nhật trạng thái booking thành Cancelled
@@ -166,10 +172,35 @@ namespace STP.Repository.Services
                     seat.Booking_ID = null;
                 }
 
-                // 5. Lưu tất cả thay đổi
+                // 5. THÊM MỚI: Cập nhật Promotion_Usage nếu có
+                if (booking.Promotion_ID.HasValue)
+                {
+                    // Tìm các bản ghi Promotion_Usage liên quan đến booking này
+                    var promotionUsages = await dbContext.PromotionUsages
+                        .Where(pu => pu.Booking_ID == bookingId)
+                        .ToListAsync();
+
+                    foreach (var usage in promotionUsages)
+                    {
+                        _logger.LogInformation($"Đặt lại HasUsed = false cho PromotionUsage ID: {usage.Usage_ID}");
+                        usage.HasUsed = false;
+                    }
+
+                    // Giảm lượt sử dụng của mã khuyến mãi
+                    var promotion = await dbContext.Promotions
+                        .FindAsync(booking.Promotion_ID.Value);
+
+                    if (promotion != null && promotion.Current_Usage > 0)
+                    {
+                        promotion.Current_Usage -= 1;
+                        _logger.LogInformation($"Giảm lượt sử dụng của mã khuyến mãi ID: {promotion.Promotion_ID}, Còn lại: {promotion.Current_Usage}");
+                    }
+                }
+
+                // 6. Lưu tất cả thay đổi
                 await dbContext.SaveChangesAsync();
 
-                // 6. Commit transaction
+                // 7. Commit transaction
                 await transaction.CommitAsync();
                 _logger.LogInformation($"Đã hủy thành công booking {bookingId}");
             }

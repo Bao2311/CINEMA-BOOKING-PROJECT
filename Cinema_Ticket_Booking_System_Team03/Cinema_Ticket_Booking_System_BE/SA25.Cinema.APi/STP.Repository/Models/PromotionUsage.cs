@@ -43,6 +43,8 @@ namespace STP.Repository.Models
         /// </summary>
         public DateTime Applied_Date { get; set; }
 
+        public bool HasUsed { get; set; }
+
         /// <summary>
         /// Chương trình khuyến mãi được sử dụng
         /// </summary>
@@ -60,5 +62,6 @@ namespace STP.Repository.Models
         /// </summary>
         [ForeignKey("User_ID")]
         public virtual User User { get; set; }
+
     }
 }

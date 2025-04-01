@@ -262,7 +262,7 @@ namespace STP.Repository.Services
             };
         }
 
-        public async Task<PromotionValidationResult> ValidatePromotionAsync(string promotionCode, decimal totalAmount)
+        public async Task<PromotionValidationResult> ValidatePromotionAsync(string promotionCode, int userId, decimal totalAmount)
         {
             if (string.IsNullOrEmpty(promotionCode))
                 return new PromotionValidationResult { IsValid = false, Message = "Mã khuyến mãi không được để trống" };
@@ -273,6 +273,16 @@ namespace STP.Repository.Services
             if (promotion == null)
                 return new PromotionValidationResult { IsValid = false, Message = "Mã khuyến mãi không tồn tại" };
 
+            // Kiểm tra người dùng đã sử dụng mã này chưa
+            var userPromotionUsage = await _context.PromotionUsages
+                .FirstOrDefaultAsync(u => u.User_ID == userId &&
+                                          u.Promotion_ID == promotion.Promotion_ID &&
+                                          u.HasUsed);
+
+            if (userPromotionUsage != null)
+                return new PromotionValidationResult { IsValid = false, Message = "Bạn đã sử dụng mã khuyến mãi này rồi" };
+
+            // Các kiểm tra khác như cũ...
             if (promotion.Status != "Active")
                 return new PromotionValidationResult { IsValid = false, Message = "Mã khuyến mãi không hoạt động" };
 
@@ -363,12 +373,6 @@ namespace STP.Repository.Services
                 };
             }
 
-            // Log thông tin đơn đặt vé
-            _logger.LogInformation($"Thông tin đơn đặt vé: " +
-                $"Status={booking.Status}, " +
-                $"Total Amount={booking.Total_Amount}, " +
-                $"Promotion_ID={booking.Promotion_ID}");
-
             // Kiểm tra trạng thái đơn đặt vé
             if (booking.Status != "Pending")
             {
@@ -405,23 +409,10 @@ namespace STP.Repository.Services
                 };
             }
 
-            // Log chi tiết thông tin khuyến mãi
-            _logger.LogInformation($"Thông tin khuyến mãi: " +
-                $"ID={promotion.Promotion_ID}, " +
-                $"Title={promotion.Title}, " +
-                $"Status={promotion.Status}, " +
-                $"Start Date={promotion.Start_Date}, " +
-                $"End Date={promotion.End_Date}, " +
-                $"Current Usage={promotion.Current_Usage}, " +
-                $"Usage Limit={promotion.Usage_Limit}, " +
-                $"Discount Type={promotion.Discount_Type}, " +
-                $"Discount Value={promotion.Discount_Value}");
-
             // Kiểm tra trạng thái khuyến mãi
-            var now = DateTime.Now;
-            if (promotion.Status != "active")
+            if (promotion.Status != PromotionConstants.StatusActive)
             {
-                _logger.LogWarning($"Khuyến mãi không hoạt động: {promotionCode}");
+                _logger.LogWarning($"Mã khuyến mãi không hoạt động: {promotionCode}, Status: {promotion.Status}");
                 return new PromotionApplicationResult
                 {
                     Success = false,
@@ -429,22 +420,32 @@ namespace STP.Repository.Services
                 };
             }
 
-            // Kiểm tra thời gian hiệu lực của khuyến mãi
-            if (now < promotion.Start_Date || now > promotion.End_Date)
+            // Kiểm tra thời gian hiệu lực
+            var now = DateTime.Now;
+            if (now < promotion.Start_Date)
             {
-                _logger.LogWarning($"Khuyến mãi ngoài thời gian hiệu lực: {promotionCode}");
+                _logger.LogWarning($"Mã khuyến mãi chưa có hiệu lực: {promotionCode}");
                 return new PromotionApplicationResult
                 {
                     Success = false,
-                    Message = "Mã khuyến mãi không còn hiệu lực"
+                    Message = $"Mã khuyến mãi chỉ có hiệu lực từ {promotion.Start_Date:dd/MM/yyyy}"
+                };
+            }
+
+            if (now > promotion.End_Date)
+            {
+                _logger.LogWarning($"Mã khuyến mãi đã hết hạn: {promotionCode}");
+                return new PromotionApplicationResult
+                {
+                    Success = false,
+                    Message = "Mã khuyến mãi đã hết hạn"
                 };
             }
 
             // Kiểm tra giới hạn sử dụng
-            if (promotion.Usage_Limit.HasValue &&
-                promotion.Current_Usage >= promotion.Usage_Limit.Value)
+            if (promotion.Usage_Limit.HasValue && promotion.Current_Usage >= promotion.Usage_Limit.Value)
             {
-                _logger.LogWarning($"Khuyến mãi đã hết lượt sử dụng: {promotionCode}");
+                _logger.LogWarning($"Mã khuyến mãi đã hết lượt sử dụng: {promotionCode}");
                 return new PromotionApplicationResult
                 {
                     Success = false,
@@ -452,12 +453,10 @@ namespace STP.Repository.Services
                 };
             }
 
-            // Kiểm tra điều kiện mua hàng tối thiểu
+            // Kiểm tra số tiền tối thiểu
             if (booking.Total_Amount < promotion.Minimum_Purchase)
             {
-                _logger.LogWarning($"Tổng đơn hàng không đủ điều kiện: " +
-                    $"Tổng={booking.Total_Amount}, " +
-                    $"Tối thiểu={promotion.Minimum_Purchase}");
+                _logger.LogWarning($"Đơn hàng không đạt giá trị tối thiểu: {booking.Total_Amount} < {promotion.Minimum_Purchase}");
                 return new PromotionApplicationResult
                 {
                     Success = false,
@@ -465,47 +464,88 @@ namespace STP.Repository.Services
                 };
             }
 
-            // Tính toán giảm giá
-            decimal discountAmount = 0;
-            if (promotion.Discount_Type == "Percentage")
+            // Kiểm tra người dùng đã sử dụng BẤT KỲ mã khuyến mãi nào khác chưa
+            var hasUsedAnyPromotion = await _context.PromotionUsages
+                .AnyAsync(u => u.User_ID == userId && u.HasUsed);
+
+            if (hasUsedAnyPromotion)
             {
-                discountAmount = booking.Total_Amount * (promotion.Discount_Value / 100);
-                if (promotion.Maximum_Discount.HasValue &&
-                    discountAmount > promotion.Maximum_Discount.Value)
+                _logger.LogWarning($"Người dùng đã sử dụng khuyến mãi khác: UserId={userId}");
+                return new PromotionApplicationResult
                 {
-                    discountAmount = promotion.Maximum_Discount.Value;
-                }
-            }
-            else // Fixed amount
-            {
-                discountAmount = promotion.Discount_Value;
-                if (discountAmount > booking.Total_Amount)
-                {
-                    discountAmount = booking.Total_Amount;
-                }
+                    Success = false,
+                    Message = "Bạn đã sử dụng một mã khuyến mãi khác rồi, mỗi người chỉ được sử dụng một mã"
+                };
             }
 
-            // Bắt đầu transaction
+            // QUAN TRỌNG: Kiểm tra người dùng đã TỪNG sử dụng mã này chưa, bất kể trạng thái HasUsed
+            var everUsedThisPromotion = await _context.PromotionUsages
+                .AnyAsync(u => u.User_ID == userId && u.Promotion_ID == promotion.Promotion_ID);
+
+            if (everUsedThisPromotion)
+            {
+                _logger.LogWarning($"Người dùng đã từng sử dụng mã này: UserId={userId}, PromotionCode={promotionCode}");
+                return new PromotionApplicationResult
+                {
+                    Success = false,
+                    Message = "Bạn đã từng sử dụng mã khuyến mãi này rồi, mỗi người chỉ được sử dụng một lần duy nhất"
+                };
+            }
+
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                // Tính toán giảm giá
+                decimal discountAmount = 0;
+                if (promotion.Discount_Type.Equals(PromotionConstants.DiscountTypePercentage, StringComparison.OrdinalIgnoreCase))
+                {
+                    discountAmount = booking.Total_Amount * (promotion.Discount_Value / 100m);
+                    if (promotion.Maximum_Discount.HasValue &&
+                        discountAmount > promotion.Maximum_Discount.Value)
+                    {
+                        discountAmount = promotion.Maximum_Discount.Value;
+                    }
+                }
+                else // Fixed amount
+                {
+                    discountAmount = promotion.Discount_Value;
+                    if (discountAmount > booking.Total_Amount)
+                    {
+                        discountAmount = booking.Total_Amount;
+                    }
+                }
+
+                // Làm tròn số tiền giảm giá
+                discountAmount = Math.Round(discountAmount, 0);
+
+                // Tạo mới bản ghi sử dụng khuyến mãi (không cần kiểm tra tồn tại)
+                var promotionUsage = new PromotionUsage
+                {
+                    User_ID = userId,
+                    Promotion_ID = promotion.Promotion_ID,
+                    Booking_ID = bookingId,
+                    Discount_Amount = discountAmount,
+                    Applied_Date = DateTime.Now,
+                    HasUsed = true
+                };
+                _context.PromotionUsages.Add(promotionUsage);
+
                 // Cập nhật đơn đặt vé
                 booking.Promotion_ID = promotion.Promotion_ID;
                 booking.Total_Amount -= discountAmount;
 
-                // Tạo bản ghi sử dụng khuyến mãi
-                var promotionUsage = new PromotionUsage
-                {
-                    Promotion_ID = promotion.Promotion_ID,
-                    Booking_ID = booking.Booking_ID,
-                    User_ID = booking.User_ID.Value,
-                    Discount_Amount = discountAmount,
-                    Applied_Date = DateTime.Now
-                };
-                _context.PromotionUsages.Add(promotionUsage);
-
                 // Tăng lượt sử dụng khuyến mãi
                 promotion.Current_Usage += 1;
+
+                // Ghi lại lịch sử
+                var bookingHistory = new BookingHistory
+                {
+                    Booking_ID = bookingId,
+                    Date = DateTime.Now,
+                    Status = "Promotion Applied",
+                    Notes = $"Áp dụng mã khuyến mãi {promotion.Promotion_Code}, giảm {discountAmount:N0} VND"
+                };
+                _context.BookingHistories.Add(bookingHistory);
 
                 // Lưu thay đổi
                 await _context.SaveChangesAsync();
@@ -573,6 +613,9 @@ namespace STP.Repository.Services
                 decimal discountAmount = promotionUsage.Discount_Amount;
                 booking.Total_Amount += discountAmount;
                 booking.Promotion_ID = null;
+
+                // Đánh dấu lại HasUsed về false
+                promotionUsage.HasUsed = false;
 
                 _context.PromotionUsages.Remove(promotionUsage);
 
@@ -690,6 +733,17 @@ namespace STP.Repository.Services
             {
                 _logger.LogError(ex, "Error expiring promotions");
             }
+        }
+
+        public static class PromotionConstants
+        {
+            public const string StatusActive = "Active";
+            public const string StatusInactive = "Inactive";
+            public const string StatusExpired = "Expired";
+            public const string StatusDeleted = "Deleted";
+
+            public const string DiscountTypePercentage = "Percentage";
+            public const string DiscountTypeFixed = "Fixed";
         }
     }
 }

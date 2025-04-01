@@ -28,7 +28,6 @@ namespace STP.APIService.Services
         {
             try
             {
-                // 1. Lấy thông tin Showtime và Phòng chiếu
                 var showtime = await _context.Showtimes
                     .Include(s => s.Movie)
                     .Include(s => s.CinemaRoom)
@@ -37,106 +36,119 @@ namespace STP.APIService.Services
                 if (showtime == null)
                 {
                     _logger.LogWarning($"Showtime not found with ID: {showtimeId}");
-                    return null;
+                    return new SeatMapDTO
+                    {
+                        Showtime_ID = showtimeId,
+                        Seats = new List<SeatDto>(),
+                        Movie = new MovieInfoDTO(),
+                        Room = new RoomDTO(),
+                        Movie_Title = "Không xác định",
+                        Cinema_Room = "Không xác định"
+                    };
                 }
 
-                // 2. Lấy tất cả SeatLayout của phòng chiếu đó (chỉ lấy layout đang hoạt động)
+                // Kiểm tra và gán giá trị mặc định
+                var movie = showtime.Movie ?? new Movie { Movie_Name = "Không xác định" };
+                var cinemaRoom = showtime.CinemaRoom ?? new CinemaRoom { Room_Name = "Không xác định" };
+
+                // Lấy thông tin giá vé
+                var ticketPricings = await _context.TicketPricings
+                    .Where(p => p.Status == "Active")
+                    .ToListAsync();
+
+                // Lấy layout ghế
                 var roomLayouts = await _context.SeatLayouts
                     .Where(sl => sl.Cinema_Room_ID == showtime.Cinema_Room_ID && sl.Is_Active)
                     .OrderBy(sl => sl.Row_Label)
                     .ThenBy(sl => sl.Column_Number)
                     .ToListAsync();
 
-                // Lấy danh sách các Layout_ID
-                var layoutIds = roomLayouts.Select(sl => sl.Layout_ID).ToList();
-
-                // 3. Lấy TẤT CẢ các bản ghi Seat tương ứng với các Layout_ID trong phòng
-                //    *** Thay đổi cốt lõi: Lấy Seat theo Layout_ID, không phải theo Booking ***
-                var allSeatsInRoom = await _context.Seats
-                    .Where(s => layoutIds.Contains(s.Layout_ID))
-                    .Include(s => s.TicketBooking) // Vẫn include để kiểm tra status nếu cần
-                    .ToListAsync();
-
-                // Tạo Dictionary để tra cứu nhanh Seat từ Layout_ID
-                var seatDict = allSeatsInRoom.ToDictionary(s => s.Layout_ID);
-
-                // 4. Lấy ID các Booking chỉ thuộc về Showtime hiện tại (để xác định trạng thái chính xác)
+                // Lấy các booking cho suất chiếu này
                 var bookingsForThisShowtimeIds = await _context.TicketBookings
                     .Where(tb => tb.Showtime_ID == showtimeId)
-                    .Select(tb => tb.Booking_ID) // Chỉ cần lấy Booking_ID
+                    .Select(tb => tb.Booking_ID)
                     .ToListAsync();
-                // Dùng HashSet để kiểm tra nhanh
+
                 var bookingIdSetForThisShowtime = new HashSet<int>(bookingsForThisShowtimeIds);
 
-                // 5. Lấy thông tin giá vé
-                var ticketPricings = await _context.TicketPricings
-                    .Where(p => p.Status == "Active")
+                // Lấy thông tin ghế
+                var allSeatsInRoom = await _context.Seats
+                    .Where(s => s.SeatLayout.Cinema_Room_ID == showtime.Cinema_Room_ID)
+                    .Include(s => s.SeatLayout)
+                    .Include(s => s.TicketBooking)
                     .ToListAsync();
 
-                // 6. Tạo danh sách DTO
                 var seatDTOs = new List<SeatDto>();
+                var uniqueRows = new HashSet<string>();
+
                 foreach (var layout in roomLayouts)
                 {
-                    // Tìm bản ghi Seat tương ứng với layout hiện tại từ Dictionary
-                    if (!seatDict.TryGetValue(layout.Layout_ID, out var persistentSeat))
-                    {
-                        // Trường hợp này không nên xảy ra nếu giả định là đúng
-                        // (Mỗi Layout_ID phải có một Seat tương ứng)
-                        _logger.LogWarning($"Seat record not found for Layout_ID: {layout.Layout_ID}. Skipping.");
-                        continue; // Bỏ qua layout này nếu không tìm thấy Seat
-                    }
-
-                    // Xác định trạng thái của ghế NÀY cho SUẤT CHIẾU NÀY
-                    string currentStatus = "Available"; // Mặc định là Available
-
-                    // Kiểm tra xem ghế này có Booking_ID và Booking_ID đó có thuộc suất chiếu này không
-                    if (persistentSeat.Booking_ID.HasValue && bookingIdSetForThisShowtime.Contains(persistentSeat.Booking_ID.Value))
-                    {
-                        // Ghế này ĐÃ ĐƯỢC ĐẶT cho suất chiếu hiện tại
-                        // Có thể lấy trạng thái từ persistentSeat.Seat_Status hoặc đặt cứng là "Reserved"/"Sold"
-                        currentStatus = persistentSeat.Seat_Status; // Giả định Seat_Status phản ánh đúng
-                    }
-                    // Optional: Thêm logic kiểm tra trạng thái khác như "Maintenance" dựa trên persistentSeat.Seat_Status nếu cần
+                    // Tìm ghế tương ứng với layout
+                    var seat = allSeatsInRoom.FirstOrDefault(s => s.Layout_ID == layout.Layout_ID);
 
                     // Lấy giá vé
                     var price = ticketPricings.FirstOrDefault(p =>
-                        p.Room_Type == showtime.CinemaRoom.Room_Type &&
+                        p.Room_Type == cinemaRoom.Room_Type &&
                         p.Seat_Type == layout.Seat_Type);
+
+                    // Xác định trạng thái ghế
+                    string seatStatus = "Available";
+                    if (seat?.Booking_ID.HasValue == true &&
+                        bookingIdSetForThisShowtime.Contains(seat.Booking_ID.Value))
+                    {
+                        seatStatus = seat.Seat_Status ?? "Reserved";
+                    }
+
+                    // Thêm hàng vào danh sách các hàng duy nhất
+                    uniqueRows.Add(layout.Row_Label);
 
                     seatDTOs.Add(new SeatDto
                     {
-                        // *** Lấy Seat_ID từ bản ghi persistentSeat ***
-                        Seat_ID = persistentSeat.Seat_ID, // Bây giờ luôn có giá trị (theo giả định)
-
-                        Layout_ID = layout.Layout_ID,
-                        Row_Name = layout.Row_Label,
+                        Seat_ID = seat?.Seat_ID ?? 0,
+                        Seat = null, // Để null như trong DTO gốc
+                        Row_Name = layout.Row_Label ?? "N/A",
                         Seat_Number = layout.Column_Number,
-                        Seat_Type = layout.Seat_Type,
-                        Price = price?.Base_Price ?? 70000,
-                        Seat_Status = currentStatus // Trạng thái đã xác định cho suất chiếu này
+                        Seat_Type = layout.Seat_Type ?? "Regular",
+                        Price = price?.Base_Price ?? 70000m,
+                        Seat_Status = seatStatus,
+                        Layout_ID = layout.Layout_ID,
+                        Is_Active = layout.Is_Active
                     });
                 }
 
-                // 7. Tạo và trả về SeatMapDTO
-                var seatMap = new SeatMapDTO
+                return new SeatMapDTO
                 {
                     Showtime_ID = showtime.Showtime_ID,
-                    Movie_Title = showtime.Movie.Movie_Name,
-                    Cinema_Room = showtime.CinemaRoom.Room_Name,
+                    Movie = new MovieInfoDTO
+                    {
+                        Movie_ID = movie.Movie_ID,
+                        Movie_Name = movie.Movie_Name,
+                        Duration = movie.Duration,
+                        Rating = movie.Rating,
+                        Poster_URL = movie.Poster_URL
+                    },
+                    Room = new RoomDTO
+                    {
+                        Cinema_Room_ID = cinemaRoom.Cinema_Room_ID,
+                        Room_Name = cinemaRoom.Room_Name,
+                        Room_Type = cinemaRoom.Room_Type
+                    },
+                    Show_Date = showtime.Show_Date,
                     Start_Time = showtime.Start_Time,
                     End_Time = showtime.End_Time,
-                    Seats = seatDTOs
+                    Movie_Title = movie.Movie_Name,
+                    Cinema_Room = cinemaRoom.Room_Name,
+                    Rows = uniqueRows.OrderBy(r => r).ToList(),
+                    Seats = seatDTOs,
+                    Room_ID = cinemaRoom.Cinema_Room_ID
                 };
-
-                return seatMap;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting seat map for showtime ID: {showtimeId}");
-                throw; // Rethrow the exception after logging
+                _logger.LogError(ex, $"Detailed error getting seat map for showtime ID: {showtimeId}");
+                throw;
             }
         }
-
         /// <summary>
         /// Lấy thông tin chi tiết của một ghế
         /// </summary>

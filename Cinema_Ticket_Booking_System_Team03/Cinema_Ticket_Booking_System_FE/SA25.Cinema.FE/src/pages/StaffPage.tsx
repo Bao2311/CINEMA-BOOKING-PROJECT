@@ -150,6 +150,12 @@ interface BookingResponse {
   seat_IDs: number[];
 }
 
+interface SeatButtonProps {
+  seatType?: string;
+  seatStatus?: string;
+  isSelected?: boolean;
+}
+
 // Styled components for seat layout display
 const Screen = styled.div`
   width: 90%;
@@ -274,32 +280,35 @@ const SeatButtonWrapper = styled.div`
   display: inline-block;
 `;
 
-const SeatButton = styled(motion.button)`
+const SeatButton = styled(motion.button)<SeatButtonProps>`
   width: 40px;
   height: 40px;
   border-radius: 8px;
   border: ${props => props.isSelected ? '3px solid #22c55e' : '1px solid #d1d5db'};
   box-shadow: ${props => props.isSelected ? '0 0 10px rgba(34, 197, 94, 0.5)' : '0 2px 4px rgba(0, 0, 0, 0.1)'};
   background-color: ${props => {
-    if (props.seatStatus === 'Booked' || props.seatStatus === 'Reserved') return '#9ca3af'; // Booked or Reserved seats
+    if (props.seatStatus === 'NotAvailable') return '#e5e7eb'; // Ghế trống
+    if (props.seatStatus === 'Sold' || props.seatStatus === 'Reserved') return '#9ca3af';
+    if (props.seatStatus === 'Booked') return '#6b7280';
     switch (props.seatType) {
       case 'VIP':
-        return '#ef4444'; // VIP seats - red
+        return '#ef4444';
       case 'Regular':
       default:
-        return '#3b82f6'; // Regular seats - blue
+        return '#3b82f6';
     }
   }};
   color: white;
   font-weight: 600;
   font-size: 0.8rem;
-  cursor: ${props => (props.seatStatus === 'Booked' || props.seatStatus === 'Reserved') ? 'not-allowed' : 'pointer'};
+  cursor: ${props => (props.seatStatus === 'NotAvailable' || props.seatStatus === 'Sold' || props.seatStatus === 'Reserved' || props.seatStatus === 'Booked') ? 'not-allowed' : 'pointer'};
   position: relative;
   transition: all 0.3s ease;
+  opacity: ${props => (props.seatStatus === 'NotAvailable') ? '0.5' : props.seatStatus === 'Sold' || props.seatStatus === 'Reserved' || props.seatStatus === 'Booked' ? '0.7' : '1'};
 
   &:hover {
-    transform: ${props => (props.seatStatus === 'Booked' || props.seatStatus === 'Reserved') ? 'none' : 'translateY(-2px)'};
-    box-shadow: ${props => (props.seatStatus === 'Booked' || props.seatStatus === 'Reserved') ? 'none' : '0 4px 8px rgba(0, 0, 0, 0.15)'};
+    transform: ${props => (props.seatStatus === 'NotAvailable' || props.seatStatus === 'Sold' || props.seatStatus === 'Reserved' || props.seatStatus === 'Booked') ? 'none' : 'translateY(-2px)'};
+    box-shadow: ${props => (props.seatStatus === 'NotAvailable' || props.seatStatus === 'Sold' || props.seatStatus === 'Reserved' || props.seatStatus === 'Booked') ? 'none' : '0 4px 8px rgba(0, 0, 0, 0.15)'};
   }
 
   // Add seat shape styling
@@ -310,7 +319,11 @@ const SeatButton = styled(motion.button)`
     left: 10px;
     right: 10px;
     height: 4px;
-    background-color: ${props => props.isSelected ? '#22c55e' : props.seatType === 'VIP' ? '#dc2626' : '#2563eb'};
+    background-color: ${props => {
+      if (props.seatStatus === 'Sold' || props.seatStatus === 'Reserved') return '#9ca3af';
+      if (props.seatStatus === 'Booked') return '#6b7280';
+      return props.isSelected ? '#22c55e' : props.seatType === 'VIP' ? '#dc2626' : '#2563eb';
+    }};
     border-radius: 4px 4px 0 0;
   }
 `;
@@ -624,21 +637,67 @@ const ManageBookings: React.FC = () => {
       });
       
       if (response.data && response.data.seats && response.data.seats.$values) {
-        const seatsWithIds = response.data.seats.$values.map((seat, index) => ({
-          ...seat,
-          seat_ID: seat.seat_ID === 0 ? seat.layout_ID : seat.seat_ID
+        const allSeats = response.data.seats.$values;
+        
+        // Lấy số hàng và cột tối đa từ API
+        const maxRow = Math.max(...allSeats.map(seat => {
+          const rowNumber = seat.row_Name.charCodeAt(0) - 'A'.charCodeAt(0);
+          return rowNumber;
         }));
         
-        setSeats(seatsWithIds);
-      } else if (response.data && response.data.seats && Array.isArray(response.data.seats)) {
-        const seatsWithIds = response.data.seats.map((seat, index) => ({
-          ...seat,
-          seat_ID: seat.seat_ID === 0 ? seat.layout_ID : seat.seat_ID
-        }));
+        const maxCol = Math.max(...allSeats.map(seat => seat.seat_Number));
         
-        setSeats(seatsWithIds);
-      } else {
-        setSeats([]);
+        // Tạo mảng đầy đủ các hàng từ A đến hàng lớn nhất
+        const allRows = Array.from({ length: maxRow + 1 }, (_, i) => 
+          String.fromCharCode('A'.charCodeAt(0) + i)
+        );
+        
+        // Tạo mảng đầy đủ các cột từ 1 đến cột lớn nhất
+        const allColumns = Array.from({ length: maxCol }, (_, i) => i + 1);
+        
+        // Tạo ma trận ghế đầy đủ
+        const fullSeats = allRows.flatMap(row => 
+          allColumns.map(col => {
+            const existingSeat = allSeats.find(s => 
+              s.row_Name === row && s.seat_Number === col
+            );
+            
+            if (existingSeat) {
+              return {
+                ...existingSeat,
+                seat_ID: existingSeat.seat_ID === 0 ? existingSeat.layout_ID : existingSeat.seat_ID
+              };
+            }
+            
+            // Tạo ghế trống cho vị trí không có trong API
+            return {
+              seat_ID: -1,
+              row_Name: row,
+              seat_Number: col,
+              seat_Type: 'None',
+              price: 0,
+              seat_Status: 'NotAvailable',
+              layout_ID: -1
+            };
+          })
+        );
+        
+        setSeats(fullSeats);
+        
+        // Log thông tin chi tiết
+        console.log(`Tổng số hàng (A-${String.fromCharCode('A'.charCodeAt(0) + maxRow)}): ${allRows.length}`);
+        console.log(`Tổng số cột (1-${maxCol}): ${allColumns.length}`);
+        console.log(`Tổng số ghế: ${fullSeats.length}`);
+        console.log('Danh sách hàng:', allRows);
+        console.log('Danh sách cột:', allColumns);
+        
+        // Hiển thị thông tin tổng quan
+        message.info(
+          `Sơ đồ ghế: ${allRows.length} hàng (A-${String.fromCharCode('A'.charCodeAt(0) + maxRow)}) × ${allColumns.length} cột (1-${maxCol})\n` +
+          `Tổng số ghế: ${fullSeats.length}\n` +
+          `Ghế có sẵn: ${fullSeats.filter(s => s.seat_Status === 'Available').length}\n` +
+          `Ghế đã đặt: ${fullSeats.filter(s => s.seat_Status === 'Booked' || s.seat_Status === 'Reserved' || s.seat_Status === 'Sold').length}`
+        );
       }
     } catch (error) {
       console.error('Error fetching seats:', error);
@@ -670,7 +729,7 @@ const ManageBookings: React.FC = () => {
       });
 
       if (response.data) {
-        // Cập nhật state member với thông tin từ API
+        // Update member state with API response
         setMember({
           user_ID: response.data.user_ID,
           full_Name: response.data.full_Name,
@@ -682,9 +741,7 @@ const ManageBookings: React.FC = () => {
           sex: response.data.sex || 'Other'
         });
         
-        message.success('Tìm thấy thông tin thành viên!');
-        
-        // Tự động điền thông tin vào form
+        // Auto-fill form with member info
         customerForm.setFieldsValue({
           name: response.data.full_Name,
           phone: response.data.phone_Number,
@@ -692,13 +749,28 @@ const ManageBookings: React.FC = () => {
           sex: response.data.sex || 'Other'
         });
         
-        // Cập nhật state customer
+        // Update customer state
         setCustomer({
           name: response.data.full_Name,
           phone: response.data.phone_Number,
           email: response.data.email,
           sex: response.data.sex || 'Other'
         });
+
+        // New API call
+        const bookingResponse = await axios.post('https://localhost:7168/api/Member/link-member', {
+          bookingId: bookingId, // Replace with actual booking ID
+          memberIdentifier: value
+        }, {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : undefined,
+            'Content-Type': 'application/json'
+          },
+        });
+
+        if (bookingResponse.data) {
+          console.log('Booking linked successfully:', bookingResponse.data);
+        }
         
       } else {
         setMember(null);
@@ -706,7 +778,6 @@ const ManageBookings: React.FC = () => {
       }
     } catch (error) {
       console.error('Error looking up member:', error);
-      message.error('Lỗi khi tìm kiếm thành viên');
       setMember(null);
     } finally {
       setLookupLoading(false);
@@ -995,7 +1066,8 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
   };
 
   const handleSeatSelect = (seat: Seat) => {
-    if (seat.seat_Status === 'Booked' || seat.seat_Status === 'Reserved') {
+    if (seat.seat_Status === 'Sold' || seat.seat_Status === 'Reserved' || seat.seat_Status === 'Booked' || seat.seat_Type === 'None') {
+      message.warning('Ghế này không khả dụng');
       return;
     }
     
@@ -1257,19 +1329,43 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
     movie.director.toLowerCase().includes(searchValue.toLowerCase())
   );
 
-  // Group seats by row for better display
-  const seatsByRow = seats.reduce((acc, seat) => {
-    if (!acc[seat.row_Name]) {
-      acc[seat.row_Name] = [];
-    }
-    acc[seat.row_Name].push(seat);
-    return acc;
-  }, {} as Record<string, Seat[]>);
-
   // Get unique column numbers for headers
   const getUniqueColumnNumbers = () => {
-    const columns = seats.map(seat => seat.seat_Number);
-    return [...new Set(columns)].sort((a, b) => a - b);
+    if (!seats || seats.length === 0) return [];
+    const maxCol = Math.max(...seats.map(seat => seat.seat_Number));
+    return Array.from({ length: maxCol }, (_, i) => i + 1);
+  };
+
+  // Get unique row names
+  const getUniqueRowNames = () => {
+    if (!seats || seats.length === 0) return [];
+    return [...new Set(seats.map(seat => seat.row_Name))].sort();
+  };
+
+  // Group seats by row for better display
+  const seatsByRow = () => {
+    if (!seats || seats.length === 0) return {};
+    
+    const result: Record<string, Seat[]> = {};
+    const rowNames = getUniqueRowNames();
+    const columnNumbers = getUniqueColumnNumbers();
+    
+    rowNames.forEach(rowName => {
+      result[rowName] = columnNumbers.map(colNum => {
+        const seat = seats.find(s => s.row_Name === rowName && s.seat_Number === colNum);
+        return seat || {
+          seat_ID: -1,
+          row_Name: rowName,
+          seat_Number: colNum,
+          seat_Type: 'None',
+          price: 0,
+          seat_Status: 'NotAvailable',
+          layout_ID: -1
+        };
+      });
+    });
+    
+    return result;
   };
 
   // Enhanced Movie Card Component
@@ -1628,15 +1724,15 @@ const EnhancedPromotionSection = () => {
                 <div></div> {/* Empty cell for alignment */}
                 
                 {/* Seat rows */}
-                {Object.keys(seatsByRow).sort().map(rowName => (
+                {Object.entries(seatsByRow()).map(([rowName, rowSeats]) => (
                   <RowContainer key={`row-${rowName}`}>
                     <RowLabel>{rowName}</RowLabel>
                     <SeatsSection>
-                      {seatsByRow[rowName]
+                      {rowSeats
                         .sort((a, b) => a.seat_Number - b.seat_Number)
                         .map(seat => {
                           const isSelected = selectedSeats.some(s => s.seat_ID === seat.seat_ID);
-                          const isBooked = seat.seat_Status === 'Booked' || seat.seat_Status === 'Reserved';
+                          const isUnavailable = seat.seat_Status === 'Sold' || seat.seat_Status === 'Reserved' || seat.seat_Status === 'Booked';
                           
                           return (
                             <SeatButtonWrapper key={seat.seat_ID}>
@@ -1645,15 +1741,16 @@ const EnhancedPromotionSection = () => {
                                 seatStatus={seat.seat_Status}
                                 isSelected={isSelected}
                                 onClick={() => handleSeatSelect(seat)}
-                                whileHover={!isBooked ? { scale: 1.05 } : {}}
-                                whileTap={!isBooked ? { scale: 0.95 } : {}}
-                                disabled={isBooked}
+                                whileHover={!isUnavailable ? { scale: 1.05 } : {}}
+                                whileTap={!isUnavailable ? { scale: 0.95 } : {}}
+                                disabled={isUnavailable}
                               >
                                 <SeatNumber>{seat.seat_Number}</SeatNumber>
                               </SeatButton>
                               <SeatTooltip>
                                 {seat.row_Name}{seat.seat_Number} - {seat.seat_Type}<br />
-                                {seat.price.toLocaleString()} VND
+                                {seat.price.toLocaleString()} VND<br />
+                                {isUnavailable && <span style={{ color: '#ef4444' }}>Ghế không khả dụng</span>}
                               </SeatTooltip>
                             </SeatButtonWrapper>
                           );
@@ -1684,7 +1781,11 @@ const EnhancedPromotionSection = () => {
                 </LegendItem>
                 <LegendItem>
                   <ColorBox color="#9ca3af" />
-                  <span>Đã đặt</span>
+                  <span>Đã bán/Đặt trước</span>
+                </LegendItem>
+                <LegendItem>
+                  <ColorBox color="#e5e7eb" />
+                  <span>Không có ghế</span>
                 </LegendItem>
                 <LegendItem>
                   <ColorBox color="#22c55e" style={{ border: '3px solid #22c55e' }} />
@@ -1749,7 +1850,25 @@ const EnhancedPromotionSection = () => {
           <Button 
             type="link" 
             icon={<LeftOutlined />} 
-            onClick={() => setCurrentStep(2)}
+            onClick={async () => {
+              // Call the API here
+              try {
+                const token = getAuthToken();
+                const response = await axios.put(`https://localhost:7168/api/Booking/${bookingId}/cancel`, {}, {
+                  headers: {
+                    Authorization: token ? `Bearer ${token}` : undefined,
+                    'Content-Type': 'application/json'
+                  },
+                });
+
+                if (response.status === 200) {
+                  setCurrentStep(2); // Navigate back to seat selection
+                }
+              } catch (error) {
+                console.error('Error canceling booking:', error);
+                message.error('Không thể hủy đặt vé');
+              }
+            }}
             className="mb-4"
           >
             Quay lại chọn ghế

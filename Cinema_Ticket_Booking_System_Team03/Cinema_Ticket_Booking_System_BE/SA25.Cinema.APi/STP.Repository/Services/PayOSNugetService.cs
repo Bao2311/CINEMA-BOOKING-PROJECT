@@ -277,139 +277,139 @@ namespace STP.Repository.Services
         {
             try
             {
-                _logger.LogInformation($"Bắt đầu hủy đơn đặt vé {bookingId}");
+                _logger.LogInformation($"*** BẮT ĐẦU HỦY ĐƠN ĐẶT VÉ {bookingId} QUA PAYOS ***");
 
-                // Kiểm tra và lấy thông tin đặt vé
+                // Lấy thông tin đơn đặt vé
                 var booking = await _context.TicketBookings
-                    .FirstOrDefaultAsync(b => b.Booking_ID == bookingId && b.Status == "Pending");
+                    .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
 
                 if (booking == null)
                 {
-                    _logger.LogWarning($"Không tìm thấy đơn đặt vé {bookingId} hoặc đơn không ở trạng thái Pending");
+                    _logger.LogWarning($"Không tìm thấy đơn đặt vé {bookingId}");
                     return false;
                 }
 
-                // Lấy trạng thái hiện tại để log
-                _logger.LogInformation($"Trạng thái hiện tại của đơn đặt vé {bookingId}: {booking.Status}");
+                // Lưu thông tin điểm và userId trước khi hủy
+                int pointsToRefund = booking.Points_Used;
+                int? userId = booking.User_ID;
 
-                // Sử dụng transaction để đảm bảo tính nhất quán dữ liệu
-                using (var transaction = await _context.Database.BeginTransactionAsync())
+                // Ghi log chi tiết thông tin booking
+                _logger.LogInformation($"*** THÔNG TIN BOOKING {bookingId}: Status={booking.Status}, Points_Used={pointsToRefund}, User_ID={userId} ***");
+
+                using (var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable))
                 {
                     try
                     {
-                        // 1. Cập nhật trạng thái đơn đặt vé
-                        booking.Status = "Cancelled";
-                        await _context.SaveChangesAsync();
-                        _logger.LogInformation($"Đã hủy đơn đặt vé {bookingId} thành công");
-
-                        // 2. THÊM MỚI: Hoàn trả điểm nếu booking có sử dụng điểm
-                        if (booking.Points_Used > 0)
+                        // 1. HOÀN TRẢ ĐIỂM - QUAN TRỌNG NHẤT
+                        if (pointsToRefund > 0 && userId.HasValue)
                         {
+                            _logger.LogInformation($"*** ĐANG HOÀN TRẢ {pointsToRefund} ĐIỂM CHO USER {userId} ***");
+
                             try
                             {
-                                _logger.LogInformation($"Đang hoàn trả {booking.Points_Used} điểm cho người dùng {booking.User_ID} từ booking {bookingId}");
-
+                                // GỌI PHƯƠNG THỨC REFUND CỦA POINTSSERVICE
                                 await _pointsService.RefundPointsForExpiredBookingAsync(
-                                    booking.Booking_ID,
-                                    booking.User_ID.Value,
-                                    booking.Points_Used
+                                    bookingId,
+                                    userId.Value,
+                                    pointsToRefund
                                 );
+
+                                // Đặt lại Points_Used để tránh hoàn trả lại nhiều lần
+                                booking.Points_Used = 0;
+                                await _context.SaveChangesAsync();
 
                                 // Ghi lại trong lịch sử booking
                                 var pointsRefundHistory = new BookingHistory
                                 {
-                                    Booking_ID = booking.Booking_ID,
+                                    Booking_ID = bookingId,
                                     Status = "Points Refunded",
                                     Date = DateTime.Now,
-                                    Notes = $"Hoàn trả {booking.Points_Used} điểm do hủy đơn bởi người dùng"
+                                    Notes = $"Hoàn trả {pointsToRefund} điểm do hủy đơn thanh toán qua PayOS"
                                 };
                                 _context.BookingHistories.Add(pointsRefundHistory);
-
-                                // Đặt lại Points_Used sau khi đã hoàn điểm
-                                booking.Points_Used = 0;
                                 await _context.SaveChangesAsync();
 
-                                _logger.LogInformation($"Đã hoàn trả {booking.Points_Used} điểm cho người dùng {booking.User_ID} từ booking {bookingId}");
+                                _logger.LogInformation($"*** HOÀN TRẢ ĐIỂM THÀNH CÔNG ***");
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogError(ex, $"Lỗi khi hoàn trả điểm cho booking {bookingId}, User ID: {booking.User_ID}");
-                                // Không ném ngoại lệ để tiếp tục quá trình hủy booking
+                                _logger.LogError(ex, $"*** LỖI KHI HOÀN TRẢ ĐIỂM: {ex.Message} ***");
+
+                                // Ghi lại lỗi vào lịch sử
+                                var errorHistory = new BookingHistory
+                                {
+                                    Booking_ID = bookingId,
+                                    Status = "Points Refund Error",
+                                    Date = DateTime.Now,
+                                    Notes = $"Lỗi khi hoàn trả điểm: {ex.Message.Substring(0, Math.Min(ex.Message.Length, 200))}"
+                                };
+                                _context.BookingHistories.Add(errorHistory);
+                                await _context.SaveChangesAsync();
                             }
                         }
+                        else
+                        {
+                            _logger.LogInformation($"Không cần hoàn trả điểm: Points_Used={pointsToRefund}, User_ID={userId}");
+                        }
 
-                        // 3. Cập nhật trạng thái ghế và xóa liên kết với Booking_ID
+                        // 2. CẬP NHẬT TRẠNG THÁI BOOKING
+                        booking.Status = "Cancelled";
+
+                        // 3. CẬP NHẬT GHẾ
                         var seats = await _context.Seats
                             .Where(s => s.Booking_ID == bookingId)
                             .ToListAsync();
 
-                        _logger.LogInformation($"Tìm thấy {seats.Count} ghế cần cập nhật cho đơn {bookingId}");
+                        _logger.LogInformation($"Tìm thấy {seats.Count} ghế cần cập nhật");
 
                         foreach (var seat in seats)
                         {
-                            _logger.LogInformation($"Cập nhật ghế {seat.Seat_ID} từ trạng thái '{seat.Seat_Status}' thành 'Available'");
                             seat.Seat_Status = "Available";
                             seat.Last_Updated = DateTime.Now;
-                            seat.Booking_ID = null; // Xóa liên kết với Booking_ID
+                            seat.Booking_ID = null;
                         }
 
-                        await _context.SaveChangesAsync();
+                        // 4. CẬP NHẬT VÉ 
+                        var tickets = await _context.Tickets
+                            .Where(t => t.Booking_ID == bookingId)
+                            .ToListAsync();
 
-                        // Nếu không tìm thấy ghế, thử dùng SQL trực tiếp
-                        if (seats.Count == 0)
+                        foreach (var ticket in tickets)
                         {
-                            _logger.LogWarning($"Không tìm thấy ghế nào với Booking_ID={bookingId}, thử dùng SQL trực tiếp");
-
-                            // Sử dụng SQL trực tiếp để cập nhật ghế
-                            string updateQuery = @"
-                    UPDATE Seats 
-                    SET Seat_Status = 'Available', 
-                        Last_Updated = @now, 
-                        Booking_ID = NULL 
-                    WHERE Booking_ID = @bookingId";
-
-                            var parameters = new[]
-                            {
-                    new Microsoft.Data.SqlClient.SqlParameter("@now", DateTime.Now),
-                    new Microsoft.Data.SqlClient.SqlParameter("@bookingId", bookingId)
-                };
-
-                            var updated = await _context.Database.ExecuteSqlRawAsync(updateQuery, parameters);
-
-                            _logger.LogInformation($"Cập nhật trực tiếp {updated} ghế cho đơn đặt vé {bookingId}");
+                            ticket.Status = "Cancelled";
                         }
 
-                        // 4. Thêm lịch sử hủy đơn
+                        // 5. THÊM LỊCH SỬ HỦY ĐƠN
                         var bookingHistory = new BookingHistory
                         {
-                            Booking_ID = booking.Booking_ID,
+                            Booking_ID = bookingId,
                             Status = "Cancelled",
                             Date = DateTime.Now,
                             Notes = "Hủy đơn bởi người dùng thông qua PayOS"
                         };
-
                         _context.BookingHistories.Add(bookingHistory);
-                        await _context.SaveChangesAsync();
-                        _logger.LogInformation($"Đã thêm lịch sử hủy đơn đặt vé {bookingId}");
 
-                        // Commit transaction nếu tất cả thành công
+                        // 6. LƯU TẤT CẢ THAY ĐỔI
+                        await _context.SaveChangesAsync();
+
+                        // 7. COMMIT TRANSACTION
                         await transaction.CommitAsync();
-                        _logger.LogInformation($"Đã commit transaction hủy đơn đặt vé {bookingId}");
+
+                        _logger.LogInformation($"*** HỦY ĐƠN ĐẶT VÉ {bookingId} THÀNH CÔNG ***");
 
                         return true;
                     }
                     catch (Exception ex)
                     {
-                        // Rollback transaction nếu có lỗi
                         await transaction.RollbackAsync();
-                        _logger.LogError(ex, $"Lỗi khi hủy đơn đặt vé {bookingId}, đã rollback transaction");
+                        _logger.LogError(ex, $"*** LỖI TRONG TRANSACTION: {ex.Message} ***");
                         throw;
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Lỗi không xử lý được khi hủy đơn đặt vé {bookingId}");
+                _logger.LogError(ex, $"*** LỖI NGOẠI: {ex.Message} ***");
                 return false;
             }
         }
