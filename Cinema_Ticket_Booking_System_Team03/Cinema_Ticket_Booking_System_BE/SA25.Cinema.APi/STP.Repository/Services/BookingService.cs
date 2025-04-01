@@ -1274,6 +1274,31 @@ namespace STP.Repository.Services
                         seat.Booking_ID = null; // Xóa liên kết với Booking_ID
                     }
 
+                    // THÊM MỚI: Cập nhật Promotion_Usage
+                    if (booking.Promotion_ID.HasValue)
+                    {
+                        // Tìm các bản ghi Promotion_Usage liên quan đến booking này
+                        var promotionUsages = await _context.PromotionUsages
+                            .Where(pu => pu.Booking_ID == bookingId)
+                            .ToListAsync();
+
+                        foreach (var usage in promotionUsages)
+                        {
+                            _logger.LogInformation($"Đặt lại HasUsed = false cho PromotionUsage ID: {usage.Usage_ID}");
+                            usage.HasUsed = false;
+                        }
+
+                        // Giảm lượt sử dụng của mã khuyến mãi
+                        var promotion = await _context.Promotions
+                            .FindAsync(booking.Promotion_ID.Value);
+
+                        if (promotion != null && promotion.Current_Usage > 0)
+                        {
+                            promotion.Current_Usage -= 1;
+                            _logger.LogInformation($"Giảm lượt sử dụng của mã khuyến mãi ID: {promotion.Promotion_ID}, Còn lại: {promotion.Current_Usage}");
+                        }
+                    }
+
                     // Cập nhật trạng thái của các ticket liên quan
                     var tickets = await _context.Tickets
                         .Where(t => t.Booking_ID == bookingId)
