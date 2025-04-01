@@ -15,6 +15,7 @@ interface SeatType {
   seatType: 'standard' | 'premium' | 'vip';
   section: 'left' | 'center' | 'right';
   seat_ID?: number;
+  isActive: boolean;
 }
 
 interface MovieDetails {
@@ -72,7 +73,7 @@ interface SeatStatus {
   seat_Number: number;
   seat_Type: string;
   price: number;
-  seat_Status: 'Available' | 'Reserved' | 'Unavailable';
+  seat_Status: 'Available' | 'Reserved' | 'Unavailable' | 'Sold';
   layout_ID: number;
 }
 
@@ -95,18 +96,20 @@ const Seat: React.FC<SeatProps> = ({ seat, isSelected, onSelect, seatSize = 'med
     $isSelected={isSelected}
     $seatType={seat.seatType}
     $seatSize={seatSize}
+    $isActive={seat.isActive}
     onClick={() => onSelect(seat)}
-    disabled={seat.isBooked}
-    aria-label={`Seat ${seat.id}, ${seat.seatType} seat, ${seat.isBooked ? 'booked' : 'available'}`}
-    whileHover={!seat.isBooked ? { y: -3, scale: 1.05 } : {}}
-    whileTap={!seat.isBooked ? { scale: 0.95 } : {}}
+    disabled={seat.isBooked || !seat.isActive}
+    aria-label={`Seat ${seat.id}, ${seat.seatType} seat, ${seat.isBooked ? 'booked' : seat.isActive ? 'available' : 'inactive'}`}
+    whileHover={!seat.isBooked && seat.isActive ? { y: -3, scale: 1.05 } : {}}
+    whileTap={!seat.isBooked && seat.isActive ? { scale: 0.95 } : {}}
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3 }}
+    style={{ visibility: seat.isActive ? 'visible' : 'hidden' }}
   >
     <Styles.SeatContent>
       <Styles.SeatNumber>{seat.id}</Styles.SeatNumber>
-      {!seat.isBooked && !isSelected && <Styles.SeatPrice>{seat.price}k</Styles.SeatPrice>}
+      {!seat.isBooked && !isSelected && seat.isActive && <Styles.SeatPrice>{seat.price}k</Styles.SeatPrice>}
       {isSelected && <Styles.CheckMark>✓</Styles.CheckMark>}
     </Styles.SeatContent>
   </Styles.SeatButton>
@@ -193,7 +196,7 @@ const CinemaRoomPage: React.FC = () => {
           row.seats.$values.map((seat: Seat) => {
             const seatId = `${seat.row_Label}${seat.column_Number}`;
             const status = seatStatusMap[seatId];
-            const isBooked = !seat.is_Active || (status && (status.seat_Status === 'Reserved' || status.seat_Status === 'Unavailable'));
+            const isBooked = (status && (status.seat_Status === 'Reserved' || status.seat_Status === 'Unavailable' || status.seat_Status === 'Sold'));
 
             return {
               id: seatId,
@@ -204,6 +207,7 @@ const CinemaRoomPage: React.FC = () => {
               seatType: seat.seat_Type.toLowerCase() === 'vip' ? 'vip' : 'standard',
               section: seat.column_Number <= layoutResponse.data.dimensions.columns / 3 ? 'left' : seat.column_Number > (layoutResponse.data.dimensions.columns * 2) / 3 ? 'right' : 'center',
               seat_ID: status ? status.seat_ID : undefined,
+              isActive: seat.is_Active
             };
           })
         );
