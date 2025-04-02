@@ -11,6 +11,10 @@ using iTextSharp.text.pdf;
 using iTextSharp.text;
 using iTextSharp.text.pdf.draw;
 using iTextSharp.text.pdf.qrcode;
+using System.Net.NetworkInformation;
+using ZXing;
+using ZXing.QrCode;
+
 namespace STP.Repository.Services
 {
     /// <summary>
@@ -111,7 +115,8 @@ namespace STP.Repository.Services
                     Discount_Amount = discountAmount,
                     Final_Price = finalPrice,
                     Ticket_Code = ticketCode,
-                    Is_Checked_In = false
+                    Is_Checked_In = false,
+                    Status = "Active" // Thêm trường Status mặc định là Active
                 };
 
                 tickets.Add(ticket);
@@ -153,7 +158,7 @@ namespace STP.Repository.Services
                 .Include(t => t.TicketBooking)
                     .ThenInclude(tb => tb.Showtime)
                         .ThenInclude(s => s.CinemaRoom)
-                .Where(t => t.Booking_ID == bookingId)
+                .Where(t => t.Booking_ID == bookingId && t.Status != "Cancelled") // Thêm điều kiện lọc
                 .ToListAsync();
         }
 
@@ -173,7 +178,7 @@ namespace STP.Repository.Services
                         .ThenInclude(s => s.CinemaRoom)
                 .Include(t => t.TicketBooking)
                     .ThenInclude(tb => tb.User)
-                .FirstOrDefaultAsync(t => t.Ticket_Code == ticketCode);
+                .FirstOrDefaultAsync(t => t.Ticket_Code == ticketCode && t.Status != "Cancelled"); // Thêm điều kiện lọc
         }
 
         /// <summary>
@@ -185,7 +190,7 @@ namespace STP.Repository.Services
                 .Include(t => t.TicketBooking)
                 .FirstOrDefaultAsync(t => t.Ticket_Code == ticketCode);
 
-            if (ticket == null || ticket.Is_Checked_In)
+            if (ticket == null || ticket.Is_Checked_In || ticket.Status == "Cancelled")
                 return false;
 
             // Kiểm tra thời gian suất chiếu
@@ -207,6 +212,310 @@ namespace STP.Repository.Services
 
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        /// <summary>
+        /// Tạo PDF vé từ template có sẵn
+        /// </summary>
+        public async Task<byte[]> GenerateTicketFromTemplateAsync(int ticketId)
+        {
+            try
+            {
+                _logger.LogInformation($"Generating PDF from template for ticket ID: {ticketId}");
+
+                // Lấy thông tin vé từ database
+                var ticket = await _context.Tickets
+                    .Include(t => t.TicketBooking)
+                    .Include(t => t.TicketBooking.Showtime)
+                    .Include(t => t.TicketBooking.Showtime.Movie)
+                    .Include(t => t.TicketBooking.Showtime.CinemaRoom)
+                    .Include(t => t.Seat)
+                    .Include(t => t.Seat.SeatLayout)
+                    .FirstOrDefaultAsync(t => t.Ticket_ID == ticketId);
+
+                if (ticket == null)
+                {
+                    _logger.LogWarning($"Ticket with ID {ticketId} not found");
+                    return null;
+                }
+
+                // Đường dẫn đến file template
+                string templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "movie_ticket_clean.pdf");
+
+                if (!File.Exists(templatePath))
+                {
+                    _logger.LogError($"Template file not found at: {templatePath}");
+                    // Sử dụng phương thức tạo PDF từ đầu nếu không tìm thấy template
+                    return await GenerateTicketPdfAsync(ticketId);
+                }
+
+                // Chuẩn bị thông tin vé
+                string theaterName = "STP CINEMA";
+                string cinemaRoom = ticket.TicketBooking.Showtime.CinemaRoom.Room_Name;
+                string movieTitle = ticket.TicketBooking.Showtime.Movie.Movie_Name;
+
+                // Format ngày giờ
+                DateTime showDate = ticket.TicketBooking.Showtime.Show_Date;
+                TimeSpan startTime = ticket.TicketBooking.Showtime.Start_Time;
+                string formattedDate = $"{showDate:dd/MM/yyyy} - {startTime.ToString(@"hh\:mm")}";
+
+                // Thông tin ghế
+                string seatInfo = $"{ticket.Seat.SeatLayout.Row_Label}{ticket.Seat.SeatLayout.Column_Number}";
+
+                // Ticket code for QR code generation
+                string ticketCode = ticket.Ticket_Code;
+
+                using (MemoryStream outputStream = new MemoryStream())
+                {
+                    // Mở file template
+                    PdfReader pdfReader = new PdfReader(templatePath);
+
+                    // Tạo PdfStamper để ghi nội dung mới vào template
+                    PdfStamper pdfStamper = new PdfStamper(pdfReader, outputStream);
+
+                    // Lấy nội dung PDF
+                    PdfContentByte contentByte = pdfStamper.GetOverContent(1);
+
+                    // Thiết lập font chữ hỗ trợ tiếng Việt
+                    BaseFont baseFont = BaseFont.CreateFont("c:/windows/fonts/arial.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                    Font regularFont = new Font(baseFont, 20, Font.NORMAL, BaseColor.BLACK);
+
+                    // Thêm nội dung vào các vị trí - dựa trên mẫu vé từ hình ảnh
+                    contentByte.BeginText();
+
+                    contentByte.SetFontAndSize(baseFont, 30);
+                    contentByte.SetTextMatrix(170, 320); // Cinema room - bên phải "CINEMA"
+                    contentByte.ShowText(cinemaRoom);
+
+                    // Điều chỉnh kích thước font cho tên phim nếu quá dài
+                    float movieFontSize = 30;
+                    if (movieTitle.Length > 15) movieFontSize = 12;
+                    if (movieTitle.Length > 25) movieFontSize = 10;
+
+                    contentByte.SetFontAndSize(baseFont, movieFontSize);
+                    contentByte.SetTextMatrix(170, 378); // Movie title - bên phải "MOVIE TITLE"
+                    contentByte.ShowText(movieTitle);
+
+                    contentByte.SetFontAndSize(baseFont, 30);
+                    contentByte.SetTextMatrix(170, 210); // Date and time - bên phải "DATE"
+                    contentByte.ShowText(formattedDate);
+
+                    contentByte.SetTextMatrix(170, 270); // Seat - bên phải "SEAT"
+                    contentByte.ShowText(seatInfo);
+
+                    contentByte.EndText();
+
+                    // Tạo và thêm QR code
+                    byte[] qrCodeImage = GenerateQRCode(ticketCode);
+                    if (qrCodeImage != null)
+                    {
+                        iTextSharp.text.Image qrCode = iTextSharp.text.Image.GetInstance(qrCodeImage);
+                        qrCode.ScaleToFit(268, 268);
+                        qrCode.SetAbsolutePosition(438, 297); // Vị trí phần bên phải vé (cột ADMIT ONE)
+                        contentByte.AddImage(qrCode);
+
+                        // Thêm ticket code bên dưới QR code
+                        contentByte.BeginText();
+                        contentByte.SetFontAndSize(baseFont, 15);
+                        contentByte.SetTextMatrix(480, 280);
+                        contentByte.ShowText("TICKET CODE: " + ticketCode);
+                        contentByte.EndText();
+                    }
+
+                    // Đóng stamper và reader
+                    pdfStamper.Close();
+                    pdfReader.Close();
+
+                    // Trả về mảng byte của PDF
+                    return outputStream.ToArray();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error generating PDF from template for ticket {ticketId}: {ex.Message}");
+                // Sử dụng phương thức tạo PDF từ đầu nếu gặp lỗi
+                return await GenerateTicketPdfAsync(ticketId);
+            }
+        }
+
+
+        /// <summary>
+        /// Phương thức giúp điều chỉnh vị trí điểm bắt đầu vẽ text dựa vào độ dài chuỗi và chiều rộng tối đa
+        /// </summary>
+        private float AdjustXPositionForCentering(string text, float defaultX, float maxWidth, float fontSize)
+        {
+            float approximateTextWidth = text.Length * fontSize * 0.6f; // Ước tính theo kinh nghiệm
+            if (approximateTextWidth < maxWidth)
+            {
+                return defaultX + (maxWidth - approximateTextWidth) / 2;
+            }
+            return defaultX;
+        }
+
+        /// <summary>
+        /// Tạo QR code từ chuỗi dữ liệu
+        /// </summary>
+        private byte[] GenerateQRCode(string data)
+        {
+            try
+            {
+                // Sử dụng ZXing.Net để tạo QR code
+                var qrCodeWriter = new ZXing.BarcodeWriterPixelData
+                {
+                    Format = ZXing.BarcodeFormat.QR_CODE,
+                    Options = new ZXing.QrCode.QrCodeEncodingOptions
+                    {
+                        Height = 200,
+                        Width = 200,
+                        Margin = 0,
+                        ErrorCorrection = ZXing.QrCode.Internal.ErrorCorrectionLevel.H
+                    }
+                };
+
+                var pixelData = qrCodeWriter.Write(data);
+
+                // Chuyển pixel data thành bitmap
+                using (var bitmap = new System.Drawing.Bitmap(pixelData.Width, pixelData.Height, System.Drawing.Imaging.PixelFormat.Format32bppRgb))
+                {
+                    using (var ms = new MemoryStream())
+                    {
+                        // Sao chép dữ liệu từ pixel data sang bitmap
+                        var bitmapData = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, pixelData.Width, pixelData.Height),
+                            System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+                        try
+                        {
+                            // Sao chép dữ liệu từ pixel data sang bitmap
+                            System.Runtime.InteropServices.Marshal.Copy(pixelData.Pixels, 0, bitmapData.Scan0, pixelData.Pixels.Length);
+                        }
+                        finally
+                        {
+                            bitmap.UnlockBits(bitmapData);
+                        }
+
+                        // Lưu bitmap thành file PNG
+                        bitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                        return ms.ToArray();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error generating QR code: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Phiên bản mở rộng cho SendTicketByEmailAsync để hỗ trợ template
+        /// </summary>
+        public async Task<bool> SendTicketFromTemplateByEmailAsync(int bookingId, string email = null)
+        {
+            try
+            {
+                _logger.LogInformation($"Preparing to send ticket from template by email for booking {bookingId}");
+
+                var booking = await _context.TicketBookings
+                    .Include(tb => tb.User)
+                    .Include(tb => tb.Showtime)
+                        .ThenInclude(s => s.Movie)
+                    .Include(tb => tb.Showtime)
+                        .ThenInclude(s => s.CinemaRoom)
+                    .FirstOrDefaultAsync(tb => tb.Booking_ID == bookingId);
+
+                if (booking == null)
+                {
+                    _logger.LogWarning($"Booking {bookingId} not found when trying to send ticket email");
+                    return false;
+                }
+
+                // Sử dụng email được cung cấp hoặc email của người dùng
+                string recipientEmail = email ?? booking.User?.Email;
+                if (string.IsNullOrEmpty(recipientEmail))
+                {
+                    _logger.LogWarning($"No recipient email found for booking {bookingId}");
+                    return false;
+                }
+
+                // Lấy danh sách vé (chỉ vé không bị hủy)
+                var tickets = await _context.Tickets
+                    .Include(t => t.Seat)
+                        .ThenInclude(s => s.SeatLayout)
+                    .Where(t => t.Booking_ID == bookingId && t.Status != "Cancelled")
+                    .ToListAsync();
+
+                if (!tickets.Any())
+                {
+                    _logger.LogWarning($"No active tickets found for booking {bookingId}");
+                    return false;
+                }
+
+                // Chuẩn bị thông tin để gửi email
+                Dictionary<string, string> bookingInfo = new Dictionary<string, string>()
+                {
+                    { "BookingId", booking.Booking_ID.ToString() },
+                    { "MovieName", booking.Showtime.Movie.Movie_Name },
+                    { "CinemaRoom", booking.Showtime.CinemaRoom.Room_Name },
+                    { "ShowDate", booking.Showtime.Show_Date.ToString("dd/MM/yyyy") },
+                    { "ShowTime", (DateTime.Today + booking.Showtime.Start_Time).ToString("HH:mm") },
+                    { "Seats", string.Join(", ", tickets.Select(t => $"{t.Seat.SeatLayout.Row_Label}{t.Seat.SeatLayout.Column_Number}")) }
+                };
+
+                // Tạo các file PDF cho vé sử dụng template
+                List<(string ticketCode, byte[] pdfContent)> pdfTickets = new List<(string, byte[])>();
+
+                foreach (var ticket in tickets)
+                {
+                    try
+                    {
+                        _logger.LogInformation($"Generating PDF from template for ticket {ticket.Ticket_ID} (Code: {ticket.Ticket_Code})");
+                        byte[] pdfContent = await GenerateTicketFromTemplateAsync(ticket.Ticket_ID);
+
+                        if (pdfContent != null && pdfContent.Length > 0)
+                        {
+                            pdfTickets.Add((ticket.Ticket_Code, pdfContent));
+                            _logger.LogInformation($"PDF generated successfully for ticket {ticket.Ticket_Code}, size: {pdfContent.Length} bytes");
+                        }
+                        else
+                        {
+                            _logger.LogWarning($"Generated PDF for ticket {ticket.Ticket_Code} is empty or null");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Error generating PDF for ticket {ticket.Ticket_Code}: {ex.Message}");
+                        // Tiếp tục với vé tiếp theo
+                    }
+                }
+
+                if (pdfTickets.Count == 0)
+                {
+                    _logger.LogWarning($"No PDF tickets were successfully generated for booking {bookingId}");
+                    // Vẫn gửi email nhưng không có đính kèm
+                }
+
+                // Gửi email với vé đính kèm
+                bool emailSent = await _emailService.SendTicketsEmailAsync(
+                    recipientEmail,
+                    booking.User?.Full_Name ?? "Quý khách",
+                    bookingInfo,
+                    pdfTickets);
+
+                if (emailSent)
+                {
+                    _logger.LogInformation($"Email with tickets sent successfully to {recipientEmail} for booking {bookingId}");
+                }
+                else
+                {
+                    _logger.LogWarning($"Failed to send email with tickets to {recipientEmail} for booking {bookingId}");
+                }
+
+                return emailSent;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error sending ticket by email for booking {bookingId}: {ex.Message}");
+                return false;
+            }
         }
         public async Task<byte[]> GenerateTicketPdfAsync(int ticketId)
         {
@@ -571,11 +880,16 @@ namespace STP.Repository.Services
                     return false;
                 }
 
-                // Lấy danh sách vé
-                var tickets = await GetTicketsByBookingIdAsync(bookingId);
+                // Lấy danh sách vé (chỉ vé không bị hủy)
+                var tickets = await _context.Tickets
+                    .Include(t => t.Seat)
+                        .ThenInclude(s => s.SeatLayout)
+                    .Where(t => t.Booking_ID == bookingId && t.Status != "Cancelled")
+                    .ToListAsync();
+
                 if (!tickets.Any())
                 {
-                    _logger.LogWarning($"No tickets found for booking {bookingId}");
+                    _logger.LogWarning($"No active tickets found for booking {bookingId}");
                     return false;
                 }
 
@@ -648,49 +962,6 @@ namespace STP.Repository.Services
             }
         }
 
-        /// <summary>
-        /// Gửi thông tin vé qua SMS
-        /// </summary>
-        public async Task<bool> SendTicketBySmsAsync(int bookingId, string phoneNumber = null)
-        {
-            try
-            {
-                var booking = await _context.TicketBookings
-                    .Include(tb => tb.User)
-                    .Include(tb => tb.Showtime)
-                        .ThenInclude(s => s.Movie)
-                    .FirstOrDefaultAsync(tb => tb.Booking_ID == bookingId);
-
-                if (booking == null)
-                    return false;
-
-                // Sử dụng số điện thoại được cung cấp hoặc số điện thoại của người dùng
-                string recipientPhone = phoneNumber ?? booking.User?.Phone_Number;
-                if (string.IsNullOrEmpty(recipientPhone))
-                    return false;
-
-                // Lấy danh sách vé
-                var tickets = await GetTicketsByBookingIdAsync(bookingId);
-                if (!tickets.Any())
-                    return false;
-
-                // Chuẩn bị nội dung SMS
-                string message = $"STP Cinema: Ma dat ve {booking.Booking_ID} cho phim " +
-                                $"{booking.Showtime.Movie.Movie_Name} ngay " +
-                                $"{booking.Showtime.Show_Date.ToString("dd/MM")}, " +
-                                $"gio {booking.Showtime.Start_Time.ToString(@"HH\:mm")}. " + // Sửa thành HH:mm cho định dạng 24h
-                                $"Ma ve: {string.Join(", ", tickets.Select(t => t.Ticket_Code))}";
-
-                // Gửi SMS
-                return await _smsService.SendSmsAsync(recipientPhone, message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error in SendTicketBySmsAsync for booking {bookingId}");
-                return false;
-            }
-        }
-
         #region Helper Methods
 
         /// <summary>
@@ -705,3 +976,4 @@ namespace STP.Repository.Services
         #endregion
     }
 }
+

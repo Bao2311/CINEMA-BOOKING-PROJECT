@@ -92,6 +92,7 @@ namespace STP.APIService
             // Mỗi request sẽ tạo ra một instance mới của các service này
             builder.Services.AddHttpClient();
             builder.Services.AddScoped<UnitOfWork>();
+            builder.Services.AddHostedService<ShowtimeExpirationService>();
             builder.Services.AddScoped<ShowtimeRepository>();
             builder.Services.AddScoped<ShowtimeService>();
             builder.Services.AddScoped<UserRepository>();
@@ -192,4 +193,5 @@ namespace STP.APIService
         }
     }
 }
+
 

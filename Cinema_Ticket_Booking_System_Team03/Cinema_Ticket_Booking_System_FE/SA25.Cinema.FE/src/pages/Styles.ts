@@ -5,16 +5,16 @@ export const GlobalStyle = createGlobalStyle`
   body {
     margin: 0;
     padding: 0;
-    font-family: 'Poppins', sans-serif; /* Font hiện đại hơn */
-    background: linear-gradient(135deg, #f5f5f7 0%, #e0e0e5 100%); /* Gradient nền nhẹ */
+    font-family: 'Poppins', sans-serif; /* Font hiá»‡n Ä‘áº¡i hÆ¡n */
+    background: linear-gradient(135deg, #f5f5f7 0%, #e0e0e5 100%); /* Gradient ná»n nháº¹ */
     color: #2d2d2d;
     overflow-x: hidden;
   }
   * { box-sizing: border-box; }
   :root {
-    --primary: #1e3a8a; /* Màu xanh đậm hơn */
+    --primary: #1e3a8a; /* MÃ u xanh Ä‘áº­m hÆ¡n */
     --primary-hover: #1e40af;
-    --secondary: #22c55e; /* Xanh lá tươi sáng */
+    --secondary: #22c55e; /* Xanh lÃ¡ tÆ°Æ¡i sÃ¡ng */
     --accent: #ef4444;
     --dark: #1f2937;
     --light: #f9fafb;
@@ -475,12 +475,37 @@ export const PaymentContainer = styled.div`
   padding: 2.5rem;
 `;
 
-export const PaymentHeader = styled.h2`
-  margin: 0 0 2.5rem;
-  color: var(--dark);
-  text-align: center;
-  font-size: 1.8rem;
-  font-weight: 700;
+export const PaymentHeader = styled.div`
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+export const CountdownTimer = styled.div<{ $warning: boolean }>`
+  font-size: 18px;
+  color: ${props => props.$warning ? '#ff4d4f' : '#52c41a'};
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 4px;
+  background-color: ${props => props.$warning ? '#fff1f0' : '#f6ffed'};
+  border: 1px solid ${props => props.$warning ? '#ffa39e' : '#b7eb8f'};
+  animation: ${props => props.$warning ? 'pulse 1s infinite' : 'none'};
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
 `;
 
 export const PaymentGrid = styled.div`
@@ -489,8 +514,9 @@ export const PaymentGrid = styled.div`
   gap: 2.5rem;
   @media (max-width: 768px) { grid-template-columns: 1fr; }
 `;
-
 export const OrderSummary = styled.div`
+  margin-left:330px;
+  width:500px;
   background: #f9fafb;
   border-radius: 10px;
   padding: 2rem;
@@ -510,7 +536,6 @@ export const SummaryItem = styled.div<{ $total?: boolean }>`
   margin-bottom: 0.9rem;
   font-weight: ${props => props.$total ? '700' : '500'};
   font-size: ${props => props.$total ? '1.2rem' : '0.95rem'};
-  color: var(--text);
 `;
 
 export const SummaryDivider = styled.div`
@@ -803,5 +828,130 @@ export const ConfirmButton = styled.button`
     &:hover {
       background: #dc2626;
     }
+  }
+`;
+
+export const PointsDisplay = styled.div`
+  background-color: #f6f8ff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin: 16px 0;
+  border: 1px solid #e6e8f0;
+`;
+
+export const PointsText = styled.span`
+  color: #4a5568;
+  font-weight: 500;
+`;
+
+export const PointsValue = styled.span`
+  color: #2563eb;
+  font-weight: 600;
+`;
+
+export const PointsInputContainer = styled.div`
+  display: flex;
+  gap: 10px;
+  margin: 16px 0;
+  align-items: center;
+`;
+
+export const PointsInput = styled.input`
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  flex: 1;
+  font-size: 14px;
+  
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  &[type=number] {
+    -moz-appearance: textfield;
+  }
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+`;
+
+export const ApplyPointsButton = styled.button<{ disabled?: boolean }>`
+  padding: 8px 16px;
+  background-color: ${props => props.disabled ? '#9ca3af' : '#3b82f6'};
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.2s;
+  
+  &:hover:not(:disabled) {
+    background-color: #2563eb;
+  }
+`;
+
+export const DiscountNote = styled.div`
+  color: #10b981;
+  font-size: 14px;
+  margin-top: 8px;
+  text-align: right;
+  font-weight: 500;
+`;
+
+export const PromotionContainer = styled.div`
+  display: flex;
+  gap: 10px;
+  margin: 16px 0;
+  align-items: center;
+`;
+
+export const PromotionInput = styled.input`
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  flex: 1;
+  font-size: 14px;
+  text-transform: uppercase;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  }
+`;
+
+export const ApplyPromotionButton = styled.button<{ disabled?: boolean }>`
+  padding: 8px 16px;
+  background-color: ${props => props.disabled ? '#9ca3af' : '#3b82f6'};
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.2s;
+  white-space: nowrap;
+  
+  &:hover:not(:disabled) {
+    background-color: #2563eb;
+  }
+`;
+
+export const PriceCalculation = styled.div`
+  margin-top: 16px;
+  padding: 16px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+`;
+
+export const CalculationItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: #4b5563;
+  font-size: 14px;
+  
+  &:last-child {
+    margin-bottom: 0;
   }
 `;

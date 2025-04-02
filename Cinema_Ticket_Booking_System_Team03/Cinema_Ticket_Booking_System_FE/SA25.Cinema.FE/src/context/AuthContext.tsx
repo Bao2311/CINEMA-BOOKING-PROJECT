@@ -1,11 +1,15 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, AuthState } from '../types';
-import api from '../config/axios'; // Import file cấu hình axios API
-import { toast } from 'react-toastify';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { User, AuthState } from "../types";
+import api from "../config/axios"; // Import file cấu hình axios API
+import { toast } from "react-toastify";
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
+  register: (
+    username: string,
+    email: string,
+    password: string
+  ) => Promise<void>;
   logout: () => void;
   updateUser: (user: User) => void;
 }
@@ -15,16 +19,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
-    token: localStorage.getItem('token'),
-    isAuthenticated: Boolean(localStorage.getItem('token')),
+    token: localStorage.getItem("token"),
+    isAuthenticated: Boolean(localStorage.getItem("token")),
     isLoading: true,
     error: null,
   });
@@ -32,47 +38,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Load user from localStorage when the app starts
   useEffect(() => {
     const loadUser = async () => {
-      const storedToken = localStorage.getItem('token');
-      console.log('Initial token from localStorage:', storedToken);
-      
+      const storedToken = localStorage.getItem("token");
+      console.log("Initial token from localStorage:", storedToken);
+
       if (storedToken) {
         try {
-          console.log('Attempting to load profile with token:', storedToken);
-          const userResponse = await api.get('/Auth/profile');
-          console.log('Profile response:', userResponse.data);
-          
-          setAuthState(prevState => ({
+          const userResponse = await api.get("/Auth/profile", {
+            headers: { Authorization: `Bearer ${storedToken}` },
+          });
+
+          setAuthState((prevState) => ({
             ...prevState,
             user: userResponse.data,
             token: storedToken,
             isAuthenticated: true,
             isLoading: false,
           }));
-        } catch (error) {
-          console.error('Error loading user profile:', error);
-          // Không xóa token ngay lập tức, kiểm tra lỗi trước
-          if (error.response && error.response.status === 401) {
-            console.log('Token invalid or expired, removing from localStorage');
-            localStorage.removeItem('token');
-            setAuthState(prevState => ({
-              ...prevState,
+        } catch (error: any) {
+          console.error("Error loading user profile:", error);
+
+          if (error.response?.status === 401) {
+            localStorage.removeItem("token");
+            setAuthState({
+              user: null,
               token: null,
               isAuthenticated: false,
               isLoading: false,
-              error: 'Session expired. Please login again.',
-            }));
+              error: "Session expired. Please login again.",
+            });
           } else {
-            // Với các lỗi khác (network, server, etc.), giữ token
-            setAuthState(prevState => ({
+            setAuthState((prevState) => ({
               ...prevState,
-              isAuthenticated: true, // Vẫn coi như đã đăng nhập
               isLoading: false,
-              error: 'Could not fetch profile. Please try again later.',
+              error: "Could not fetch profile. Please try again later.",
             }));
           }
         }
       } else {
-        setAuthState(prevState => ({
+        setAuthState((prevState) => ({
           ...prevState,
           isLoading: false,
         }));
@@ -80,97 +83,104 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     loadUser();
-  }, []); // Empty dependency array to run only once on mount
+  }, []);
 
   // Login function
   const login = async (email: string, password: string) => {
-    setAuthState(prevState => ({ ...prevState, isLoading: true }));
-  
+    setAuthState((prevState) => ({ ...prevState, isLoading: true }));
+
     try {
-      const response = await api.post('/Auth/login', { email, password });
-  
-      const { token, userId, fullName, email: userEmail, tokenExpiration, role } = response.data;
-  
+      const response = await api.post("/Auth/login", { email, password });
+      const {
+        token,
+        userId,
+        fullName,
+        email: userEmail,
+        tokenExpiration,
+        role,
+      } = response.data;
+
       if (!token) {
-        throw new Error('Token is null or undefined');
+        throw new Error("Token is null or undefined");
       }
-  
-      // Store user information in localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('userId', userId.toString());
-      localStorage.setItem('fullName', fullName);
-      localStorage.setItem('email', userEmail);
-      localStorage.setItem('tokenExpiration', tokenExpiration);
-      localStorage.setItem('role', role);
-  
-      setAuthState(prevState => ({
-        ...prevState,
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("userId", userId.toString());
+      localStorage.setItem("fullName", fullName);
+      localStorage.setItem("email", userEmail);
+      localStorage.setItem("tokenExpiration", tokenExpiration);
+      localStorage.setItem("role", role);
+
+      setAuthState({
         user: response.data,
         token,
         isAuthenticated: true,
         isLoading: false,
         error: null,
-      }));
-  
+      });
+
+      toast.success("Login successful!");
     } catch (error: any) {
-      console.error('Login Error:', error);
-      setAuthState(prevState => ({
+      console.error("Login Error:", error);
+      setAuthState((prevState) => ({
         ...prevState,
-        error: error?.response?.data?.message || 'Invalid credentials',
+        error: error?.response?.data?.message || "Invalid credentials",
         isLoading: false,
       }));
-  
-      // Hiển thị thông báo lỗi cho người dùng
-      if (error.response?.data?.message) {
-        toast.error(error.response?.data?.message);  // Hiển thị thông báo lỗi trả về từ server
-      } else {
-        toast.error('Tài khoản hoặc mật khẩu sai. Vui lòng thử lại.');
-      }
-      throw error; // Re-throw the error to be caught in LoginForm
+
+      toast.error(
+        error?.response?.data?.message || "Invalid email or password."
+      );
+      throw error;
     }
   };
 
   // Register function
-  const register = async (username: string, email: string, password: string) => {
-    setAuthState(prevState => ({ ...prevState, isLoading: true }));
-    try {
-      const response = await api.post('/Auth/register', { username, email, password });
+  const register = async (
+    username: string,
+    email: string,
+    password: string
+  ) => {
+    setAuthState((prevState) => ({ ...prevState, isLoading: true }));
 
-      const token = response.data.token;
-      const user = response.data;
+    try {
+      const response = await api.post("/Auth/register", {
+        username,
+        email,
+        password,
+      });
+      const { token } = response.data;
 
       if (!token) {
-        throw new Error('Token is null or undefined');
+        throw new Error("Token is null or undefined");
       }
 
-      localStorage.setItem('token', token);
+      localStorage.setItem("token", token);
 
-      setAuthState(prevState => ({
-        ...prevState,
-        user,
+      setAuthState({
+        user: response.data,
         token,
         isAuthenticated: true,
         isLoading: false,
         error: null,
-      }));
+      });
+
+      toast.success("Registration successful!");
     } catch (error: any) {
-      console.error('Registration Error:', error);
-      setAuthState(prevState => ({
+      console.error("Registration Error:", error);
+      setAuthState((prevState) => ({
         ...prevState,
-        error: error?.response?.data?.message || 'Registration failed',
+        error: error?.response?.data?.message || "Registration failed",
         isLoading: false,
       }));
+
+      toast.error(error?.response?.data?.message || "Registration failed.");
     }
   };
 
   // Logout function
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('fullName');
-    localStorage.removeItem('email');
-    localStorage.removeItem('tokenExpiration');
-    localStorage.removeItem('role');
+    localStorage.clear();
     setAuthState({
       user: null,
       token: null,
@@ -178,11 +188,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isLoading: false,
       error: null,
     });
+
+    toast.info("Logged out successfully.");
   };
 
   // Update user information
   const updateUser = (user: User) => {
-    setAuthState(prevState => ({
+    setAuthState((prevState) => ({
       ...prevState,
       user,
     }));

@@ -438,7 +438,7 @@ namespace STP.APIService.Controllers
         /// Nhân viên có thể tạo tài khoản cho người dùng mới, hệ thống sẽ tự động tạo mật khẩu
         /// </summary>
         [HttpPost("staff-register")]
-        [Authorize(Roles = "Staff")]
+        [Authorize(Roles = "Staff, Admin, Manager")]
         public async Task<IActionResult> RegisterUserByStaff([FromBody] StaffRegisterUserDto model)
         {
             try

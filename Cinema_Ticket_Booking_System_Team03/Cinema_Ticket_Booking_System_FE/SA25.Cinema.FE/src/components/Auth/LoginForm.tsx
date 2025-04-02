@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { 
   LogIn, Eye, EyeOff, Mail, Lock, CheckCircle, AlertCircle, 
   ShieldCheck, Loader2, ArrowRight, Info
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
-
 const LoginForm: React.FC = () => {
   // Form state management
   const [formData, setFormData] = useState({
@@ -36,8 +35,9 @@ const LoginForm: React.FC = () => {
   // Refs for focus management and animations
   const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
-  
+  const [error, setError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   // Focus on email input when component mounts
@@ -116,110 +116,129 @@ const LoginForm: React.FC = () => {
     }
   };
 
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setFormSubmitted(true);
+    
+  //   // Kiểm tra lỗi
+  //   const newErrors: {email?: string; password?: string; general?: string} = {};
+  //   if (!formData.email) newErrors.email = 'Email is required';
+  //   else if (!validateEmail(formData.email)) newErrors.email = 'Please enter a valid email address';
+    
+  //   if (!formData.password) newErrors.password = 'Password is required';
+  //   else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+    
+  //   // Nếu có lỗi, không tiếp tục
+  //   if (Object.keys(newErrors).length > 0) {
+  //     setErrors(newErrors);
+  //     setTouched({ email: true, password: true });
+  //     return;
+  //   }
+    
+  //   // Bắt đầu xử lý đăng nhập
+  //   setIsLoading(true);
+    
+  //   try {
+  //     const result = await login(formData.email, formData.password);
+      
+  //     // Kiểm tra nếu cần đổi mật khẩu
+  //     if (result && result.requiresPasswordChange) {
+  //       // Chuyển hướng đến trang profile với state yêu cầu đổi mật khẩu
+  //       navigate('/settings', { 
+  //         state: { 
+  //           passwordChangeRequired: true, 
+  //           from: location // Lưu vị trí hiện tại để quay lại sau
+  //         } 
+  //       });
+  //       toast.info('Please change your password before continuing.');
+  //       return;
+  //     } else {
+  //       // If no password change required, navigate to home or intended destination
+  //       const from = location.state?.from?.pathname || '/';
+  //       navigate(from);
+  //     }
+      
+  //     // Đăng nhập thành công
+  //     toast.success('Login successful!');
+  //     // Chuyển hướng đến trang chính
+  //     navigate('/');
+  //     // Lưu thông tin đăng nhập nếu chọn "Remember me"
+  //     if (rememberMe) {
+  //       localStorage.setItem('rememberedEmail', formData.email);
+  //     } else {
+  //       localStorage.removeItem('rememberedEmail');
+  //     }
+      
+      
+  //   } catch (error) {
+  //     console.error('Login error:', error);
+  //     setLoginAttempts(prev => prev + 1);
+      
+  //     // Hiển thị thông báo lỗi
+  //     setErrors({
+  //       general: 'Login failed. Please check your credentials.'
+  //     });
+      
+  //     toast.error('Login failed. Please check your credentials.');
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormSubmitted(true);
-    
-    // Mark all fields as touched to show validation errors
-    setTouched({
-      email: true,
-      password: true,
-    });
-    
-    // Check if there are any validation errors
+    setError('');
+    setIsLoading(true);
+    setFormSubmitted(true); // Add this to be consistent with your validation logic
+  
+    // Check for validation errors before submitting
     const newErrors: {email?: string; password?: string; general?: string} = {};
+    if (!formData.email) newErrors.email = 'Email is required';
+    else if (!validateEmail(formData.email)) newErrors.email = 'Please enter a valid email address';
     
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
+    if (!formData.password) newErrors.password = 'Password is required';
+    else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
     
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-    
-    setErrors(newErrors);
-    
-    // If there are errors, don't submit
+    // If there are validation errors, don't proceed with login
     if (Object.keys(newErrors).length > 0) {
-      toast.error('Please correct the errors before submitting');
-      // Shake the form to indicate error
-      const formElement = document.querySelector('form');
-      formElement?.classList.add('animate-shake');
-      setTimeout(() => {
-        formElement?.classList.remove('animate-shake');
-      }, 500);
+      setErrors(newErrors);
+      setTouched({ email: true, password: true });
+      setIsLoading(false);
       return;
     }
-
+  
     try {
-      setIsLoading(true);
-      setLoginAttempts(prev => prev + 1);
+      const result = await login(formData.email, formData.password);
       
-      // Remember me functionality
-      if (rememberMe) {
-        localStorage.setItem('rememberedEmail', formData.email);
+      if (result && result.requiresPasswordChange) {
+        navigate('/profile/settings', { 
+          state: { 
+            passwordChangeRequired: true,
+            from: location
+          } 
+        });
+        toast.info('Please change your password before continuing.');
       } else {
-        localStorage.removeItem('rememberedEmail');
+        toast.success('Login successful!');
+        // Navigate to home or intended destination
+        const from = location.state?.from?.pathname || '/';
+        navigate(from);
+        
+        // Save login info if "Remember me" is checked
+        if (rememberMe) {
+          localStorage.setItem('rememberedEmail', formData.email);
+        } else {
+          localStorage.removeItem('rememberedEmail');
+        }
       }
-
-      await login(formData.email, formData.password);
-
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Token was not saved correctly');
-      }
-
-      // Success animation and notification
-      toast.success('Login successful! Redirecting...', {
-        icon: "🎉"
-      });
-      
-      // Add a slight delay before redirecting for better UX
-      setTimeout(() => {
-        navigate('/');
-      }, 800);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Login error:', err);
       setLoginAttempts(prev => prev + 1);
-      
-      // Handle different types of errors
-      if (err.response?.status === 401) {
-        newErrors.general = 'Invalid email or password';
-        toast.error('Invalid email or password', {
-          icon: "🔒"
-        });
-      } else if (err.response?.status === 429) {
-        newErrors.general = 'Too many login attempts. Please try again later.';
-        toast.error('Too many login attempts. Please try again later.', {
-          icon: "⏱️"
-        });
-      } else {
-        const errorMessage = err.response?.data?.message || 'Login failed. Please check your credentials.';
-        newErrors.general = errorMessage;
-        toast.error(errorMessage);
-      }
-      
-      // Set specific field errors if available from API
-      if (err.response?.data?.errors) {
-        const apiErrors = err.response.data.errors;
-        setErrors({
-          ...newErrors,
-          ...apiErrors
-        });
-      } else {
-        setErrors(newErrors);
-      }
-      
-      // Shake the form to indicate error
-      const formElement = document.querySelector('form');
-      formElement?.classList.add('animate-shake');
-      setTimeout(() => {
-        formElement?.classList.remove('animate-shake');
-      }, 500);
+      setError('Invalid email or password');
+      setErrors({
+        general: 'Login failed. Please check your credentials.'
+      });
+      toast.error('Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -265,7 +284,15 @@ const LoginForm: React.FC = () => {
             </div>
           </div>
         )}
-
+{/* Add the error display code here */}
+{error && (
+  <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-md">
+    <div className="flex items-center">
+      <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+      <p className="text-sm text-red-700">{error}</p>
+    </div>
+  </div>
+)}
         {showSecurityWarning && (
           <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 rounded-md">
             <div className="flex">
@@ -444,17 +471,5 @@ const LoginForm: React.FC = () => {
     </div>
   );
 };
-
-// Add keyframe animations to your global CSS
-// @keyframes shake {
-//   0%, 100% { transform: translateX(0); }
-//   20% { transform: translateX(-10px); }
-//   40% { transform: translateX(10px); }
-//   60% { transform: translateX(-5px); }
-//   80% { transform: translateX(5px); }
-// }
-// .animate-shake {
-//   animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-// }
 
 export default LoginForm;

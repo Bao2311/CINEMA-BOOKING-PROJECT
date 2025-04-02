@@ -137,7 +137,7 @@ namespace STP.Repository.Dtos
         /// Thông tin chi tiết về suất chiếu
         /// </summary>
         public ShowtimeInfoDTO Showtime { get; set; }
-        public int User_ID { get; set; }
+        public int? User_ID { get; set; }
 
         public int PointsEarned { get; set; }
     }
@@ -210,7 +210,7 @@ namespace STP.Repository.Dtos
         /// <summary>
         /// ID người dùng
         /// </summary>
-        public int User_ID { get; set; }
+        public int? User_ID { get; set; }
 
         /// <summary>
         /// Danh sách ghế đã đặt (dạng chuỗi, ví dụ: "A2, B3")
@@ -526,7 +526,7 @@ namespace STP.Repository.Dtos
 
         public DateTime Cancellation_Date { get; set; }
 
-        public int User_ID { get; set; }
+        public int? User_ID { get; set; }
 
         public int PointsUsed { get; set; } = 0;
 
@@ -543,7 +543,20 @@ namespace STP.Repository.Dtos
         public decimal DiscountedTotalAmount { get; set; }
 
         public int? PointsRefunded { get; set; }
+
+        public bool IsStaffBooking { get; set; }
+
+        public MemberInfoDTO MemberInfo { get; set; }
     }
+
+    public class MemberInfoDTO
+    {
+        public int User_ID { get; set; }
+        public string Full_Name { get; set; }
+        public string Phone_Number { get; set; }
+        public string Email { get; set; }
+    }
+
     public class ShowtimeInfoDTO
     {
         public int Showtime_ID { get; set; }
@@ -684,7 +697,6 @@ namespace STP.Repository.Dtos
         /// </summary>
         public string Payment_Method { get; set; }
 
-        public int PointsToUse { get; set; } = 0;
     }
     public class BookingSearchResponseDTO
     {
@@ -701,6 +713,21 @@ namespace STP.Repository.Dtos
         public DateTime BookingDate { get; set; }
         public string PaymentMethod { get; set; }
         public string Seats { get; set; }
+    }
+
+    public class PendingBookingCheckDTO
+    {
+        public int Booking_ID { get; set; }
+        public DateTime Booking_Date { get; set; }
+        public DateTime Payment_Deadline { get; set; }
+        public bool IsExpired { get; set; }
+        public string Seats { get; set; }
+        public decimal Total_Amount { get; set; }
+        public string MovieName { get; set; }
+        public string RoomName { get; set; }
+        public DateTime Show_Date { get; set; }
+        public TimeSpan Start_Time { get; set; }
+        public int RemainingMinutes { get; set; }
     }
 }
 

@@ -89,7 +89,7 @@ namespace STP.APIService.Controllers
                         {
                             await _pointsService.RefundPointsForExpiredBookingAsync(
                                 booking.Booking_ID,
-                                booking.User_ID,
+                                booking.User_ID.Value,
                                 booking.Points_Used);
 
                             // Thêm lịch sử hoàn điểm

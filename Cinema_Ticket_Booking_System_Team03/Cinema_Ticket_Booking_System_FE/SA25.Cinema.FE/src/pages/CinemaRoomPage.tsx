@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Modal } from 'antd';
@@ -15,6 +15,7 @@ interface SeatType {
   seatType: 'standard' | 'premium' | 'vip';
   section: 'left' | 'center' | 'right';
   seat_ID?: number;
+  isActive: boolean;
 }
 
 interface MovieDetails {
@@ -72,7 +73,7 @@ interface SeatStatus {
   seat_Number: number;
   seat_Type: string;
   price: number;
-  seat_Status: 'Available' | 'Reserved' | 'Unavailable';
+  seat_Status: 'Available' | 'Reserved' | 'Unavailable' | 'Sold';
   layout_ID: number;
 }
 
@@ -95,18 +96,20 @@ const Seat: React.FC<SeatProps> = ({ seat, isSelected, onSelect, seatSize = 'med
     $isSelected={isSelected}
     $seatType={seat.seatType}
     $seatSize={seatSize}
+    $isActive={seat.isActive}
     onClick={() => onSelect(seat)}
-    disabled={seat.isBooked}
-    aria-label={`Seat ${seat.id}, ${seat.seatType} seat, ${seat.isBooked ? 'booked' : 'available'}`}
-    whileHover={!seat.isBooked ? { y: -3, scale: 1.05 } : {}}
-    whileTap={!seat.isBooked ? { scale: 0.95 } : {}}
+    disabled={seat.isBooked || !seat.isActive}
+    aria-label={`Seat ${seat.id}, ${seat.seatType} seat, ${seat.isBooked ? 'booked' : seat.isActive ? 'available' : 'inactive'}`}
+    whileHover={!seat.isBooked && seat.isActive ? { y: -3, scale: 1.05 } : {}}
+    whileTap={!seat.isBooked && seat.isActive ? { scale: 0.95 } : {}}
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3 }}
+    style={{ visibility: seat.isActive ? 'visible' : 'hidden' }}
   >
     <Styles.SeatContent>
       <Styles.SeatNumber>{seat.id}</Styles.SeatNumber>
-      {!seat.isBooked && !isSelected && <Styles.SeatPrice>{seat.price}k</Styles.SeatPrice>}
+      {!seat.isBooked && !isSelected && seat.isActive && <Styles.SeatPrice>{seat.price}k</Styles.SeatPrice>}
       {isSelected && <Styles.CheckMark>✓</Styles.CheckMark>}
     </Styles.SeatContent>
   </Styles.SeatButton>
@@ -116,25 +119,27 @@ const CinemaRoomPage: React.FC = () => {
   const { showtimeId } = useParams<{ showtimeId: string }>();
   const query = new URLSearchParams(useLocation().search);
   const movieId = query.get('movieId');
+  const navigate = useNavigate();
 
   const [selectedSeats, setSelectedSeats] = useState<SeatType[]>([]);
   const [seats, setSeats] = useState<SeatType[]>([]);
   const [totalPrice, setTotalPrice] = useState(0);
   const [step, setStep] = useState<'select' | 'payment' | 'confirmation'>('select');
   const [isLoading, setIsLoading] = useState(true);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvv, setCvv] = useState('');
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [movieDetails, setMovieDetails] = useState<MovieDetails | null>(null);
   const [showtimeDetails, setShowtimeDetails] = useState<ShowtimeDetails | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingId, setBookingId] = useState<number | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const screenRef = useRef<HTMLDivElement>(null);
+  const [userPoints, setUserPoints] = useState<number>(0);
+  const [pointsToUse, setPointsToUse] = useState<string>('');
+  const [discountedTotal, setDiscountedTotal] = useState<number | null>(null);
+  const [totalPointsUsed, setTotalPointsUsed] = useState<number>(0);
+  const [promotionCode, setPromotionCode] = useState<string>('');
+  const [newTotal, setNewTotal] = useState<number | null>(null);
+  const [countdown, setCountdown] = useState(300); // 5 minutes in seconds
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const fetchMovieDetails = async () => {
@@ -192,7 +197,7 @@ const CinemaRoomPage: React.FC = () => {
           row.seats.$values.map((seat: Seat) => {
             const seatId = `${seat.row_Label}${seat.column_Number}`;
             const status = seatStatusMap[seatId];
-            const isBooked = !seat.is_Active || (status && (status.seat_Status === 'Reserved' || status.seat_Status === 'Unavailable'));
+            const isBooked = (status && (status.seat_Status === 'Reserved' || status.seat_Status === 'Unavailable' || status.seat_Status === 'Sold'));
 
             return {
               id: seatId,
@@ -203,6 +208,7 @@ const CinemaRoomPage: React.FC = () => {
               seatType: seat.seat_Type.toLowerCase() === 'vip' ? 'vip' : 'standard',
               section: seat.column_Number <= layoutResponse.data.dimensions.columns / 3 ? 'left' : seat.column_Number > (layoutResponse.data.dimensions.columns * 2) / 3 ? 'right' : 'center',
               seat_ID: status ? status.seat_ID : undefined,
+              isActive: seat.is_Active
             };
           })
         );
@@ -237,23 +243,54 @@ const CinemaRoomPage: React.FC = () => {
     setTotalPrice(price);
   }, [selectedSeats]);
 
-  const validateForm = () => {
-    const newErrors: { [key: string]: string } = {};
-    if (step === 'payment') {
-      if (!name.trim()) newErrors.name = 'Vui lòng nhập họ tên';
-      if (!email.trim()) newErrors.email = 'Vui lòng nhập email';
-      else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Email không hợp lệ';
-      if (!phone.trim()) newErrors.phone = 'Vui lòng nhập số điện thoại';
-      else if (!/^[0-9]{10}$/.test(phone)) newErrors.phone = 'Số điện thoại phải có 10 chữ số';
-      if (!cardNumber.trim()) newErrors.cardNumber = 'Vui lòng nhập số thẻ';
-      else if (!/^[0-9]{16}$/.test(cardNumber.replace(/\s/g, ''))) newErrors.cardNumber = 'Số thẻ phải có 16 chữ số';
-      if (!expiry.trim()) newErrors.expiry = 'Vui lòng nhập ngày hết hạn';
-      else if (!/^(0[1-9]|1[0-2])\/([0-9]{2})$/.test(expiry)) newErrors.expiry = 'Định dạng MM/YY không hợp lệ';
-      if (!cvv.trim()) newErrors.cvv = 'Vui lòng nhập mã CVV';
-      else if (!/^[0-9]{3,4}$/.test(cvv)) newErrors.cvv = 'CVV phải có 3-4 chữ số';
+  useEffect(() => {
+    if (step === 'payment' && countdown > 0) {
+      countdownRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownRef.current!);
+            handlePaymentTimeout();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+    return () => {
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+      }
+    };
+  }, [step, countdown]);
+
+  const handlePaymentTimeout = async () => {
+    if (bookingId) {
+      try {
+        const token = localStorage.getItem('token');
+        await axios.put(
+          `https://localhost:7168/api/Booking/${bookingId}/cancel`,
+          { id: bookingId },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+          }
+        );
+        alert('Đã hết thời gian thanh toán. Vé của bạn đã bị hủy.');
+        navigate('/showtimes');
+      } catch (error) {
+        console.error('Error cancelling booking:', error);
+        alert('Có lỗi xảy ra khi hủy vé. Vui lòng thử lại.');
+      }
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   const sendBookingRequest = async () => {
@@ -281,6 +318,7 @@ const CinemaRoomPage: React.FC = () => {
     try {
       setIsLoading(true);
       setBookingError(null);
+      setTotalPointsUsed(0); // Reset total points used when creating a new booking
       const token = localStorage.getItem('token');
       const response = await axios.post(
         'https://localhost:7168/api/Booking/',
@@ -340,18 +378,6 @@ const CinemaRoomPage: React.FC = () => {
       }
       return;
     }
-
-    if (step === 'confirmation') {
-      setSelectedSeats([]);
-      setStep('select');
-      setName('');
-      setEmail('');
-      setPhone('');
-      setCardNumber('');
-      setExpiry('');
-      setCvv('');
-      setErrors({});
-    }
   };
 
   const handleConfirm = async (confirmed: boolean) => {
@@ -372,6 +398,122 @@ const CinemaRoomPage: React.FC = () => {
     });
     return groupedSeats;
   }, [seats]);
+
+  const fetchUserPoints = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      if (!userId || !token) {
+        console.error('User ID or token not found');
+        return;
+      }
+
+      const response = await axios.get(`https://localhost:7168/api/Points/my-points`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      if (response.data && typeof response.data.total_Points === 'number') {
+        setUserPoints(response.data.total_Points);
+        console.log('Points fetched:', response.data.total_Points);
+      } else {
+        console.error('Invalid points data:', response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching user points:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (step === 'payment') {
+      fetchUserPoints();
+    }
+  }, [step]);
+
+  const handleApplyPoints = async () => {
+    try {
+      const points = parseInt(pointsToUse);
+      if (isNaN(points)) {
+        alert('Vui lòng nhập số điểm hợp lệ');
+        return;
+      }
+      
+      if (points % 1000 !== 0) {
+        alert('Số điểm sử dụng phải là bội của 1000');
+        return;
+      }
+
+      if (points < 0 || points > userPoints) {
+        alert('Số điểm không hợp lệ');
+        return;
+      }
+
+      // Calculate maximum points allowed (50% of total bill)
+      const maxAllowedPoints = Math.floor(totalPrice * 1000 * 0.5);
+      const remainingAllowedPoints = maxAllowedPoints - totalPointsUsed;
+      
+      if (points > remainingAllowedPoints) {
+        alert(`Bạn chỉ có thể sử dụng tối đa ${remainingAllowedPoints.toLocaleString('vi-VN')} điểm (50% tổng hóa đơn)`);
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `https://localhost:7168/api/Points/booking/${bookingId}/apply-discount`,
+        points,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      setDiscountedTotal(response.data.discountedTotalAmount / 1000);
+      setUserPoints(response.data.currentPoints);
+      setTotalPointsUsed(prev => prev + points); // Track total points used
+      setPointsToUse('');
+      alert(`Áp dụng ${points.toLocaleString('vi-VN')} điểm thành công!`);
+    } catch (error) {
+      console.error('Error applying points:', error);
+      alert('Không thể áp dụng điểm. Vui lòng thử lại.');
+    }
+  };
+
+  const handleApplyPromotion = async () => {
+    try {
+      if (!promotionCode.trim()) {
+        alert('Vui lòng nhập mã khuyến mãi');
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        'https://localhost:7168/api/Promotion/apply',
+        {
+          bookingId: bookingId,
+          promotionCode: promotionCode
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        setNewTotal(response.data.new_total / 1000); // Chuyển đổi sang đơn vị k
+        alert('Áp dụng mã khuyến mãi thành công!');
+      } else {
+        alert(response.data.message || 'Mã khuyến mãi không hợp lệ');
+      }
+    } catch (error) {
+      console.error('Error applying promotion:', error);
+      alert('Không thể áp dụng mã khuyến mãi. Vui lòng thử lại.');
+    }
+  };
 
   return (
     <>
@@ -471,13 +613,57 @@ const CinemaRoomPage: React.FC = () => {
             {step === 'payment' && (
               <motion.div key="payment" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} transition={{ duration: 0.3 }}>
                 <Styles.PaymentContainer>
-                  <Styles.PaymentHeader>Hoàn tất đặt vé</Styles.PaymentHeader>
+                  <Styles.PaymentHeader>
+                    Hoàn tất đặt vé
+                    <Styles.CountdownTimer $warning={countdown <= 60}>
+                      Thời gian còn lại: {formatTime(countdown)}
+                    </Styles.CountdownTimer>
+                  </Styles.PaymentHeader>
                   <Styles.PaymentGrid>
                     <Styles.OrderSummary>
                       <Styles.SummaryTitle>Thông tin đặt vé</Styles.SummaryTitle>
                       <Styles.SummaryItem><span>Phim</span><span>{movieDetails?.movie_Name}</span></Styles.SummaryItem>
                       <Styles.SummaryItem><span>Suất chiếu</span><span>{showtimeDetails?.room_Name} - {showtimeDetails?.start_Time}</span></Styles.SummaryItem>
                       <Styles.SummaryItem><span>Ghế</span><span>{selectedSeats.map(s => s.id).join(', ')}</span></Styles.SummaryItem>
+                      <Styles.SummaryItem>
+                        <span>Điểm tích lũy của bạn</span>
+                        <span>{userPoints.toLocaleString('vi-VN')} điểm</span>
+                      </Styles.SummaryItem>
+                      <Styles.PointsInputContainer>
+                        <Styles.PointsInput
+                          type="number"
+                          value={pointsToUse}
+                          onChange={(e) => setPointsToUse(e.target.value)}
+                          placeholder="Nhập số điểm muốn sử dụng"
+                          min="0"
+                          max={Math.min(userPoints, Math.floor(totalPrice * 1000 * 0.5) - totalPointsUsed)}
+                          step="1000"
+                        />
+                        <Styles.ApplyPointsButton
+                          onClick={handleApplyPoints}
+                          disabled={!pointsToUse || parseInt(pointsToUse) > userPoints}
+                        >
+                          Xác nhận dùng
+                        </Styles.ApplyPointsButton>
+                      </Styles.PointsInputContainer>
+                      <Styles.SummaryItem>
+                        <span>Đã sử dụng</span>
+                        <span>{totalPointsUsed.toLocaleString('vi-VN')} / {Math.floor(totalPrice * 1000 * 0.5).toLocaleString('vi-VN')} điểm (50% hóa đơn)</span>
+                      </Styles.SummaryItem>
+                      <Styles.PromotionContainer>
+                        <Styles.PromotionInput
+                          type="text"
+                          value={promotionCode}
+                          onChange={(e) => setPromotionCode(e.target.value.toUpperCase())}
+                          placeholder="Nhập mã khuyến mãi"
+                        />
+                        <Styles.ApplyPromotionButton
+                          onClick={handleApplyPromotion}
+                          disabled={!promotionCode.trim()}
+                        >
+                          Áp dụng
+                        </Styles.ApplyPromotionButton>
+                      </Styles.PromotionContainer>
                       <Styles.SummaryDivider />
                       <Styles.SeatTypeSummary>
                         {['standard', 'vip'].map(type => {
@@ -487,13 +673,39 @@ const CinemaRoomPage: React.FC = () => {
                           return (
                             <Styles.SummaryItem key={type}>
                               <span>{type === 'standard' ? 'Ghế thường' : 'Ghế VIP'} ({seatsOfType.length})</span>
-                              <span>{subtotal}k</span>
+                              <span>{(subtotal * 1000).toLocaleString('vi-VN')} VNĐ</span>
                             </Styles.SummaryItem>
                           );
                         })}
                       </Styles.SeatTypeSummary>
                       <Styles.SummaryDivider />
-                      <Styles.SummaryItem $total><span>Tổng cộng</span><span>{totalPrice}k</span></Styles.SummaryItem>
+                      <Styles.PriceCalculation>
+                        <Styles.CalculationItem>
+                          <span>Giá gốc:</span>
+                          <span>{(totalPrice * 1000).toLocaleString('vi-VN')} VNĐ</span>
+                        </Styles.CalculationItem>
+                        
+                        {discountedTotal && discountedTotal < totalPrice && (
+                          <Styles.CalculationItem>
+                            <span>Giảm giá từ điểm:</span>
+                            <span>-{((totalPrice - discountedTotal) * 1000).toLocaleString('vi-VN')} VNĐ</span>
+                          </Styles.CalculationItem>
+                        )}
+                        
+                        {newTotal && newTotal < (discountedTotal || totalPrice) && (
+                          <Styles.CalculationItem>
+                            <span>Giảm giá từ mã khuyến mãi:</span>
+                            <span>-{(((discountedTotal || totalPrice) - newTotal) * 1000).toLocaleString('vi-VN')} VNĐ</span>
+                          </Styles.CalculationItem>
+                        )}
+                        
+                        <Styles.SummaryDivider />
+                        
+                        <Styles.SummaryItem $total>
+                          <span>Tổng cộng:</span>
+                          <span>{((newTotal || discountedTotal || totalPrice) * 1000).toLocaleString('vi-VN')} VNĐ</span>
+                        </Styles.SummaryItem>
+                      </Styles.PriceCalculation>
                     </Styles.OrderSummary>
                   </Styles.PaymentGrid>
                 </Styles.PaymentContainer>
@@ -551,12 +763,16 @@ const CinemaRoomPage: React.FC = () => {
                         setStep('select');
                         setSelectedSeats([]);
                         setBookingId(null);
+                        setTotalPointsUsed(0); // Reset total points used
+                        setDiscountedTotal(null);
                       } catch (error) {
                         console.error('Error cancelling booking:', error);
                         alert('Không thể hủy đặt vé. Vui lòng thử lại.');
                       }
                     } else {
                       setStep('select');
+                      setTotalPointsUsed(0); // Reset total points used
+                      setDiscountedTotal(null);
                     }
                   }}
                   whileHover={{ scale: 1.05 }}

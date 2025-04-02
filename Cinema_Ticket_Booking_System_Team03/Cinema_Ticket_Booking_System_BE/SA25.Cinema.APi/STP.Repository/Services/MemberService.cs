@@ -55,15 +55,13 @@ namespace STP.Repository.Services
         /// </summary>
         public async Task<int> GetCurrentPointsAsync(int userId)
         {
-            var pointsAdded = await _context.Scores
-                .Where(s => s.User_ID == userId)
-                .SumAsync(s => s.Points_Added);
+            // Get points from User_Points table instead of calculating from Scores
+            var userPoints = await _context.UserPoints
+                .Where(up => up.User_ID == userId)
+                .FirstOrDefaultAsync();
 
-            var pointsUsed = await _context.Scores
-                .Where(s => s.User_ID == userId)
-                .SumAsync(s => s.Points_Used);
-
-            return pointsAdded - pointsUsed;
+            // Return total points if record exists, otherwise return 0
+            return userPoints?.Total_Points ?? 0;
         }
 
         /// <summary>

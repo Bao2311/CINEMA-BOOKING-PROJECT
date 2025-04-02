@@ -16,7 +16,7 @@ namespace STP.Repository.Models
         /// ID duy nhất của lần sử dụng khuyến mãi
         /// </summary>
         [Key]
-        public int Usage_ID { get; set; }
+        public int? Usage_ID { get; set; }
 
         /// <summary>
         /// ID của chương trình khuyến mãi được sử dụng
@@ -43,6 +43,8 @@ namespace STP.Repository.Models
         /// </summary>
         public DateTime Applied_Date { get; set; }
 
+        public bool HasUsed { get; set; }
+
         /// <summary>
         /// Chương trình khuyến mãi được sử dụng
         /// </summary>
@@ -60,5 +62,6 @@ namespace STP.Repository.Models
         /// </summary>
         [ForeignKey("User_ID")]
         public virtual User User { get; set; }
+
     }
 }

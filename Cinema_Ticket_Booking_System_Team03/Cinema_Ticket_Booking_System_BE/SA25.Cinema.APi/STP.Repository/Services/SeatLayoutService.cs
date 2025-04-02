@@ -199,44 +199,255 @@ namespace STP.Repository.Services
 
         public async Task<object> BulkConfigureSeatLayoutAsync(int roomId, BulkRowConfigurationDto model)
         {
-            var rowLabels = new List<string>();
-
-            // Xử lý định dạng phạm vi (range) như "A-Z"
-            if (model.RowsInput.Contains("-"))
+            try
             {
-                var range = model.RowsInput.Split('-');
-                if (range.Length == 2 && range[0].Length == 1 && range[1].Length == 1)
-                {
-                    char start = range[0][0];
-                    char end = range[1][0];
+                _logger.LogInformation($"Bắt đầu cấu hình ghế cho phòng ID: {roomId} với input: {System.Text.Json.JsonSerializer.Serialize(model)}");
 
-                    for (char c = start; c <= end; c++)
+                // Kiểm tra phòng chiếu
+                var cinemaRoom = await _context.CinemaRooms.FindAsync(roomId);
+                if (cinemaRoom == null)
+                {
+                    var errorMsg = $"Không tìm thấy phòng chiếu có ID {roomId}";
+                    _logger.LogWarning(errorMsg);
+                    return new
                     {
-                        rowLabels.Add(c.ToString());
+                        success = false,
+                        message = errorMsg,
+                        error_code = "ROOM_NOT_FOUND"
+                    };
+                }
+
+                // Kiểm tra loại ghế hợp lệ - PHẢI là "Regular" hoặc "VIP", không chấp nhận giá trị khác
+                string[] validSeatTypes = { "Regular", "VIP" };
+                if (!validSeatTypes.Contains(model.SeatType, StringComparer.OrdinalIgnoreCase))
+                {
+                    var errorMsg = $"Loại ghế '{model.SeatType}' không hợp lệ";
+                    _logger.LogWarning($"Lỗi cấu hình ghế: {errorMsg}");
+                    return new
+                    {
+                        success = false,
+                        message = errorMsg,
+                        error_code = "INVALID_SEAT_TYPE",
+                        valid_values = validSeatTypes,
+                        suggestion = "Loại ghế phải là một trong các giá trị: " + string.Join(", ", validSeatTypes)
+                    };
+                }
+
+                // Kiểm tra dữ liệu đầu vào
+                if (string.IsNullOrWhiteSpace(model.RowsInput))
+                {
+                    var errorMsg = "Danh sách hàng ghế không được bỏ trống";
+                    _logger.LogWarning($"Lỗi cấu hình ghế: {errorMsg}");
+                    return new
+                    {
+                        success = false,
+                        message = errorMsg,
+                        error_code = "INVALID_ROWS_INPUT",
+                        suggestion = "Vui lòng nhập danh sách hàng (ví dụ: A-E hoặc A,B,C)"
+                    };
+                }
+
+                if (model.ColumnsPerRow <= 0)
+                {
+                    var errorMsg = "Số cột mỗi hàng phải lớn hơn 0";
+                    _logger.LogWarning($"Lỗi cấu hình ghế: {errorMsg}");
+                    return new
+                    {
+                        success = false,
+                        message = errorMsg,
+                        error_code = "INVALID_COLUMNS_COUNT",
+                        suggestion = "Vui lòng nhập số cột lớn hơn 0"
+                    };
+                }
+
+                var rowLabels = new List<string>();
+
+                // Xử lý định dạng phạm vi (range) như "A-Z"
+                if (model.RowsInput.Contains("-"))
+                {
+                    var range = model.RowsInput.Split('-');
+                    if (range.Length == 2 && range[0].Length == 1 && range[1].Length == 1)
+                    {
+                        char start = range[0][0];
+                        char end = range[1][0];
+
+                        if (start > end)
+                        {
+                            var errorMsg = $"Phạm vi hàng không hợp lệ: {start}-{end}. Ký tự bắt đầu phải nhỏ hơn ký tự kết thúc trong bảng chữ cái A-Z";
+                            var suggestionMsg = $"Ví dụ hợp lệ: {end}-{start}, không phải {start}-{end}";
+                            _logger.LogWarning($"Lỗi cấu hình ghế: {errorMsg}");
+                            return new
+                            {
+                                success = false,
+                                message = errorMsg,
+                                error_code = "INVALID_ROW_RANGE",
+                                suggestion = suggestionMsg
+                            };
+                        }
+
+                        for (char c = start; c <= end; c++)
+                        {
+                            rowLabels.Add(c.ToString());
+                        }
+                    }
+                    else
+                    {
+                        var errorMsg = "Định dạng phạm vi hàng không hợp lệ";
+                        _logger.LogWarning($"Lỗi cấu hình ghế: {errorMsg}. Input: {model.RowsInput}");
+                        return new
+                        {
+                            success = false,
+                            message = errorMsg,
+                            error_code = "INVALID_ROW_RANGE_FORMAT",
+                            suggestion = "Định dạng hợp lệ: A-E (một ký tự đơn đến một ký tự đơn)"
+                        };
                     }
                 }
-            }
-            else // Xử lý danh sách được phân tách bằng dấu phẩy
-            {
-                rowLabels = model.RowsInput.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                 .Select(r => r.Trim()).ToList();
-            }
-
-            // Tạo SeatMapConfigurationDto từ các hàng được chỉ định
-            var configDto = new SeatMapConfigurationDto
-            {
-                ColumnsPerRow = model.ColumnsPerRow,
-                Rows = rowLabels.Select(label => new RowConfigurationDto  // Thay vì RowConfigDto
+                else // Xử lý danh sách được phân tách bằng dấu phẩy
                 {
-                    RowLabel = label,
-                    SeatType = model.SeatType,
-                    EmptyColumns = model.EmptyColumns ?? new List<int>()
-                }).ToList()
-            };
+                    rowLabels = model.RowsInput.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                     .Select(r => r.Trim()).ToList();
 
-            // Gọi phương thức cấu hình hiện có
-            return await ConfigureSeatLayoutAsync(roomId, configDto);
+                    if (rowLabels.Count == 0)
+                    {
+                        var errorMsg = "Không thể phân tích danh sách hàng";
+                        _logger.LogWarning($"Lỗi cấu hình ghế: {errorMsg}. Input: {model.RowsInput}");
+                        return new
+                        {
+                            success = false,
+                            message = errorMsg,
+                            error_code = "EMPTY_ROW_LIST",
+                            suggestion = "Ví dụ hợp lệ: A,B,C hoặc A-E"
+                        };
+                    }
+                }
+
+                _logger.LogInformation($"Đã xử lý input thành {rowLabels.Count} hàng: {string.Join(", ", rowLabels)}");
+
+                var existingRows = await _context.SeatLayouts
+            .Where(sl => sl.Cinema_Room_ID == roomId && rowLabels.Contains(sl.Row_Label))
+            .Select(sl => sl.Row_Label)
+            .Distinct()
+            .ToListAsync();
+
+                if (existingRows.Any())
+                {
+                    // Nếu không có tham số xác nhận ghi đè, thì trả về thông báo cảnh báo
+                    if (!model.OverwriteExisting.GetValueOrDefault(false))
+                    {
+                        var errorMsg = $"Các hàng ghế sau đã tồn tại: {string.Join(", ", existingRows)}";
+                        _logger.LogWarning($"Cảnh báo cấu hình ghế: {errorMsg}");
+                        return new
+                        {
+                            success = false,
+                            message = errorMsg,
+                            error_code = "ROWS_ALREADY_EXIST",
+                            existing_rows = existingRows,
+                            suggestion = "Nếu bạn muốn ghi đè cấu hình ghế hiện có, hãy thêm tham số 'overwriteExisting': true"
+                        };
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"Ghi đè cấu hình cho các hàng ghế đã tồn tại: {string.Join(", ", existingRows)}");
+                    }
+                }
+
+                // Kiểm tra phòng đã có ghế được đặt chưa
+                var hasBookedSeats = await _context.Seats
+                    .AnyAsync(s => s.SeatLayout.Cinema_Room_ID == roomId && s.Booking_ID != null);
+
+                if (hasBookedSeats)
+                {
+                    var errorMsg = "Không thể thay đổi sơ đồ ghế vì phòng này đã có ghế được đặt trong hệ thống";
+                    _logger.LogWarning($"Lỗi cấu hình ghế: {errorMsg}");
+                    return new
+                    {
+                        success = false,
+                        message = errorMsg,
+                        error_code = "ROOM_HAS_BOOKINGS",
+                        suggestion = "Vui lòng chọn phòng khác hoặc xóa tất cả đặt vé hiện tại trước khi cấu hình lại"
+                    };
+                }
+
+                // Tạo SeatMapConfigurationDto từ các hàng được chỉ định
+                var configDto = new SeatMapConfigurationDto
+                {
+                    ColumnsPerRow = model.ColumnsPerRow,
+                    Rows = rowLabels.Select(label => new RowConfigurationDto
+                    {
+                        RowLabel = label,
+                        SeatType = model.SeatType,
+                        EmptyColumns = model.EmptyColumns ?? new List<int>()
+                    }).ToList()
+                };
+
+                // Gọi phương thức cấu hình hiện có
+                var result = await ConfigureSeatLayoutAsync(roomId, configDto);
+
+                // Kiểm tra kết quả để ghi log
+                if (result != null)
+                {
+                    _logger.LogInformation($"Đã cấu hình thành công sơ đồ ghế cho phòng {roomId}: " +
+                        $"{(result.GetType().GetProperty("total_seats")?.GetValue(result) ?? 0)} ghế trong " +
+                        $"{(result.GetType().GetProperty("total_rows")?.GetValue(result) ?? 0)} hàng");
+
+                    // Thêm thông báo thành công vào kết quả
+                    var successResult = new
+                    {
+                        success = true,
+                        message = $"Đã cấu hình thành công sơ đồ ghế cho phòng {roomId}",
+                        result
+                    };
+
+                    return successResult;
+                }
+
+                // Nếu kết quả null nhưng không có exception, có thể là lỗi khác
+                _logger.LogWarning($"Cấu hình ghế không thành công nhưng không có lỗi cụ thể");
+                return new
+                {
+                    success = false,
+                    message = "Cấu hình ghế không thành công",
+                    error_code = "UNKNOWN_ERROR",
+                    suggestion = "Vui lòng kiểm tra lại tham số đầu vào và thử lại"
+                };
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogError(ex, $"Lỗi cấu hình ghế cho phòng {roomId}: Không tìm thấy dữ liệu");
+                return new
+                {
+                    success = false,
+                    message = ex.Message,
+                    error_code = "NOT_FOUND",
+                    suggestion = "Vui lòng kiểm tra lại ID phòng chiếu"
+                };
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex, $"Lỗi cấu hình ghế cho phòng {roomId}: Không thể thực hiện thao tác");
+                return new
+                {
+                    success = false,
+                    message = ex.Message,
+                    error_code = "INVALID_OPERATION",
+                    suggestion = "Phòng có thể đã có đặt vé hoặc đang được sử dụng"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi không xác định khi cấu hình ghế cho phòng {roomId}");
+                return new
+                {
+                    success = false,
+                    message = $"Lỗi khi cấu hình ghế: {ex.Message}",
+                    error_code = "INTERNAL_ERROR",
+                    stack_trace = ex.StackTrace, // Chỉ hiển thị trong môi trường phát triển
+                    suggestion = "Vui lòng liên hệ quản trị viên hệ thống"
+                };
+            }
         }
+
         public async Task<object> UpdateSeatTypeAsync(int layoutId, UpdateSeatTypeDto model)
         {
             var seatLayout = await _context.SeatLayouts.FindAsync(layoutId);
@@ -435,99 +646,6 @@ namespace STP.Repository.Services
             {
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "Lỗi khi xóa mềm ghế: {Message}", ex.Message);
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Thực hiện xóa cứng một hoặc nhiều ghế trong sơ đồ
-        /// </summary>
-        /// <param name="model">Danh sách các Layout ID cần xóa</param>
-        /// <returns>Kết quả xóa cứng</returns>
-        public async Task<object> HardDeleteSeatLayoutsAsync(BulkDeleteSeatsDto model)
-        {
-            if (model.LayoutIds == null || !model.LayoutIds.Any())
-                throw new ArgumentException("Danh sách ghế cần xóa không được trống");
-
-            // Kiểm tra xem có ghế nào đang được sử dụng trong đặt vé không
-            var usedLayoutIds = await _context.Seats
-                .Where(s => model.LayoutIds.Contains(s.Layout_ID) && s.Booking_ID != null)
-                .Select(s => s.Layout_ID)
-                .ToListAsync();
-
-            if (usedLayoutIds.Any())
-                return new
-                {
-                    success = false,
-                    message = "Một số ghế đã được sử dụng trong đặt vé và không thể xóa",
-                    used_seats = usedLayoutIds
-                };
-
-            // Lấy các SeatLayout cần xóa cứng
-            var seatLayouts = await _context.SeatLayouts
-                .Where(sl => model.LayoutIds.Contains(sl.Layout_ID))
-                .ToListAsync();
-
-            if (!seatLayouts.Any())
-                throw new KeyNotFoundException("Không tìm thấy ghế nào cần xóa");
-
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                // Lấy ID của các layout cần xóa
-                var layoutIds = seatLayouts.Select(sl => sl.Layout_ID).ToList();
-
-                // Lấy tất cả các seats liên quan
-                var seats = await _context.Seats
-                    .Where(s => layoutIds.Contains(s.Layout_ID))
-                    .ToListAsync();
-
-                // Xóa cứng tất cả seats liên quan
-                if (seats.Any())
-                {
-                    _context.Seats.RemoveRange(seats);
-                    await _context.SaveChangesAsync();
-                    _logger.LogInformation($"Đã xóa {seats.Count} bản ghi Seats liên quan đến {layoutIds.Count} SeatLayouts");
-                }
-
-                // Xóa cứng tất cả SeatLayouts
-                _context.SeatLayouts.RemoveRange(seatLayouts);
-
-                // Cập nhật tổng số ghế trong phòng
-                if (seatLayouts.Any())
-                {
-                    var roomId = seatLayouts.First().Cinema_Room_ID;
-                    var remainingSeatsCount = await _context.SeatLayouts
-                        .Where(sl => sl.Cinema_Room_ID == roomId && !layoutIds.Contains(sl.Layout_ID))
-                        .CountAsync();
-
-                    var cinemaRoom = await _context.CinemaRooms.FindAsync(roomId);
-                    if (cinemaRoom != null)
-                    {
-                        cinemaRoom.Seat_Quantity = remainingSeatsCount;
-                    }
-                }
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return new
-                {
-                    success = true,
-                    message = $"Đã xóa cứng {seatLayouts.Count} ghế thành công",
-                    deleted_count = seatLayouts.Count,
-                    deleted_seats = seatLayouts.Select(sl => new
-                    {
-                        layout_id = sl.Layout_ID,
-                        row_label = sl.Row_Label,
-                        column_number = sl.Column_Number
-                    }).ToList()
-                };
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Lỗi khi xóa cứng ghế: {Message}", ex.Message);
                 throw;
             }
         }

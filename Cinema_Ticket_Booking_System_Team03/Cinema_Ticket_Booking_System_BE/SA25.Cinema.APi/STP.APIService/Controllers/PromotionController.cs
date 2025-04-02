@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using STP.Repository.Dtos;
 using STP.Repository.Services;
 using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace STP.Web.Controllers
@@ -148,7 +149,24 @@ namespace STP.Web.Controllers
         {
             try
             {
-                var result = await _promotionService.ValidatePromotionAsync(code, totalAmount);
+                // Lấy ID người dùng từ token
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                    User.FindFirst("nameid")?.Value ??
+                    User.FindFirst("UserId")?.Value ??
+                    User.FindFirst("userId")?.Value;
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "Không thể xác định người dùng" });
+                }
+
+                // Chuyển đổi userId thành số
+                if (!int.TryParse(userId, out int userIdInt))
+                {
+                    return BadRequest(new { message = "ID người dùng không hợp lệ" });
+                }
+
+                var result = await _promotionService.ValidatePromotionAsync(code, userIdInt, totalAmount);
                 return Ok(new
                 {
                     valid = result.IsValid,

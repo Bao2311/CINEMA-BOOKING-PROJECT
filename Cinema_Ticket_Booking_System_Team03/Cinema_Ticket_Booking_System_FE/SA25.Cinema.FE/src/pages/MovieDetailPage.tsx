@@ -8,6 +8,9 @@ import { format, addDays, isSameDay, parseISO } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { Calendar, Clock, MapPin, CreditCard, Users, Star, Film, ChevronLeft, ChevronRight, Info, AlertTriangle, Ticket, Heart, Share2, PlayCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Modal } from 'antd';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 interface GroupedShowtimes {
   [key: string]: Showtime[];
@@ -28,6 +31,9 @@ const MovieDetailPage: React.FC = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [similarMovies, setSimilarMovies] = useState<Movie[]>([]);
   const [activeTab, setActiveTab] = useState<'showtimes' | 'details' | 'reviews'>('showtimes');
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [pendingBookingId, setPendingBookingId] = useState<number | null>(null);
+  const [selectedShowtimeInfo, setSelectedShowtimeInfo] = useState<{showtimeId: number, movieId: number} | null>(null);
 
   // Generate dates for the next 14 days
   const nextTwoWeeks = useMemo(() => {
@@ -184,6 +190,70 @@ const MovieDetailPage: React.FC = () => {
     });
   };
 
+  const handleShowtimeClick = async (showtimeId: number, movieId: number) => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await axios.get('https://localhost:7168/api/Booking/check-pending', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+
+      const data = await response.data;
+      
+      if (data.canCreateNewBooking) {
+        // If user can create new booking, navigate to cinema room page
+        navigate(`/cinema-room/${showtimeId}?movieId=${movieId}`);
+      } else {
+        // If user has pending booking, show modal to cancel it
+        setPendingBookingId(data.pendingBooking.booking_ID);
+        setSelectedShowtimeInfo({ showtimeId, movieId });
+        setIsModalVisible(true);
+      }
+    } catch (error) {
+      console.error('Error checking booking status:', error);
+      toast.error("Có lỗi xảy ra khi kiểm tra trạng thái đặt vé. Vui lòng thử lại sau.", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }
+  };
+
+  const handleCancelBooking = async () => {
+    try {
+      if (!pendingBookingId) return;
+      
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await axios.put(
+        `https://localhost:7168/api/Booking/${pendingBookingId}/cancel`,
+        {},
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.status === 200) {
+        toast.success("Đã hủy đơn đặt vé thành công!");
+        setIsModalVisible(false);
+        // Navigate to new booking if there was a selected showtime
+        if (selectedShowtimeInfo) {
+          navigate(`/cinema-room/${selectedShowtimeInfo.showtimeId}?movieId=${selectedShowtimeInfo.movieId}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error canceling booking:', error);
+      toast.error("Có lỗi xảy ra khi hủy đơn đặt vé. Vui lòng thử lại sau.");
+    }
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -232,6 +302,18 @@ const MovieDetailPage: React.FC = () => {
 
   return (
     <div>
+      <ToastContainer />
+      <Modal
+        title="Đơn đặt vé chưa thanh toán"
+        open={isModalVisible}
+        onOk={handleCancelBooking}
+        onCancel={() => setIsModalVisible(false)}
+        okText="Hủy đơn đặt vé"
+        cancelText="Đóng"
+        okButtonProps={{ type: 'primary', danger: true }}
+      >
+        <p>Bạn đang có đơn đặt vé chưa thanh toán. Bạn có muốn hủy đơn đặt vé này để tiếp tục đặt vé mới không?</p>
+      </Modal>
       {/* Hero Section with Movie Backdrop */}
       <div className="relative w-full h-[500px] overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent z-10"></div>
@@ -502,13 +584,10 @@ const MovieDetailPage: React.FC = () => {
                               {roomShowtimes.map((showtime) => (
                                 <button
                                   key={showtime.showtime_ID}
-                                  onClick={() => navigate(`/booking/${showtime.showtime_ID}`)}
+                                  onClick={() => handleShowtimeClick(showtime.showtime_ID, showtime.movie_ID)}
                                   className="min-w-[100px] py-3 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition-colors flex flex-col items-center"
                                 >
                                   <span className="font-medium">{showtime.start_Time}</span>
-                                  <span className="text-xs text-gray-500">
-                                    {showtime.base_Price.toLocaleString('vi-VN')}đ
-                                  </span>
                                 </button>
                               ))}
                             </div>
@@ -655,23 +734,42 @@ const MovieDetailPage: React.FC = () => {
                   <div className="md:col-span-1">
                     <div className="sticky top-24">
                       <div className="bg-gray-50 rounded-xl p-6 mb-6">
-                        <h3 className="text-lg font-medium text-gray-900 mb-4">Thông Tin Vé</h3>
-                        <div className="space-y-4">
-                          <div>
-                            <p className="text-sm text-gray-500">Giá vé từ</p>
-                            <p className="text-xl font-bold text-gray-900">
+                        <div className="flex items-center justify-between mb-6">
+                          <h3 className="text-lg font-medium text-gray-900">Thông Tin Vé</h3>
+                          <div className="bg-indigo-100 rounded-full px-3 py-1">
+                            <span className="text-indigo-700 text-sm font-medium">Cập nhật mới nhất</span>
+                          </div>
+                        </div>
+                        <div className="space-y-6">
+                          <div className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-sm text-gray-500">Giá vé từ</p>
+                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Giá tốt nhất</span>
+                            </div>
+                            <p className="text-2xl font-bold text-gray-900">
                               {showtimes.length > 0 
                                 ? `${Math.min(...showtimes.map(s => s.base_Price)).toLocaleString('vi-VN')}đ` 
                                 : 'Chưa có thông tin'}
                             </p>
                           </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Suất chiếu hiện có</p>
-                            <p className="text-xl font-bold text-gray-900">{showtimes.length}</p>
+
+                          <div className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-sm text-gray-500">Suất chiếu hiện có</p>
+                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Đang chiếu</span>
+                            </div>
+                            <div className="flex items-center">
+                              <p className="text-2xl font-bold text-gray-900">{showtimes.length}</p>
+                              <span className="ml-2 text-sm text-gray-500">suất</span>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Ngày chiếu cuối</p>
-                            <p className="text-xl font-bold text-gray-900">
+
+                          <div className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-sm text-gray-500">Ngày chiếu cuối</p>
+                              <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">Sắp kết thúc</span>
+                            </div>
+                            <p className="text-2xl font-bold text-gray-900">
                               {showtimes.length > 0 
                                 ? format(
                                     new Date(Math.max(...showtimes.map(s => new Date(s.show_Date).getTime()))),
@@ -682,33 +780,63 @@ const MovieDetailPage: React.FC = () => {
                           </div>
                         </div>
                         
-                        <div className="mt-6">
+                        <div className="mt-8">
                           <button
                             onClick={() => setActiveTab('showtimes')}
-                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center"
+                            className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white py-4 px-6 rounded-xl transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                           >
-                            <Ticket className="h-5 w-5 mr-2" />
-                            Đặt Vé Ngay
+                            <Ticket className="h-6 w-6 mr-2" />
+                            <span className="font-medium">Đặt Vé Ngay</span>
                           </button>
                         </div>
                       </div>
                       
                       <div className="bg-gray-50 rounded-xl p-6">
-                        <h3 className="text-lg font-medium text-gray-900 mb-4">Lưu ý</h3>
-                        <ul className="space-y-3 text-sm text-gray-600">
-                          <li className="flex items-start">
-                            <Info className="h-5 w-5 text-indigo-600 mr-2 flex-shrink-0 mt-0.5" />
-                            Vui lòng đến trước giờ chiếu 15-30 phút để hoàn tất thủ tục
-                          </li>
-                          <li className="flex items-start">
-                            <Info className="h-5 w-5 text-indigo-600 mr-2 flex-shrink-0 mt-0.5" />
-                            Không sử dụng thiết bị ghi hình trong phòng chiếu
-                          </li>
-                          <li className="flex items-start">
-                            <Info className="h-5 w-5 text-indigo-600 mr-2 flex-shrink-0 mt-0.5" />
-                            Giá vé có thể thay đổi vào cuối tuần và ngày lễ
-                          </li>
-                        </ul>
+                        <div className="flex items-center justify-between mb-6">
+                          <h3 className="text-lg font-medium text-gray-900">Lưu ý</h3>
+                          <Info className="h-5 w-5 text-indigo-600" />
+                        </div>
+                        <div className="space-y-4">
+                          <div className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+                            <div className="flex items-start">
+                              <div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
+                                <Clock className="h-4 w-4 text-indigo-600" />
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-medium text-gray-900 mb-1">Thời gian đến</h4>
+                                <p className="text-sm text-gray-600">Vui lòng đến trước giờ chiếu 15-30 phút để hoàn tất thủ tục</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+                            <div className="flex items-start">
+                              <div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
+                                <svg className="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-medium text-gray-900 mb-1">Quy định ghi hình</h4>
+                                <p className="text-sm text-gray-600">Không sử dụng thiết bị ghi hình trong phòng chiếu</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+                            <div className="flex items-start">
+                              <div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
+                                <svg className="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-medium text-gray-900 mb-1">Giá vé linh hoạt</h4>
+                                <p className="text-sm text-gray-600">Giá vé có thể thay đổi vào cuối tuần và ngày lễ</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
