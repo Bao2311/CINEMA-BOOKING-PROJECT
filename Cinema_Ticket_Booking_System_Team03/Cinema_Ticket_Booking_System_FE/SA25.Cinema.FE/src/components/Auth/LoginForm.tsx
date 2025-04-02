@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
-
 const LoginForm: React.FC = () => {
   // Form state management
   const [formData, setFormData] = useState({
@@ -36,7 +35,7 @@ const LoginForm: React.FC = () => {
   // Refs for focus management and animations
   const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
-  
+  const [error, setError] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
@@ -117,11 +116,82 @@ const LoginForm: React.FC = () => {
     }
   };
 
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setFormSubmitted(true);
+    
+  //   // Kiểm tra lỗi
+  //   const newErrors: {email?: string; password?: string; general?: string} = {};
+  //   if (!formData.email) newErrors.email = 'Email is required';
+  //   else if (!validateEmail(formData.email)) newErrors.email = 'Please enter a valid email address';
+    
+  //   if (!formData.password) newErrors.password = 'Password is required';
+  //   else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+    
+  //   // Nếu có lỗi, không tiếp tục
+  //   if (Object.keys(newErrors).length > 0) {
+  //     setErrors(newErrors);
+  //     setTouched({ email: true, password: true });
+  //     return;
+  //   }
+    
+  //   // Bắt đầu xử lý đăng nhập
+  //   setIsLoading(true);
+    
+  //   try {
+  //     const result = await login(formData.email, formData.password);
+      
+  //     // Kiểm tra nếu cần đổi mật khẩu
+  //     if (result && result.requiresPasswordChange) {
+  //       // Chuyển hướng đến trang profile với state yêu cầu đổi mật khẩu
+  //       navigate('/settings', { 
+  //         state: { 
+  //           passwordChangeRequired: true, 
+  //           from: location // Lưu vị trí hiện tại để quay lại sau
+  //         } 
+  //       });
+  //       toast.info('Please change your password before continuing.');
+  //       return;
+  //     } else {
+  //       // If no password change required, navigate to home or intended destination
+  //       const from = location.state?.from?.pathname || '/';
+  //       navigate(from);
+  //     }
+      
+  //     // Đăng nhập thành công
+  //     toast.success('Login successful!');
+  //     // Chuyển hướng đến trang chính
+  //     navigate('/');
+  //     // Lưu thông tin đăng nhập nếu chọn "Remember me"
+  //     if (rememberMe) {
+  //       localStorage.setItem('rememberedEmail', formData.email);
+  //     } else {
+  //       localStorage.removeItem('rememberedEmail');
+  //     }
+      
+      
+  //   } catch (error) {
+  //     console.error('Login error:', error);
+  //     setLoginAttempts(prev => prev + 1);
+      
+  //     // Hiển thị thông báo lỗi
+  //     setErrors({
+  //       general: 'Login failed. Please check your credentials.'
+  //     });
+      
+  //     toast.error('Login failed. Please check your credentials.');
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormSubmitted(true);
-    
-    // Kiểm tra lỗi
+    setError('');
+    setIsLoading(true);
+    setFormSubmitted(true); // Add this to be consistent with your validation logic
+  
+    // Check for validation errors before submitting
     const newErrors: {email?: string; password?: string; general?: string} = {};
     if (!formData.email) newErrors.email = 'Email is required';
     else if (!validateEmail(formData.email)) newErrors.email = 'Please enter a valid email address';
@@ -129,53 +199,45 @@ const LoginForm: React.FC = () => {
     if (!formData.password) newErrors.password = 'Password is required';
     else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
     
-    // Nếu có lỗi, không tiếp tục
+    // If there are validation errors, don't proceed with login
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       setTouched({ email: true, password: true });
+      setIsLoading(false);
       return;
     }
-    
-    // Bắt đầu xử lý đăng nhập
-    setIsLoading(true);
-    
+  
     try {
       const result = await login(formData.email, formData.password);
       
-      // Kiểm tra nếu cần đổi mật khẩu
       if (result && result.requiresPasswordChange) {
-        // Chuyển hướng đến trang profile với state yêu cầu đổi mật khẩu
-        navigate('/profile', { 
+        navigate('/profile/settings', { 
           state: { 
-            passwordChangeRequired: true, 
-            from: location // Lưu vị trí hiện tại để quay lại sau
+            passwordChangeRequired: true,
+            from: location
           } 
         });
         toast.info('Please change your password before continuing.');
-        return;
-      }
-      
-      // Đăng nhập thành công
-      toast.success('Login successful!');
-      
-      // Lưu thông tin đăng nhập nếu chọn "Remember me"
-      if (rememberMe) {
-        localStorage.setItem('rememberedEmail', formData.email);
       } else {
-        localStorage.removeItem('rememberedEmail');
+        toast.success('Login successful!');
+        // Navigate to home or intended destination
+        const from = location.state?.from?.pathname || '/';
+        navigate(from);
+        
+        // Save login info if "Remember me" is checked
+        if (rememberMe) {
+          localStorage.setItem('rememberedEmail', formData.email);
+        } else {
+          localStorage.removeItem('rememberedEmail');
+        }
       }
-      
-      // Chuyển hướng đến trang chính
-      navigate('/');
-    } catch (error) {
-      console.error('Login error:', error);
+    } catch (err) {
+      console.error('Login error:', err);
       setLoginAttempts(prev => prev + 1);
-      
-      // Hiển thị thông báo lỗi
+      setError('Invalid email or password');
       setErrors({
         general: 'Login failed. Please check your credentials.'
       });
-      
       toast.error('Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
@@ -222,7 +284,15 @@ const LoginForm: React.FC = () => {
             </div>
           </div>
         )}
-
+{/* Add the error display code here */}
+{error && (
+  <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-md">
+    <div className="flex items-center">
+      <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+      <p className="text-sm text-red-700">{error}</p>
+    </div>
+  </div>
+)}
         {showSecurityWarning && (
           <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 rounded-md">
             <div className="flex">
