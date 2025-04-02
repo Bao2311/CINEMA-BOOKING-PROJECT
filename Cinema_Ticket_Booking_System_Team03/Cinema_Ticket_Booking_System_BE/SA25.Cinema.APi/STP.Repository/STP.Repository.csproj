@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <PackageReference Include="CloudinaryDotNet" Version="1.27.4" />
+    <PackageReference Include="DinkToPdf" Version="1.0.8" />
+    <PackageReference Include="DinkToPdf.Standard" Version="1.1.0" />
     <PackageReference Include="itext7" Version="9.1.0" />
     <PackageReference Include="iTextSharp" Version="5.5.13.4" />
     <PackageReference Include="MailKit" Version="4.10.0" />

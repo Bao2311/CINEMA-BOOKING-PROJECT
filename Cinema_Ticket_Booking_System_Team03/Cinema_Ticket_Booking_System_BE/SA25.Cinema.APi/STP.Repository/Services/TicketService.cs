@@ -283,13 +283,8 @@ namespace STP.Repository.Services
                     // Thêm nội dung vào các vị trí - dựa trên mẫu vé từ hình ảnh
                     contentByte.BeginText();
 
-                    // Thiết lập font và kích thước
                     contentByte.SetFontAndSize(baseFont, 30);
-                    contentByte.SetTextMatrix(400, 470); // Theater name - bên phải "THEATER NAME"
-                    contentByte.ShowText("STP");
-
-                    contentByte.SetFontAndSize(baseFont, 30);
-                    contentByte.SetTextMatrix(250, 414); // Cinema room - bên phải "CINEMA"
+                    contentByte.SetTextMatrix(170, 320); // Cinema room - bên phải "CINEMA"
                     contentByte.ShowText(cinemaRoom);
 
                     // Điều chỉnh kích thước font cho tên phim nếu quá dài
@@ -298,14 +293,14 @@ namespace STP.Repository.Services
                     if (movieTitle.Length > 25) movieFontSize = 10;
 
                     contentByte.SetFontAndSize(baseFont, movieFontSize);
-                    contentByte.SetTextMatrix(350, 354); // Movie title - bên phải "MOVIE TITLE"
+                    contentByte.SetTextMatrix(170, 378); // Movie title - bên phải "MOVIE TITLE"
                     contentByte.ShowText(movieTitle);
 
                     contentByte.SetFontAndSize(baseFont, 30);
-                    contentByte.SetTextMatrix(230, 290); // Date and time - bên phải "DATE"
+                    contentByte.SetTextMatrix(170, 210); // Date and time - bên phải "DATE"
                     contentByte.ShowText(formattedDate);
 
-                    contentByte.SetTextMatrix(230, 230); // Seat - bên phải "SEAT"
+                    contentByte.SetTextMatrix(170, 270); // Seat - bên phải "SEAT"
                     contentByte.ShowText(seatInfo);
 
                     contentByte.EndText();
@@ -315,14 +310,14 @@ namespace STP.Repository.Services
                     if (qrCodeImage != null)
                     {
                         iTextSharp.text.Image qrCode = iTextSharp.text.Image.GetInstance(qrCodeImage);
-                        qrCode.ScaleToFit(90, 90);
-                        qrCode.SetAbsolutePosition(550, 260); // Vị trí phần bên phải vé (cột ADMIT ONE)
+                        qrCode.ScaleToFit(268, 268);
+                        qrCode.SetAbsolutePosition(438, 297); // Vị trí phần bên phải vé (cột ADMIT ONE)
                         contentByte.AddImage(qrCode);
 
                         // Thêm ticket code bên dưới QR code
                         contentByte.BeginText();
-                        contentByte.SetFontAndSize(baseFont, 8);
-                        contentByte.SetTextMatrix(550, 250);
+                        contentByte.SetFontAndSize(baseFont, 15);
+                        contentByte.SetTextMatrix(480, 280);
                         contentByte.ShowText("TICKET CODE: " + ticketCode);
                         contentByte.EndText();
                     }
@@ -981,3 +976,4 @@ namespace STP.Repository.Services
         #endregion
     }
 }
+
