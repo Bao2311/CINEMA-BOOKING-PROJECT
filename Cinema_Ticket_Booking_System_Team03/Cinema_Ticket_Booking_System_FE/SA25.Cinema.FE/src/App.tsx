@@ -91,6 +91,7 @@ import UserPromotionsPage from './pages/PromotionPage';
 import TicketSellingByStaff from './pages/StaffPage';
 import BookingSuccessPage from './pages/BookingSuccessPage';
 import ManageBookingPage from './pages/ManageBookingPage';
+import QRCodePage from './pages/Qrcode';
 
 function App() {
   return (
@@ -195,6 +196,11 @@ function App() {
             <Route path="/manage-cinemaroom" element={
               <ProtectedRoute>
                 <ManageCinemaRoomPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/qrcode" element={
+              <ProtectedRoute>
+                <QRCodePage />
               </ProtectedRoute>
             } />
             

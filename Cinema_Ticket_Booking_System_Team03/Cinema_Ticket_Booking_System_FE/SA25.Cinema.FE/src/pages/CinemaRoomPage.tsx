@@ -135,6 +135,7 @@ const CinemaRoomPage: React.FC = () => {
   const [userPoints, setUserPoints] = useState<number>(0);
   const [pointsToUse, setPointsToUse] = useState<string>('');
   const [discountedTotal, setDiscountedTotal] = useState<number | null>(null);
+  const [totalPointsUsed, setTotalPointsUsed] = useState<number>(0);
   const [promotionCode, setPromotionCode] = useState<string>('');
   const [newTotal, setNewTotal] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(300); // 5 minutes in seconds
@@ -317,6 +318,7 @@ const CinemaRoomPage: React.FC = () => {
     try {
       setIsLoading(true);
       setBookingError(null);
+      setTotalPointsUsed(0); // Reset total points used when creating a new booking
       const token = localStorage.getItem('token');
       const response = await axios.post(
         'https://localhost:7168/api/Booking/',
@@ -447,6 +449,15 @@ const CinemaRoomPage: React.FC = () => {
         return;
       }
 
+      // Calculate maximum points allowed (50% of total bill)
+      const maxAllowedPoints = Math.floor(totalPrice * 1000 * 0.5);
+      const remainingAllowedPoints = maxAllowedPoints - totalPointsUsed;
+      
+      if (points > remainingAllowedPoints) {
+        alert(`Bạn chỉ có thể sử dụng tối đa ${remainingAllowedPoints.toLocaleString('vi-VN')} điểm (50% tổng hóa đơn)`);
+        return;
+      }
+
       const token = localStorage.getItem('token');
       const response = await axios.post(
         `https://localhost:7168/api/Points/booking/${bookingId}/apply-discount`,
@@ -461,6 +472,7 @@ const CinemaRoomPage: React.FC = () => {
 
       setDiscountedTotal(response.data.discountedTotalAmount / 1000);
       setUserPoints(response.data.currentPoints);
+      setTotalPointsUsed(prev => prev + points); // Track total points used
       setPointsToUse('');
       alert(`Áp dụng ${points.toLocaleString('vi-VN')} điểm thành công!`);
     } catch (error) {
@@ -624,7 +636,7 @@ const CinemaRoomPage: React.FC = () => {
                           onChange={(e) => setPointsToUse(e.target.value)}
                           placeholder="Nhập số điểm muốn sử dụng"
                           min="0"
-                          max={userPoints}
+                          max={Math.min(userPoints, Math.floor(totalPrice * 1000 * 0.5) - totalPointsUsed)}
                           step="1000"
                         />
                         <Styles.ApplyPointsButton
@@ -634,6 +646,10 @@ const CinemaRoomPage: React.FC = () => {
                           Xác nhận dùng
                         </Styles.ApplyPointsButton>
                       </Styles.PointsInputContainer>
+                      <Styles.SummaryItem>
+                        <span>Đã sử dụng</span>
+                        <span>{totalPointsUsed.toLocaleString('vi-VN')} / {Math.floor(totalPrice * 1000 * 0.5).toLocaleString('vi-VN')} điểm (50% hóa đơn)</span>
+                      </Styles.SummaryItem>
                       <Styles.PromotionContainer>
                         <Styles.PromotionInput
                           type="text"
@@ -747,12 +763,16 @@ const CinemaRoomPage: React.FC = () => {
                         setStep('select');
                         setSelectedSeats([]);
                         setBookingId(null);
+                        setTotalPointsUsed(0); // Reset total points used
+                        setDiscountedTotal(null);
                       } catch (error) {
                         console.error('Error cancelling booking:', error);
                         alert('Không thể hủy đặt vé. Vui lòng thử lại.');
                       }
                     } else {
                       setStep('select');
+                      setTotalPointsUsed(0); // Reset total points used
+                      setDiscountedTotal(null);
                     }
                   }}
                   whileHover={{ scale: 1.05 }}

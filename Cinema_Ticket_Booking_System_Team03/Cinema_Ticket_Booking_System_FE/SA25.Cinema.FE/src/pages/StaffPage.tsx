@@ -60,6 +60,8 @@ interface Showtime {
   movie_ID: number;
   cinema_Room_ID: number;
   room_Name: string;
+  room_Type: string;
+  seat_Quantity: number;
   show_Date: string;
   start_Time: string;
   end_Time: string;
@@ -154,6 +156,25 @@ interface SeatButtonProps {
   seatType?: string;
   seatStatus?: string;
   isSelected?: boolean;
+}
+
+// Add interfaces for the API response
+interface PendingBookingResponse {
+  canCreateNewBooking: boolean;
+  pendingBooking: {
+    booking_ID: number;
+    booking_Date: string;
+    payment_Deadline: string;
+    isExpired: boolean;
+    seats: string;
+    total_Amount: number;
+    movieName: string;
+    roomName: string;
+    show_Date: string;
+    start_Time: string;
+    remainingMinutes: number;
+  } | null;
+  message: string;
 }
 
 // Styled components for seat layout display
@@ -465,6 +486,9 @@ const ManageBookings: React.FC = () => {
   });
   const [bookingId, setBookingId] = useState<number | null>(null);
   const [seatIds, setSeatIds] = useState<number[]>([]);
+  const [pendingBooking, setPendingBooking] = useState<PendingBookingResponse['pendingBooking'] | null>(null);
+  const [cancelBookingModalVisible, setCancelBookingModalVisible] = useState<boolean>(false);
+  const [selectedShowtimeToBook, setSelectedShowtimeToBook] = useState<Showtime | null>(null);
 
   const [customerForm] = Form.useForm();
   const [membershipForm] = Form.useForm();
@@ -610,13 +634,29 @@ const ManageBookings: React.FC = () => {
           Authorization: token ? `Bearer ${token}` : undefined,
         },
       });
+
+      // Log response để debug
+      console.log('Showtime response:', response.data);
+
+      let showtimeData = [];
       if (response.data && response.data.$values) {
-        setShowtimes(response.data.$values);
+        showtimeData = response.data.$values;
       } else if (Array.isArray(response.data)) {
-        setShowtimes(response.data);
-      } else {
-        setShowtimes([]);
+        showtimeData = response.data;
       }
+
+      // Xử lý và map dữ liệu showtime
+      const processedShowtimes = showtimeData.map(showtime => ({
+        ...showtime,
+        room_Name: showtime.room?.room_Name || showtime.room_Name || 'N/A',
+        room_Type: showtime.room?.room_Type || showtime.room_Type || 'N/A',
+        seat_Quantity: showtime.room?.seat_Quantity || showtime.seat_Quantity || 0
+      }));
+
+      setShowtimes(processedShowtimes);
+      
+      // Log processed data để debug
+      console.log('Processed showtimes:', processedShowtimes);
     } catch (error) {
       console.error('Error fetching showtimes:', error);
       setError('Không thể tải danh sách suất chiếu');
@@ -757,6 +797,9 @@ const ManageBookings: React.FC = () => {
           sex: response.data.sex || 'Other'
         });
 
+        // Hiển thị thông báo về số điểm của thành viên
+        message.success(`Đã tìm thấy thành viên ${response.data.full_Name} - ${response.data.currentPoints?.toLocaleString() || 0} điểm`);
+
         // New API call
         const bookingResponse = await axios.post('https://localhost:7168/api/Member/link-member', {
           bookingId: bookingId, // Replace with actual booking ID
@@ -770,6 +813,21 @@ const ManageBookings: React.FC = () => {
 
         if (bookingResponse.data) {
           console.log('Booking linked successfully:', bookingResponse.data);
+          
+          // Cập nhật điểm hiện tại từ response nếu có
+          if (bookingResponse.data.currentPoints !== undefined) {
+            setMember(prev => {
+              if (prev) {
+                return {
+                  ...prev,
+                  currentPoints: bookingResponse.data.currentPoints
+                };
+              }
+              return prev;
+            });
+            
+            message.info(`Số điểm hiện tại: ${bookingResponse.data.currentPoints?.toLocaleString() || 0} điểm`);
+          }
         }
         
       } else {
@@ -863,12 +921,19 @@ const linkMemberToBooking = async (bookingId: number, memberIdentifier: string) 
     if (response.data) {
       message.success('Liên kết thành viên với đơn đặt vé thành công!');
       
-      // If needed, update the member's current points from the response
+      // Cập nhật số điểm hiện tại của thành viên và hiển thị thông báo
       if (response.data.currentPoints !== undefined && member) {
-        setMember({
-          ...member,
-          currentPoints: response.data.currentPoints
+        setMember(prev => {
+          if (prev) {
+            return {
+              ...prev,
+              currentPoints: response.data.currentPoints
+            };
+          }
+          return prev;
         });
+        
+        message.info(`Số điểm hiện tại của thành viên: ${response.data.currentPoints?.toLocaleString() || 0} điểm`);
       }
       
       return true;
@@ -899,16 +964,9 @@ const linkMemberToBooking = async (bookingId: number, memberIdentifier: string) 
   
     setLoading(true);
     try {
-      // Lấy token xác thực từ localStorage hoặc từ state của ứng dụng
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      
-      console.log('Sending data:', {
-        bookingId: bookingId,
-        promotionCode: promotionCode
-      });
-  
       const response = await axios.post(
-        'https://localhost:7168/api/Promotion/apply', // Endpoint chính xác theo API documentation
+        'https://localhost:7168/api/Promotion/apply',
         {
           bookingId: bookingId,
           promotionCode: promotionCode
@@ -922,7 +980,6 @@ const linkMemberToBooking = async (bookingId: number, memberIdentifier: string) 
       );
   
       if (response.data && response.data.success) {
-        // Cập nhật thông tin khuyến mãi đã áp dụng
         setAppliedPromotion({
           promotion_ID: response.data.promotion_id,
           code: response.data.promotion_code,
@@ -997,12 +1054,9 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
       setLoading(true);
       const token = getAuthToken();
       
-      // Sử dụng API mới để áp dụng giảm giá từ điểm
-      const response = await axios.post('https://localhost:7168/api/Member/discount/points', {
-        userId: member.user_ID,
+      const response = await axios.post('https://localhost:7168/api/Points/booking/apply-discount', {
         bookingId: bookingId,
-        pointsToUse: pointsToUse,
-        originalAmount: calculateSubtotal()
+        pointsToUse: pointsToUse
       }, {
         headers: {
           Authorization: token ? `Bearer ${token}` : undefined,
@@ -1011,11 +1065,9 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
       });
       
       if (response.data) {
-        // Giả định rằng API trả về số tiền giảm giá từ việc sử dụng điểm
-        const pointsDiscountAmount = response.data.discountAmount || pointsToUse * 1000; // Giả sử 1 điểm = 1000 VND
-        
-        message.success(`Đã sử dụng ${pointsToUse} điểm để giảm giá ${pointsDiscountAmount.toLocaleString()} VND`);
-        updateBookingSummary(selectedSeats, memberDiscountAmount, appliedPromotion?.discount_Amount || 0, pointsDiscountAmount);
+        const discountAmount = response.data.pointDiscountAmount;
+        message.success(`Đã sử dụng ${pointsToUse} điểm để giảm giá ${discountAmount.toLocaleString()} VND`);
+        updateBookingSummary(selectedSeats, memberDiscountAmount, appliedPromotion?.discount_Amount || 0, discountAmount);
       }
     } catch (error) {
       console.error('Error applying points discount:', error);
@@ -1164,11 +1216,100 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
     }
   };
 
-  // Handle showtime selection
-  const handleShowtimeSelect = (showtime: Showtime) => {
+  // Update the checkPendingBooking function
+  const checkPendingBooking = async (): Promise<boolean> => {
+    try {
+      const token = getAuthToken();
+      const response = await axios.get<PendingBookingResponse>(
+        'https://localhost:7168/api/Booking/staff/check-pending',
+        {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : undefined,
+          },
+        }
+      );
+      
+      if (response.data) {
+        setPendingBooking(response.data.pendingBooking);
+        if (!response.data.canCreateNewBooking) {
+          message.warning(response.data.message);
+        }
+        return response.data.canCreateNewBooking;
+      }
+      return true;
+    } catch (error: unknown) {
+      console.error('Error checking pending booking:', error);
+      if (error instanceof Error) {
+        message.error(error.message);
+      } else {
+        message.error('Không thể kiểm tra trạng thái đặt vé');
+      }
+      return false;
+    }
+  };
+
+  // Update the cancelPendingBooking function
+  const cancelPendingBooking = async (): Promise<boolean> => {
+    if (!pendingBooking) return false;
+    
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+      const response = await axios.put(
+        `https://localhost:7168/api/Booking/${pendingBooking.booking_ID}/cancel`,
+        {},
+        {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : undefined,
+            'Content-Type': 'application/json'
+          },
+        }
+      );
+      
+      if (response.status === 200) {
+        message.success('Đã hủy đơn đặt vé trước đó');
+        setPendingBooking(null);
+        setCancelBookingModalVisible(false);
+        return true;
+      }
+      return false;
+    } catch (error: unknown) {
+      console.error('Error canceling pending booking:', error);
+      if (error instanceof Error) {
+        message.error(error.message);
+      } else {
+        message.error('Không thể hủy đơn đặt vé');
+      }
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update the handleShowtimeSelect function
+  const handleShowtimeSelect = async (showtime: Showtime) => {
+    const canCreateNewBooking = await checkPendingBooking();
+    
+    if (!canCreateNewBooking) {
+      setSelectedShowtimeToBook(showtime);
+      setCancelBookingModalVisible(true);
+      return;
+    }
+    
     setSelectedShowtime(showtime);
     fetchSeats(showtime.showtime_ID);
     setCurrentStep(2);
+  };
+
+  // Update the handleCancelConfirmation function
+  const handleCancelConfirmation = async () => {
+    const cancelled = await cancelPendingBooking();
+    if (cancelled && selectedShowtimeToBook) {
+      setSelectedShowtime(selectedShowtimeToBook);
+      fetchSeats(selectedShowtimeToBook.showtime_ID);
+      setCurrentStep(2);
+      setSelectedShowtimeToBook(null);
+    }
   };
 
   // Calculate subtotal based on selected seats
@@ -1473,6 +1614,9 @@ const MemberDetailsView = ({ member }) => {
         <Descriptions.Item label="Họ và tên">{member.full_Name}</Descriptions.Item>
         <Descriptions.Item label="Email">{member.email}</Descriptions.Item>
         <Descriptions.Item label="Số điện thoại">{member.phone_Number}</Descriptions.Item>
+        <Descriptions.Item label="Điểm tích lũy">
+          <Tag color="green">{member.currentPoints?.toLocaleString() || 0} điểm</Tag>
+        </Descriptions.Item>
         <Descriptions.Item label="Hạng thành viên">
           <Tag color={member.membershipStatus === 'VIP' ? 'gold' : 'blue'}>
             {member.membershipStatus}
@@ -2055,6 +2199,34 @@ const EnhancedPromotionSection = () => {
               
               <Card title="Mã khuyến mãi & Ưu đãi">
                 <EnhancedPromotionSection />
+                
+                {member && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <Text strong>Điểm tích lũy của thành viên:</Text>
+                      <Tag color="green" className="text-base">{member.currentPoints?.toLocaleString() || 0} điểm</Tag>
+                    </div>
+                    
+                    {member.currentPoints > 0 && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <Input
+                          type="number"
+                          placeholder="Số điểm muốn sử dụng"
+                          value={pointsToUse}
+                          onChange={(e) => setPointsToUse(Math.min(parseInt(e.target.value) || 0, member.currentPoints))}
+                          style={{ width: '60%' }}
+                        />
+                        <Button 
+                          type="primary" 
+                          onClick={applyPointsDiscount}
+                          disabled={pointsToUse <= 0}
+                        >
+                          Sử dụng điểm
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </Card>
             </Col>
             
@@ -2090,17 +2262,16 @@ const EnhancedPromotionSection = () => {
                   )}
                   
                   {appliedPromotion && (
-  <div className="flex justify-between mb-2 text-green-600">
-    <Text>Mã khuyến mãi ({appliedPromotion.code}):</Text>
-    <Text>-{bookingSummary.promotionDiscount.toLocaleString()} VND</Text>
-  </div>
-)}
-
+                    <div className="flex justify-between mb-2 text-green-600">
+                      <Text>Mã khuyến mãi ({appliedPromotion.code}):</Text>
+                      <Text>-{appliedPromotion.discount_Amount.toLocaleString() } VND</Text>
+                    </div>
+                  )}
                   
                   {pointsToUse > 0 && (
                     <div className="flex justify-between mb-2 text-green-600">
                       <Text>Điểm tích lũy ({pointsToUse} điểm):</Text>
-                      <Text>-{(pointsToUse * 1000).toLocaleString()} VND</Text>
+                      <Text>-{pointsToUse .toLocaleString()} VND</Text>
                     </div>
                   )}
                   
@@ -2223,6 +2394,50 @@ const EnhancedPromotionSection = () => {
                 Mở trang thanh toán
               </Button>
             </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Cancel Booking Modal */}
+      <Modal
+        title="Đơn đặt vé chưa hoàn tất"
+        open={cancelBookingModalVisible}
+        onCancel={() => setCancelBookingModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setCancelBookingModalVisible(false)}>
+            Không hủy
+          </Button>,
+          <Button 
+            key="confirm" 
+            type="primary" 
+            danger 
+            onClick={handleCancelConfirmation}
+            loading={loading}
+          >
+            Hủy đơn đặt vé
+          </Button>,
+        ]}
+      >
+        {pendingBooking && (
+          <div>
+            <Alert
+              type="warning"
+              message="Thông báo"
+              description={
+                <div>
+                  <p>Bạn đang có đơn đặt vé chưa hoàn tất:</p>
+                  <ul className="mt-2">
+                    <li>Phim: {pendingBooking.movieName}</li>
+                    <li>Suất chiếu: {moment(pendingBooking.show_Date).format('DD/MM/YYYY')} {pendingBooking.start_Time}</li>
+                    <li>Phòng: {pendingBooking.roomName}</li>
+                    <li>Ghế: {pendingBooking.seats}</li>
+                    <li>Tổng tiền: {pendingBooking.total_Amount.toLocaleString()} VND</li>
+                    <li>Thời gian còn lại: {pendingBooking.remainingMinutes} phút</li>
+                  </ul>
+                  <p className="mt-2">Bạn có muốn hủy đơn đặt vé này để tiếp tục đặt vé mới không?</p>
+                </div>
+              }
+            />
           </div>
         )}
       </Modal>
