@@ -188,13 +188,23 @@ namespace STP.APIService.Controllers
         {
             try
             {
-                // Lấy ID người dùng từ token
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                // Lấy ID người dùng hiện tại từ token (nhân viên hoặc khách hàng)
+                var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
-                // Áp dụng điểm giảm giá
+                // Xác định vai trò của người dùng
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                bool isStaff = userRole == "Staff" || userRole == "Admin";
+
+                // Lấy thông tin booking trước khi áp dụng điểm
+                // (Lưu ý: Việc này đã được cập nhật trong PointsService.ApplyPointsDiscount)
+
+                _logger.LogInformation($"Applying points discount to booking {bookingId}, requested by user {currentUserId}, role: {userRole}");
+
+                // Gọi service với userId hiện tại
+                // PointsService đã được cập nhật để sử dụng đúng ID của khách hàng được liên kết với booking
                 var bookingResponse = await _pointsService.ApplyPointsDiscount(
                     bookingId,
-                    userId,
+                    currentUserId, // Truyền ID người dùng hiện tại. PointsService sẽ xác định đúng ID để sử dụng
                     pointsToUse
                 );
 
@@ -202,18 +212,22 @@ namespace STP.APIService.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
+                _logger.LogWarning($"Unauthorized access attempting to apply points to booking {bookingId}: {ex.Message}");
                 return Forbid();
             }
             catch (KeyNotFoundException ex)
             {
+                _logger.LogWarning($"Booking not found: {ex.Message}");
                 return NotFound(new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
+                _logger.LogWarning($"Invalid operation when applying points: {ex.Message}");
                 return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, $"Error applying points discount to booking {bookingId}");
                 return StatusCode(500, new { message = "Lỗi khi áp dụng điểm giảm giá", error = ex.Message });
             }
         }

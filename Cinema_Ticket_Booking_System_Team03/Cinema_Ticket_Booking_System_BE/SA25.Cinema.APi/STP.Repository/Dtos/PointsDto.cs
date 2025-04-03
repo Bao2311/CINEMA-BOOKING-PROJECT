@@ -6,6 +6,13 @@ using System.Threading.Tasks;
 
 namespace STP.Repository.Dtos
 {
+
+    public class ApplyPointsRequestDto
+    {
+        public int BookingId { get; set; }
+        public int PointsToUse { get; set; }
+    }
+
     /// <summary>
     /// DTO cho thông tin điểm hiện tại của người dùng
     /// </summary>

@@ -105,6 +105,7 @@ namespace STP.APIService
             builder.Services.AddScoped<BookingService>();
             builder.Services.AddScoped<PointsService>();
             builder.Services.AddHostedService<BookingExpirationService>();
+            builder.Services.AddHostedService<BookingReminderService>();
             builder.Services.AddScoped<MemberService>();
             builder.Services.AddScoped<SmsService>();
             builder.Services.AddScoped<TicketService>();
@@ -117,6 +118,10 @@ namespace STP.APIService
             builder.Services.AddScoped<PromotionService>();
             builder.Services.AddHttpClient<PayOSNugetService>();
             builder.Services.AddScoped<PayOSNugetService>();
+            builder.Services.AddScoped<StaffPerformanceService>();
+            builder.Services.AddScoped<BookingStatisticsService>();
+            builder.Services.AddScoped<SalesReportService>();
+            builder.Services.AddScoped<NotificationService>();
             // Đăng ký dịch vụ bộ nhớ cache
             builder.Services.AddMemoryCache();
             builder.Services.AddScoped<AccountLockingService>();
