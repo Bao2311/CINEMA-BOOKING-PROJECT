@@ -46,6 +46,9 @@ const NavbarLoginStaff: React.FC = () => {
       <AntdMenu.Item key="4" icon={<SolutionOutlined />}>
         <Link to="/manage-bookings">Manage Bookings</Link>
       </AntdMenu.Item>
+      <AntdMenu.Item key="6" icon={<VideoCameraOutlined />}>
+        <Link to="/qrcode">QR Code</Link>
+      </AntdMenu.Item>
       <AntdMenu.Item
         key="5"
         icon={<LogoutOutlined />}
@@ -86,6 +89,12 @@ const NavbarLoginStaff: React.FC = () => {
               className="px-3 py-2 rounded-md hover:bg-teal-600"
             >
               Movie List
+            </Link>
+            <Link
+              to="/qrcode"
+              className="px-3 py-2 rounded-md hover:bg-teal-600"
+            >
+              QR Code
             </Link>
 
             {/* Dropdown Avatar and User Name */}

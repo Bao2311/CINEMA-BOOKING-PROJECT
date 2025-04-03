@@ -43,6 +43,21 @@ namespace STP.Repository.Services
                     throw new KeyNotFoundException($"Không tìm thấy booking với ID {bookingId}");
                 }
 
+                // THÊM MỚI: Kiểm tra và sử dụng User_ID từ booking nếu có
+                if (booking.User_ID.HasValue && booking.User_ID.Value > 0)
+                {
+                    // Nếu booking đã liên kết với khách hàng và userId được truyền vào không khớp
+                    if (booking.User_ID.Value != userId)
+                    {
+                        _logger.LogWarning($"Đang sử dụng booking.User_ID ({booking.User_ID.Value}) thay vì userId được truyền vào ({userId})");
+                        userId = booking.User_ID.Value; // Sử dụng ID của khách hàng liên kết với booking
+                    }
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Booking {bookingId} chưa được liên kết với khách hàng");
+                }
+
                 // Lưu lại tổng tiền ban đầu
                 decimal originalTotalAmount = booking.Total_Amount;
 
@@ -89,9 +104,20 @@ namespace STP.Repository.Services
                     User_ID = userId,
                     Points_Redeemed = actualPointsToUse,
                     Date = DateTime.Now,
-                    Status = "Completed"
+                    Status = "Completed",
+                    Note = $"Áp dụng điểm giảm giá cho booking {bookingId}" // Thêm ghi chú
                 };
                 _context.PointsRedemptions.Add(pointsRedemption);
+
+                // Thêm lịch sử booking
+                var bookingHistory = new BookingHistory
+                {
+                    Booking_ID = bookingId,
+                    Status = "Points Applied",
+                    Date = DateTime.Now,
+                    Notes = $"Áp dụng {actualPointsToUse} điểm giảm giá ({discountAmount:C0})"
+                };
+                _context.BookingHistories.Add(bookingHistory);
 
                 // Lưu các thay đổi
                 await _context.SaveChangesAsync();
@@ -434,4 +460,5 @@ namespace STP.Repository.Services
         }
     }
 }
+
 

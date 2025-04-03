@@ -433,7 +433,6 @@ namespace STP.APIService.Controllers
                                     seat.Last_Updated = DateTime.Now;
                                 }
 
-                                // THÊM MỚI: Cập nhật Promotion_Usage
                                 if (booking.Promotion_ID.HasValue)
                                 {
                                     // Tìm các bản ghi Promotion_Usage liên quan đến booking này
@@ -449,7 +448,7 @@ namespace STP.APIService.Controllers
 
                                     // Giảm lượt sử dụng của mã khuyến mãi
                                     var promotion = await _context.Promotions
-                                        .FindAsync(booking.Promotion_ID.Value);
+       .FindAsync(booking.Promotion_ID.Value);
 
                                     if (promotion != null && promotion.Current_Usage > 0)
                                     {
@@ -755,3 +754,5 @@ namespace STP.APIService.Controllers
         }
     }
 }
+
+
