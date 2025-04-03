@@ -61,7 +61,19 @@ const ShowtimesPage = () => {
         }
 
         const showtimesData = await showtimesResponse.json();
-        const showtimes = showtimesData['$values'];
+        let showtimes = showtimesData['$values'];
+        
+        // Kiểm tra dữ liệu trước khi lọc
+        console.log('Tất cả suất chiếu trước khi lọc:', showtimes);
+        
+        // Lọc ra các suất chiếu không bị ẩn nhưng kiểm tra kỹ trạng thái
+        showtimes = showtimes.filter((showtime: Showtime) => {
+          console.log(`Suất chiếu ${showtime.showtime_ID}, status: '${showtime.status}'`);
+          return showtime.status !== 'Hidden' && showtime.status.trim() !== 'Hidden';
+        });
+        
+        // Kiểm tra dữ liệu sau khi lọc
+        console.log('Suất chiếu sau khi lọc:', showtimes);
 
         const moviesResponse = await fetch('https://localhost:7168/api/Movie', {
           method: 'GET',
@@ -83,6 +95,9 @@ const ShowtimesPage = () => {
           return { ...showtime, movie };
         });
 
+        // Kiểm tra lại sau khi merge
+        console.log('Merged showtimes:', mergedShowtimes);
+        
         setShowtimes(mergedShowtimes);
         setMovies(movies);
       } catch (err) {
@@ -99,7 +114,15 @@ const ShowtimesPage = () => {
   // Filter showtimes based on selected date
   useEffect(() => {
     if (showtimes.length > 0) {
+      console.log('Current showtimes in state:', showtimes);
+      
       const filtered = showtimes.filter((showtime) => {
+        // Double-check status again
+        if (showtime.status === 'Hidden') {
+          console.log(`Bỏ qua suất chiếu ${showtime.showtime_ID} vì status = Hidden`);
+          return false;
+        }
+        
         const showtimeDate = new Date(showtime.show_Date);
         return (
           showtimeDate.getDate() === selectedDate.getDate() &&
@@ -108,6 +131,7 @@ const ShowtimesPage = () => {
         );
       });
       
+      console.log('Filtered showtimes for date:', filtered);
       setFilteredShowtimes(filtered);
       
       // Group showtimes by movie_ID
@@ -119,6 +143,7 @@ const ShowtimesPage = () => {
         grouped[showtime.movie_ID].push(showtime);
       });
       
+      console.log('Grouped showtimes:', grouped);
       setGroupedShowtimes(grouped);
     }
   }, [selectedDate, showtimes]);
@@ -250,6 +275,7 @@ const ShowtimesPage = () => {
     return showtimes.some((showtime) => {
       const showtimeDate = new Date(showtime.show_Date);
       return (
+        showtime.status !== 'Hidden' &&
         showtimeDate.getDate() === date.getDate() &&
         showtimeDate.getMonth() === date.getMonth() &&
         showtimeDate.getFullYear() === date.getFullYear()
