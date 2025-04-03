@@ -729,6 +729,92 @@ namespace STP.Repository.Dtos
         public TimeSpan Start_Time { get; set; }
         public int RemainingMinutes { get; set; }
     }
+
+    public class SalesReportDTO
+    {
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public string Period { get; set; } // daily, weekly, monthly
+        public int TotalBookings { get; set; }
+        public int TotalTickets { get; set; }
+        public decimal TotalAmount { get; set; }
+        public List<PeriodSalesDTO> PeriodSales { get; set; }
+    }
+
+    public class PeriodSalesDTO
+    {
+        public string PeriodName { get; set; } // Tên kỳ (ngày, tuần, tháng)
+        public int TotalBookings { get; set; }
+        public int TotalTickets { get; set; }
+        public decimal TotalAmount { get; set; }
+        public Dictionary<string, decimal> PaymentMethods { get; set; } // Phương thức -> Số tiền
+    }
+
+    // DTOs for Booking Statistics
+    public class BookingStatisticsDTO
+    {
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public int TotalBookings { get; set; }
+        public int ConfirmedBookings { get; set; }
+        public int CancelledBookings { get; set; }
+        public decimal TotalRevenue { get; set; }
+        public double AverageTicketsPerBooking { get; set; }
+        public List<MovieStatisticsDTO> MovieStatistics { get; set; }
+        public List<RoomStatisticsDTO> RoomStatistics { get; set; }
+        public Dictionary<string, DailyStatisticsDTO> DailyStatistics { get; set; }
+        public Dictionary<string, decimal> PaymentMethodStatistics { get; set; }
+    }
+
+    public class MovieStatisticsDTO
+    {
+        public int MovieId { get; set; }
+        public string MovieName { get; set; }
+        public int TotalBookings { get; set; }
+        public int TotalTickets { get; set; }
+        public decimal TotalRevenue { get; set; }
+    }
+
+    public class RoomStatisticsDTO
+    {
+        public int RoomId { get; set; }
+        public string RoomName { get; set; }
+        public int TotalBookings { get; set; }
+        public int TotalTickets { get; set; }
+        public decimal TotalRevenue { get; set; }
+    }
+
+    public class DailyStatisticsDTO
+    {
+        public string Day { get; set; }
+        public int TotalBookings { get; set; }
+        public int TotalTickets { get; set; }
+        public decimal TotalRevenue { get; set; }
+    }
+
+    // DTOs for Staff Performance Reports
+    public class StaffPerformanceDTO
+    {
+        public int StaffId { get; set; }
+        public string StaffName { get; set; }
+        public string Department { get; set; }
+        public int TotalBookingsHandled { get; set; }
+        public int CounterBookings { get; set; } // Số lượng đặt tại quầy
+        public int OnlineBookings { get; set; } // Số lượng hỗ trợ đặt online
+        public decimal TotalRevenue { get; set; }
+        public decimal AverageRevenuePerBooking { get; set; }
+        public List<BookingPerformanceDTO> BookingsData { get; set; }
+    }
+
+    public class BookingPerformanceDTO
+    {
+        public int BookingId { get; set; }
+        public DateTime BookingDate { get; set; }
+        public int TicketCount { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string Status { get; set; }
+        public string CustomerName { get; set; } // Tên khách hàng
+    }
 }
 
 
