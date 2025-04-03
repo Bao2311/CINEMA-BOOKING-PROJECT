@@ -332,6 +332,128 @@ namespace STP.Repository.Services
         }
 
         /// <summary>
+        /// Gửi email nhắc nhở trước suất chiếu kèm vé xem phim
+        /// </summary>
+        /// <param name="toEmail">Địa chỉ email người nhận</param>
+        /// <param name="customerName">Tên khách hàng</param>
+        /// <param name="bookingInfo">Thông tin đặt vé</param>
+        /// <param name="pdfTickets">Danh sách các vé dạng PDF</param>
+        /// <param name="minutesToShowtime">Số phút còn lại trước khi phim bắt đầu</param>
+        /// <returns>True nếu gửi thành công, False nếu có lỗi</returns>
+        public async Task<bool> SendReminderEmailAsync(
+            string toEmail,
+            string customerName,
+            Dictionary<string, string> bookingInfo,
+            List<(string ticketCode, byte[] pdfContent)> pdfTickets,
+            int minutesToShowtime)
+        {
+            try
+            {
+                _logger.LogInformation($"Preparing to send reminder email to {toEmail} for booking {bookingInfo["BookingId"]}");
+
+                string subject = $"⏰ NHẮC NHỞ: Suất chiếu phim {bookingInfo["MovieName"]} sắp bắt đầu trong {minutesToShowtime} phút";
+
+                string body = $@"
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }}
+                .header {{ background-color: #f8f9fa; padding: 10px; text-align: center; border-radius: 5px 5px 0 0; }}
+                .content {{ padding: 20px; }}
+                .ticket-info {{ background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; }}
+                .reminder {{ background-color: #fffacd; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #ffc107; }}
+                .footer {{ background-color: #f8f9fa; padding: 10px; text-align: center; font-size: 12px; color: #6c757d; border-radius: 0 0 5px 5px; }}
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h2>⏰ Nhắc nhở: Suất chiếu phim sắp bắt đầu</h2>
+                </div>
+                <div class='content'>
+                    <p>Xin chào <strong>{customerName}</strong>,</p>
+                    
+                    <div class='reminder'>
+                        <h3>Suất chiếu phim của bạn sẽ bắt đầu trong {minutesToShowtime} phút!</h3>
+                        <p>Hãy đảm bảo bạn đã có mặt tại rạp để không bỏ lỡ bất kỳ phần nào của bộ phim.</p>
+                    </div>
+                    
+                    <p>Dưới đây là thông tin chi tiết về đặt vé của bạn:</p>
+                    
+                    <div class='ticket-info'>
+                        <p><strong>Mã đặt vé:</strong> {bookingInfo["BookingId"]}</p>
+                        <p><strong>Phim:</strong> {bookingInfo["MovieName"]}</p>
+                        <p><strong>Phòng chiếu:</strong> {bookingInfo["CinemaRoom"]}</p>
+                        <p><strong>Ngày chiếu:</strong> {bookingInfo["ShowDate"]}</p>
+                        <p><strong>Giờ chiếu:</strong> {bookingInfo["ShowTime"]}</p>
+                        <p><strong>Ghế:</strong> {bookingInfo["Seats"]}</p>
+                    </div>
+                    
+                    <p>Vé của bạn được đính kèm lại dưới dạng file PDF để tiện sử dụng. Vui lòng mang theo vé (bản in hoặc trên điện thoại) khi đến rạp.</p>
+                    <p><strong>Lưu ý quan trọng:</strong> Vui lòng đến trước giờ chiếu 10 phút để hoàn tất thủ tục kiểm tra vé và nhập phòng.</p>
+                    <p>Chúc bạn có trải nghiệm xem phim thú vị!</p>
+                    <p>Trân trọng,<br>Đội ngũ STP Cinema</p>
+                </div>
+                <div class='footer'>
+                    <p>Đây là email tự động, vui lòng không trả lời email này.</p>
+                    <p>Nếu bạn cần hỗ trợ, vui lòng liên hệ với chúng tôi qua hotline: {_configuration["AppSettings:SupportPhone"] ?? "1900 xxxx"}</p>
+                </div>
+            </div>
+        </body>
+        </html>";
+
+                // Tạo danh sách các tệp đính kèm
+                List<Attachment> attachments = new List<Attachment>();
+
+                foreach (var pdfTicket in pdfTickets)
+                {
+                    try
+                    {
+                        // Tạo MemoryStream từ mảng byte PDF
+                        var ms = new MemoryStream(pdfTicket.pdfContent);
+
+                        // Tạo đối tượng Attachment với tên file có mã vé
+                        var attachment = new Attachment(ms, $"Ve_STP_Cinema_{pdfTicket.ticketCode}.pdf", "application/pdf");
+
+                        // Thêm vào danh sách đính kèm
+                        attachments.Add(attachment);
+
+                        _logger.LogInformation($"PDF ticket {pdfTicket.ticketCode} prepared for attachment");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Error preparing PDF attachment for ticket {pdfTicket.ticketCode}: {ex.Message}");
+                        // Tiếp tục với các vé khác nếu có lỗi với một vé
+                    }
+                }
+
+                // Gọi phương thức gửi email với các tệp đính kèm
+                bool result = await SendEmailAsync(toEmail, subject, body, attachments);
+
+                // Giải phóng tài nguyên sau khi gửi email
+                foreach (var attachment in attachments)
+                {
+                    try
+                    {
+                        attachment.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, $"Error disposing attachment: {ex.Message}");
+                    }
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error sending reminder email: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Gửi email vé xem phim kèm file PDF
         /// </summary>
         /// <param name="toEmail">Email người nhận</param>

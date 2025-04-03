@@ -527,7 +527,7 @@ namespace STP.Web.Controllers
             if (ticketId <= 0)
                 return BadRequest("ID vé không hợp lệ");
 
-            byte[] pdfContent = await _ticketService.GenerateTicketPdfAsync(ticketId);
+            byte[] pdfContent = await _ticketService.GenerateTicketFromTemplateAsync(ticketId);
             if (pdfContent == null)
                 return NotFound("Không tìm thấy vé hoặc không thể tạo file PDF");
 
