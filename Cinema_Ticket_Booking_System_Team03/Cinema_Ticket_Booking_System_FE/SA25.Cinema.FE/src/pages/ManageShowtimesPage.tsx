@@ -3844,7 +3844,7 @@ const ManageShowtimesPage = () => {
   // Fetch movies đang chiếu
   const fetchNowShowingMovies = async () => {
     try {
-      const response = await fetch('https://localhost:7168/api/Movie/now-showing', {
+      const response = await fetch('https://localhost:7168/api/Movie', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
