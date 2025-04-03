@@ -228,7 +228,7 @@ export const SeatsSection = styled.div`
 `;
 
 export const Aisle = styled.div`
-  width: 40px;
+  width: 10px;
 `;
 
 export const SeatContent = styled.div`
@@ -256,8 +256,8 @@ export const CheckMark = styled.div`
 `;
 
 export const SeatButton = styled(motion.button)<{ $isBooked: boolean; $isSelected: boolean; $seatType: string; $seatSize?: string }>`
-  width: ${props => props.$seatSize === 'large' ? '42px' : props.$seatSize === 'small' ? '34px' : '38px'};
-  height: ${props => props.$seatSize === 'large' ? '42px' : props.$seatSize === 'small' ? '34px' : '38px'};
+  width: 38px;
+  height: 38px;
   border-radius: 8px 8px 0 0;
   border: none;
   background: ${props => props.$isBooked ? '#6b7280' : props.$isSelected ? 'var(--secondary)' : props.$seatType === 'vip' ? '#ef4444' : '#3b82f6'};
