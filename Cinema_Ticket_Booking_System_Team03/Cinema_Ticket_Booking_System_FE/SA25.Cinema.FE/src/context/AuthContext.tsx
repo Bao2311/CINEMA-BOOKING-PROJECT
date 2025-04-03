@@ -1,69 +1,53 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '../types';
-import api from '../config/axios'; // Import file cấu hình axios API
-import { toast } from 'react-toastify';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { User, AuthState } from "../types";
+import api from "../config/axios"; // Import file cấu hình axios API
+import { toast } from "react-toastify";
 
-// Define AuthState interface if not imported
-interface AuthState {
-  user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
-  requiresPasswordChange: boolean;
-}
-
-// Define AuthContextType interface
-interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
-  requiresPasswordChange: boolean;
-  login: (email: string, password: string) => Promise<any>;
-  register: (username: string, email: string, password: string) => Promise<void>;
+interface AuthContextType extends AuthState {
+  login: (email: string, password: string) => Promise<void>;
+  register: (
+    username: string,
+    email: string,
+    password: string
+  ) => Promise<void>;
   logout: () => void;
   updateUser: (user: User) => void;
 }
 
-// Create the context with undefined as default value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Custom hook to use the auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
 
-// Auth Provider component
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Initialize state INSIDE the component
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
-    token: localStorage.getItem('token'),
-    isAuthenticated: !!localStorage.getItem('token'),
+    token: localStorage.getItem("token"),
+    isAuthenticated: Boolean(localStorage.getItem("token")),
     isLoading: true,
     error: null,
-    requiresPasswordChange: localStorage.getItem('requiresPasswordChange') === 'true'
   });
 
   // Load user from localStorage when the app starts
   useEffect(() => {
     const loadUser = async () => {
-      const storedToken = localStorage.getItem('token');
-      console.log('Initial token from localStorage:', storedToken);
-      
+      const storedToken = localStorage.getItem("token");
+      console.log("Initial token from localStorage:", storedToken);
+
       if (storedToken) {
         try {
-          console.log('Attempting to load profile with token:', storedToken);
-          const userResponse = await api.get('/Auth/profile');
-          console.log('Profile response:', userResponse.data);
-          
-          setAuthState(prevState => ({
+          const userResponse = await api.get("/Auth/profile", {
+            headers: { Authorization: `Bearer ${storedToken}` },
+          });
+
+          setAuthState((prevState) => ({
             ...prevState,
             user: userResponse.data,
             token: storedToken,
@@ -71,30 +55,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isLoading: false,
           }));
         } catch (error: any) {
-          console.error('Error loading user profile:', error);
-          // Không xóa token ngay lập tức, kiểm tra lỗi trước
-          if (error.response && error.response.status === 401) {
-            console.log('Token invalid or expired, removing from localStorage');
-            localStorage.removeItem('token');
-            setAuthState(prevState => ({
-              ...prevState,
+          console.error("Error loading user profile:", error);
+
+          if (error.response?.status === 401) {
+            localStorage.removeItem("token");
+            setAuthState({
+              user: null,
               token: null,
               isAuthenticated: false,
               isLoading: false,
-              error: 'Session expired. Please login again.',
-            }));
+              error: "Session expired. Please login again.",
+            });
           } else {
-            // Với các lỗi khác (network, server, etc.), giữ token
-            setAuthState(prevState => ({
+            setAuthState((prevState) => ({
               ...prevState,
-              isAuthenticated: true, // Vẫn coi như đã đăng nhập
               isLoading: false,
-              error: 'Could not fetch profile. Please try again later.',
+              error: "Could not fetch profile. Please try again later.",
             }));
           }
         }
       } else {
-        setAuthState(prevState => ({
+        setAuthState((prevState) => ({
           ...prevState,
           isLoading: false,
         }));
@@ -102,104 +83,119 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     loadUser();
-  }, []); // Empty dependency array to run only once on mount
+  }, []);
 
   // Login function
   const login = async (email: string, password: string) => {
-    try {
-      const response = await api.post('/Auth/login', { email, password });
-      const userData = response.data;
+    setAuthState((prevState) => ({ ...prevState, isLoading: true }));
 
-      if (!userData.token) {
-        throw new Error('Token is null or undefined');
+    try {
+      const response = await api.post("/Auth/login", { email, password });
+      const {
+        token,
+        userId,
+        fullName,
+        email: userEmail,
+        tokenExpiration,
+        role,
+      } = response.data;
+
+      if (!token) {
+        throw new Error("Token is null or undefined");
       }
 
-      // Lưu thông tin vào localStorage
-      localStorage.setItem('token', userData.token);
-      localStorage.setItem('requiresPasswordChange', userData.requiresPasswordChange.toString());
+      localStorage.setItem("token", token);
+      localStorage.setItem("userId", userId.toString());
+      localStorage.setItem("fullName", fullName);
+      localStorage.setItem("email", userEmail);
+      localStorage.setItem("tokenExpiration", tokenExpiration);
+      localStorage.setItem("role", role);
 
       setAuthState({
-        user: userData,
-        token: userData.token,
+        user: response.data,
+        token,
         isAuthenticated: true,
         isLoading: false,
         error: null,
-        requiresPasswordChange: userData.requiresPasswordChange
       });
 
-      return { requiresPasswordChange: userData.requiresPasswordChange };
+      toast.success("Login successful!");
     } catch (error: any) {
-      console.error('Login Error:', error);
-      setAuthState(prevState => ({
+      console.error("Login Error:", error);
+      setAuthState((prevState) => ({
         ...prevState,
-        error: error?.response?.data?.message || 'Login failed',
+        error: error?.response?.data?.message || "Invalid credentials",
         isLoading: false,
       }));
-      // Show error toast
-      toast.error(error?.response?.data?.message || 'Đăng nhập thất bại');
+
+      toast.error(
+        error?.response?.data?.message || "Invalid email or password."
+      );
       throw error;
     }
   };
 
   // Register function
-  const register = async (username: string, email: string, password: string) => {
-    setAuthState(prevState => ({ ...prevState, isLoading: true }));
-    try {
-      const response = await api.post('/Auth/register', { username, email, password });
+  const register = async (
+    username: string,
+    email: string,
+    password: string
+  ) => {
+    setAuthState((prevState) => ({ ...prevState, isLoading: true }));
 
-      const token = response.data.token;
-      const user = response.data;
+    try {
+      const response = await api.post("/Auth/register", {
+        username,
+        email,
+        password,
+      });
+      const { token } = response.data;
 
       if (!token) {
-        throw new Error('Token is null or undefined');
+        throw new Error("Token is null or undefined");
       }
 
-      localStorage.setItem('token', token);
+      localStorage.setItem("token", token);
 
-      setAuthState(prevState => ({
-        ...prevState,
-        user,
+      setAuthState({
+        user: response.data,
         token,
         isAuthenticated: true,
         isLoading: false,
         error: null,
-      }));
+      });
+
+      toast.success("Registration successful!");
     } catch (error: any) {
-      console.error('Registration Error:', error);
-      setAuthState(prevState => ({
+      console.error("Registration Error:", error);
+      setAuthState((prevState) => ({
         ...prevState,
-        error: error?.response?.data?.message || 'Registration failed',
+        error: error?.response?.data?.message || "Registration failed",
         isLoading: false,
       }));
-      // Show error toast
-      toast.error(error?.response?.data?.message || 'Đăng ký thất bại');
-      throw error;
+
+      toast.error(error?.response?.data?.message || "Registration failed.");
     }
   };
 
   // Logout function
   const logout = () => {
-    // Clear localStorage
-    localStorage.removeItem('token');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('email');
-    localStorage.removeItem('requiresPasswordChange');
-
-    // Reset state
+    localStorage.clear();
     setAuthState({
       user: null,
       token: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
-      requiresPasswordChange: false,
     });
+
+    toast.info("Logged out successfully.");
   };
 
   // Update user information
   const updateUser = (user: User) => {
-    setAuthState(prev => ({
-      ...prev,
+    setAuthState((prevState) => ({
+      ...prevState,
       user,
     }));
   };
@@ -207,12 +203,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider
       value={{
-        user: authState.user,
-        token: authState.token,
-        isAuthenticated: authState.isAuthenticated,
-        isLoading: authState.isLoading,
-        error: authState.error,
-        requiresPasswordChange: authState.requiresPasswordChange,
+        ...authState,
         login,
         register,
         logout,
@@ -223,5 +214,3 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
-
-export default AuthContext;

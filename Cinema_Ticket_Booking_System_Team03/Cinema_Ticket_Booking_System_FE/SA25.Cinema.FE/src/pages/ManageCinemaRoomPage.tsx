@@ -2999,5 +2999,3 @@ const Pagination = ({
 };
 
 export default ManageCinemaRoomPage;
-
-

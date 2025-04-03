@@ -83,7 +83,7 @@ function AppContent() {
               <HomePage />
             </ProtectedRoute>
           } />
-          <Route path="/ticket-scan" element={
+          <Route path="/qrcode" element={
             <ProtectedRoute>
               <QRCodeScanner />
             </ProtectedRoute>
