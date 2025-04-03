@@ -104,50 +104,93 @@ namespace STP.Service.Services
                 throw;
             }
         }
-        /// <summary>
-        /// Tạo lịch chiếu mới
-        /// </summary>
-        /// <param name="showtimeDto">Thông tin lịch chiếu cần tạo</param>
-        /// <param name="createdBy">ID người tạo</param>
-        /// <returns>ID lịch chiếu mới</returns>
+
         public async Task<ShowtimeDto> CreateShowtimeAsync(ShowtimeCreateDto model, int userId)
         {
+            // Log thông tin đầu vào
+            _logger.LogInformation($"Bắt đầu tạo xuất chiếu - Phim ID: {model.Movie_ID}, Phòng ID: {model.Cinema_Room_ID}, Ngày: {model.Show_Date}, Giờ bắt đầu: {model.Start_Time}");
+
             if (model == null)
                 throw new ArgumentException("Dữ liệu không hợp lệ");
 
+            // Kiểm tra xuất chiếu đã tồn tại
+            var existingShowtime = await _context.Showtimes
+                .FirstOrDefaultAsync(s =>
+                    s.Movie_ID == model.Movie_ID &&
+                    s.Cinema_Room_ID == model.Cinema_Room_ID &&
+                    s.Show_Date.Date == model.Show_Date.Date &&
+                    s.Start_Time == model.Start_Time &&
+                    s.Status != "Hidden");
+
+            if (existingShowtime != null)
+            {
+                _logger.LogWarning($"Xuất chiếu đã tồn tại - Phim ID: {model.Movie_ID}, Phòng ID: {model.Cinema_Room_ID}, Ngày: {model.Show_Date}, Giờ bắt đầu: {model.Start_Time}");
+                throw new InvalidOperationException("Xuất chiếu đã tồn tại trong hệ thống");
+            }
+
+            // Kiểm tra phim
             var movie = await _context.Movies.FindAsync(model.Movie_ID);
             if (movie == null)
+            {
+                _logger.LogWarning($"Không tìm thấy phim có ID {model.Movie_ID}");
                 throw new ArgumentException($"Không tìm thấy phim có ID {model.Movie_ID}");
+            }
 
+            // Kiểm tra phòng chiếu
             var cinemaRoom = await _context.CinemaRooms.FindAsync(model.Cinema_Room_ID);
             if (cinemaRoom == null)
+            {
+                _logger.LogWarning($"Không tìm thấy phòng chiếu có ID {model.Cinema_Room_ID}");
                 throw new ArgumentException($"Không tìm thấy phòng chiếu có ID {model.Cinema_Room_ID}");
+            }
 
+            // Kiểm tra trạng thái phòng chiếu
             if (cinemaRoom.Status != "Active")
+            {
+                _logger.LogWarning($"Phòng chiếu {model.Cinema_Room_ID} không hoạt động");
                 throw new ArgumentException("Phòng chiếu không hoạt động");
+            }
 
+            // Kiểm tra ngày chiếu
             if (model.Show_Date.Date < DateTime.Today)
+            {
+                _logger.LogWarning($"Ngày chiếu không hợp lệ: {model.Show_Date}");
                 throw new ArgumentException("Ngày chiếu phải từ hôm nay trở đi");
+            }
 
-            // Tính toán thời gian kết thúc đề xuất
+            // Tính toán thời gian kết thúc
             TimeSpan suggestedEndTime = model.Start_Time.Add(TimeSpan.FromMinutes(movie.Duration + 15));
 
-            // Ghi log thời gian kết thúc đề xuất để tham khảo
             _logger.LogInformation($"Thời gian kết thúc đề xuất cho suất chiếu: {suggestedEndTime}. " +
                                    $"Dựa trên thời lượng phim {movie.Duration} phút + thêm 15 phút");
 
             TimeSpan endTime = suggestedEndTime;
+
+            // Kiểm tra trùng lịch
             var conflictingShowtimes = await _context.Showtimes
                 .Where(s => s.Cinema_Room_ID == model.Cinema_Room_ID &&
                            s.Show_Date.Date == model.Show_Date.Date &&
+                           s.Status != "Hidden" &&
                            ((s.Start_Time <= model.Start_Time && s.End_Time > model.Start_Time) ||
                             (s.Start_Time < endTime && s.End_Time >= endTime) ||
                             (s.Start_Time >= model.Start_Time && s.End_Time <= endTime)))
                 .ToListAsync();
 
+            // Log các xuất chiếu trùng lịch
             if (conflictingShowtimes.Any())
+            {
+                _logger.LogWarning($"Tìm thấy {conflictingShowtimes.Count} xuất chiếu xung đột:");
+                foreach (var conflict in conflictingShowtimes)
+                {
+                    _logger.LogWarning($"Xuất chiếu xung đột - ID: {conflict.Showtime_ID}, " +
+                                       $"Trạng thái: {conflict.Status}, " +
+                                       $"Giờ bắt đầu: {conflict.Start_Time}, " +
+                                       $"Giờ kết thúc: {conflict.End_Time}");
+                }
                 throw new InvalidOperationException("Suất chiếu bị trùng lịch với suất chiếu khác trong cùng phòng");
+            }
 
+            // Tạo xuất chiếu mới
             var showtime = new Showtime
             {
                 Movie_ID = model.Movie_ID,
@@ -155,8 +198,8 @@ namespace STP.Service.Services
                 Show_Date = model.Show_Date,
                 Start_Time = model.Start_Time,
                 End_Time = endTime,
-                Price_Tier = model.Price_Tier,
-                Base_Price = model.Base_Price,
+                Price_Tier = model.Price_Tier ?? "Normal",
+                Base_Price = model.Base_Price > 0 ? model.Base_Price : 90000,
                 Status = "Scheduled",
                 Capacity_Available = cinemaRoom.Seat_Quantity,
                 Created_By = userId,
@@ -164,16 +207,28 @@ namespace STP.Service.Services
                 Updated_At = DateTime.Now
             };
 
-            _context.Showtimes.Add(showtime);
-            await _context.SaveChangesAsync();
-
-            if (movie.Status == "Coming Soon" && model.Show_Date.Date <= DateTime.Today)
+            try
             {
-                movie.Status = "Now Showing";
+                _context.Showtimes.Add(showtime);
                 await _context.SaveChangesAsync();
-            }
 
-            return MapToShowtimeDto(showtime, cinemaRoom.Room_Name);
+                _logger.LogInformation($"Tạo xuất chiếu thành công - ID: {showtime.Showtime_ID}");
+
+                // Cập nhật trạng thái phim nếu cần
+                if (movie.Status == "Coming Soon" && model.Show_Date.Date <= DateTime.Today)
+                {
+                    movie.Status = "Now Showing";
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"Cập nhật trạng thái phim {movie.Movie_Name} thành Now Showing");
+                }
+
+                return MapToShowtimeDto(showtime, cinemaRoom.Room_Name);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi lưu xuất chiếu - Chi tiết: {ex.Message}");
+                throw;
+            }
         }
 
         /// <summary>
@@ -1000,6 +1055,327 @@ namespace STP.Service.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi tự động ẩn các suất chiếu đã hết hạn");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Tự động tạo lịch chiếu cho nhiều phim trong một ngày
+        /// </summary>
+        /// <param name="request">Thông tin yêu cầu lịch chiếu</param>
+        /// <param name="userId">ID người dùng tạo lịch</param>
+        /// <returns>Danh sách lịch chiếu được tạo</returns>
+        public async Task<AutoScheduleResult> AutoScheduleShowtimesAsync(AutoScheduleRequest request, int userId)
+        {
+            if (request == null || request.Movies == null || !request.Movies.Any())
+                throw new ArgumentException("Dữ liệu yêu cầu không hợp lệ");
+
+            if (request.ShowDate.Date < DateTime.Today)
+                throw new ArgumentException("Ngày chiếu phải từ hôm nay trở đi");
+
+            var cinemaRoom = await _context.CinemaRooms.FindAsync(request.CinemaRoomId);
+            if (cinemaRoom == null)
+                throw new ArgumentException($"Không tìm thấy phòng chiếu có ID {request.CinemaRoomId}");
+
+            if (cinemaRoom.Status != "Active")
+                throw new ArgumentException("Phòng chiếu không hoạt động");
+
+            // Lấy thông tin phim từ database
+            var movieIds = request.Movies.Select(m => m.MovieId).ToList();
+            var movies = await _context.Movies
+                .Where(m => movieIds.Contains(m.Movie_ID))
+                .ToDictionaryAsync(m => m.Movie_ID, m => m);
+
+            if (movies.Count < movieIds.Count)
+                throw new ArgumentException("Một số phim không tồn tại trong hệ thống");
+
+            // Kiểm tra các phim đã có trong database
+            foreach (var movieInput in request.Movies)
+            {
+                if (!movies.ContainsKey(movieInput.MovieId))
+                    throw new ArgumentException($"Không tìm thấy phim có ID {movieInput.MovieId}");
+
+                if (movieInput.ShowtimeCount <= 0)
+                    throw new ArgumentException($"Số lượng suất chiếu của phim {movies[movieInput.MovieId].Movie_Name} phải lớn hơn 0");
+            }
+
+            // Lấy danh sách lịch chiếu hiện có của phòng trong ngày
+            var existingShowtimes = await _context.Showtimes
+                .Where(s => s.Cinema_Room_ID == request.CinemaRoomId &&
+                       s.Show_Date.Date == request.ShowDate.Date &&
+                       s.Status != "Hidden" && s.Status != "Cancelled")
+                .ToListAsync();
+
+            // Tạo danh sách tất cả suất chiếu cần sắp xếp
+            var allShowtimesToSchedule = new List<(int MovieId, int Duration, string MovieName)>();
+            foreach (var movieInput in request.Movies)
+            {
+                var movie = movies[movieInput.MovieId];
+                for (int i = 0; i < movieInput.ShowtimeCount; i++)
+                {
+                    allShowtimesToSchedule.Add((movie.Movie_ID, movie.Duration, movie.Movie_Name));
+                }
+            }
+
+            // Random danh sách suất chiếu
+            var random = new Random();
+            allShowtimesToSchedule = allShowtimesToSchedule.OrderBy(x => random.Next()).ToList();
+
+            // Các phần còn lại của phương thức giữ nguyên như cũ
+            // Thiết lập khung giờ hoạt động của rạp (1:00 - 24:00)
+            TimeSpan openTime = new TimeSpan(1, 0, 0);
+            TimeSpan closeTime = new TimeSpan(24, 0, 0);
+            TimeSpan cleanupTime = TimeSpan.FromMinutes(15); // Thời gian dọn dẹp giữa các suất chiếu
+
+            // Tạo timeline các khung giờ đã bị chiếm
+            var occupiedTimeSlots = existingShowtimes
+                .Select(s => new { Start = s.Start_Time, End = s.End_Time })
+                .OrderBy(s => s.Start)
+                .ToList();
+
+            // Kết quả lịch chiếu
+            var generatedShowtimes = new List<GeneratedShowtime>();
+            TimeSpan currentTime = openTime;
+
+            foreach (var (movieId, duration, movieName) in allShowtimesToSchedule)
+            {
+                // Tìm khung giờ phù hợp cho suất chiếu này
+                bool foundSlot = false;
+                var movieDuration = TimeSpan.FromMinutes(duration);
+                var requiredSlotDuration = movieDuration.Add(cleanupTime);
+
+                // Kiểm tra từ thời điểm hiện tại
+                TimeSpan slotStart = currentTime;
+
+                while (slotStart.Add(movieDuration) <= closeTime && !foundSlot)
+                {
+                    TimeSpan slotEnd = slotStart.Add(movieDuration);
+
+                    // Kiểm tra xem slot này có bị trùng với các lịch chiếu hiện có không
+                    bool isConflict = occupiedTimeSlots.Any(slot =>
+                        (slotStart >= slot.Start && slotStart < slot.End) ||
+                        (slotEnd > slot.Start && slotEnd <= slot.End) ||
+                        (slotStart <= slot.Start && slotEnd >= slot.End));
+
+                    if (!isConflict)
+                    {
+                        // Tìm thấy khung giờ phù hợp
+                        foundSlot = true;
+
+                        // Tạo lịch chiếu mới
+                        var startDateTime = request.ShowDate.Date.Add(slotStart);
+                        var endDateTime = request.ShowDate.Date.Add(slotEnd);
+
+                        var newShowtime = new GeneratedShowtime
+                        {
+                            MovieId = movieId,
+                            MovieName = movieName,
+                            StartDateTime = startDateTime,
+                            EndDateTime = endDateTime,
+                            StartTime = slotStart,
+                            EndTime = slotEnd,
+                            PriceTier = "Normal", // Có thể thay đổi theo logic giá
+                            BasePrice = 90000 // Có thể điều chỉnh theo logic giá
+                        };
+
+                        generatedShowtimes.Add(newShowtime);
+
+                        // Thêm vào danh sách khung giờ đã chiếm
+                        occupiedTimeSlots.Add(new { Start = slotStart, End = slotEnd });
+                        occupiedTimeSlots = occupiedTimeSlots.OrderBy(s => s.Start).ToList();
+
+                        // Cập nhật thời gian hiện tại
+                        currentTime = slotEnd.Add(cleanupTime);
+                        break;
+                    }
+
+                    // Nếu không tìm thấy, thử với slot tiếp theo sau slot bị chiếm
+                    var nextPossibleSlot = occupiedTimeSlots
+                        .Where(slot => slot.Start > slotStart)
+                        .OrderBy(slot => slot.Start)
+                        .FirstOrDefault();
+
+                    if (nextPossibleSlot != null)
+                    {
+                        slotStart = nextPossibleSlot.End.Add(cleanupTime);
+                    }
+                    else
+                    {
+                        // Không tìm thấy slot nào bị chiếm phía sau, tăng dần thời gian
+                        slotStart = slotStart.Add(TimeSpan.FromMinutes(15));
+                    }
+                }
+
+                if (!foundSlot)
+                {
+                    _logger.LogWarning($"Không thể sắp xếp suất chiếu cho phim {movieName} (ID: {movieId})");
+                }
+            }
+
+            // Sắp xếp lại theo thời gian bắt đầu
+            generatedShowtimes = generatedShowtimes.OrderBy(s => s.StartTime).ToList();
+
+            // Nếu người dùng muốn lưu luôn các lịch chiếu này, chúng ta có thể thêm code lưu vào database ở đây
+
+            return new AutoScheduleResult
+            {
+                Date = request.ShowDate,
+                RoomName = cinemaRoom.Room_Name,
+                Showtimes = generatedShowtimes
+            };
+        }
+
+        /// <summary>
+        /// Tạo và lưu lịch chiếu tự động
+        /// </summary>
+        public async Task<List<ShowtimeDto>> SaveAutoScheduledShowtimesAsync(AutoScheduleRequest request, int userId)
+        {
+            // Log thông tin đầu vào
+            _logger.LogInformation($"Bắt đầu lưu lịch chiếu tự động - Phòng: {request.CinemaRoomId}, Ngày: {request.ShowDate}");
+
+            // Kiểm tra xem đã có lịch chiếu cho ngày này chưa
+            var existingShowtimesForDate = await _context.Showtimes
+                .Where(s =>
+                    s.Cinema_Room_ID == request.CinemaRoomId &&
+                    s.Show_Date.Date == request.ShowDate.Date &&
+                    s.Status != "Hidden")
+                .ToListAsync();
+
+            if (existingShowtimesForDate.Any())
+            {
+                _logger.LogWarning($"Đã tồn tại {existingShowtimesForDate.Count} xuất chiếu trong phòng {request.CinemaRoomId} vào ngày {request.ShowDate.Date}");
+                throw new InvalidOperationException($"Đã có lịch chiếu trong phòng {request.CinemaRoomId} vào ngày {request.ShowDate.Date}. Vui lòng xóa hoặc ẩn các xuất chiếu hiện tại.");
+            }
+
+            try
+            {
+                // Đầu tiên tạo lịch tự động
+                var scheduledResult = await AutoScheduleShowtimesAsync(request, userId);
+
+                // Log số lượng xuất chiếu được tạo
+                _logger.LogInformation($"Tổng số xuất chiếu được tạo: {scheduledResult.Showtimes.Count}");
+
+                // Lưu các lịch chiếu vào database
+                var createdShowtimes = new List<ShowtimeDto>();
+                var failedShowtimes = new List<(GeneratedShowtime Showtime, Exception Error)>();
+
+                foreach (var showtime in scheduledResult.Showtimes)
+                {
+                    try
+                    {
+                        var createDto = new ShowtimeCreateDto
+                        {
+                            Movie_ID = showtime.MovieId,
+                            Cinema_Room_ID = request.CinemaRoomId,
+                            Show_Date = request.ShowDate,
+                            Start_Time = showtime.StartTime,
+                            Price_Tier = showtime.PriceTier ?? "Normal",
+                            Base_Price = showtime.BasePrice > 0 ? showtime.BasePrice : 90000
+                        };
+
+                        _logger.LogInformation($"Đang tạo xuất chiếu - Phim: {showtime.MovieName}, Giờ bắt đầu: {showtime.StartTime}");
+
+                        var createdShowtime = await CreateShowtimeAsync(createDto, userId);
+                        createdShowtimes.Add(createdShowtime);
+
+                        _logger.LogInformation($"Tạo xuất chiếu thành công - ID: {createdShowtime.Showtime_ID}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, $"Lỗi khi tạo xuất chiếu cho phim {showtime.MovieName}");
+                        failedShowtimes.Add((showtime, ex));
+                    }
+                }
+
+                // Kiểm tra và log các xuất chiếu tạo không thành công
+                if (failedShowtimes.Any())
+                {
+                    _logger.LogWarning($"Có {failedShowtimes.Count} xuất chiếu không thể tạo:");
+                    foreach (var failed in failedShowtimes)
+                    {
+                        _logger.LogWarning($"Phim: {failed.Showtime.MovieName}, Lỗi: {failed.Error.Message}");
+                    }
+
+                    // Nếu không tạo được xuất chiếu nào
+                    if (createdShowtimes.Count == 0)
+                    {
+                        throw new InvalidOperationException("Không thể tạo bất kỳ xuất chiếu nào");
+                    }
+                }
+
+                _logger.LogInformation($"Hoàn tất lưu lịch chiếu - Tổng: {createdShowtimes.Count} xuất chiếu");
+
+                return createdShowtimes;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi hệ thống khi lưu lịch chiếu tự động");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Ẩn tất cả các xuất chiếu trong một ngày cụ thể của một phòng chiếu
+        /// </summary>
+        /// <param name="roomId">ID phòng chiếu</param>
+        /// <param name="date">Ngày cần ẩn các xuất chiếu</param>
+        /// <param name="userId">ID người thực hiện</param>
+        /// <returns>Số lượng xuất chiếu đã được ẩn</returns>
+        public async Task<int> HideAllShowtimesForDateAsync(int roomId, DateTime date, int userId)
+        {
+            try
+            {
+                _logger.LogInformation($"Bắt đầu ẩn tất cả xuất chiếu trong phòng {roomId} ngày {date.ToShortDateString()}");
+
+                // Tìm tất cả các xuất chiếu chưa bị ẩn trong ngày và phòng cụ thể
+                var showtimesToHide = await _context.Showtimes
+                    .Where(s =>
+                        s.Cinema_Room_ID == roomId &&
+                        s.Show_Date.Date == date.Date &&
+                        s.Status != "Hidden" &&
+                        s.Status != "Cancelled")
+                    .ToListAsync();
+
+                if (!showtimesToHide.Any())
+                {
+                    _logger.LogInformation($"Không có xuất chiếu nào để ẩn trong phòng {roomId} ngày {date.ToShortDateString()}");
+                    return 0;
+                }
+
+                // Bắt đầu transaction để đảm bảo tính toàn vẹn dữ liệu
+                using (var transaction = await _context.Database.BeginTransactionAsync())
+                {
+                    try
+                    {
+                        int hiddenCount = 0;
+                        foreach (var showtime in showtimesToHide)
+                        {
+                            showtime.Status = "Hidden";
+                            showtime.Updated_At = DateTime.UtcNow;
+                            hiddenCount++;
+
+                            _logger.LogInformation($"Ẩn xuất chiếu ID: {showtime.Showtime_ID}, " +
+                                $"Phim: {showtime.Movie_ID}, " +
+                                $"Thời gian: {showtime.Start_Time}");
+                        }
+
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync();
+
+                        _logger.LogInformation($"Đã ẩn thành công {hiddenCount} xuất chiếu trong phòng {roomId} ngày {date.ToShortDateString()}");
+                        return hiddenCount;
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        _logger.LogError(ex, $"Lỗi khi ẩn xuất chiếu trong phòng {roomId} ngày {date.ToShortDateString()}");
+                        throw;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi hệ thống khi thực hiện ẩn xuất chiếu");
                 throw;
             }
         }
