@@ -28,7 +28,6 @@ import {
 // Thêm interface cho props
 interface ProfilePageProps {
   defaultTab?: 'profile' | 'bookings' | 'notifications' | 'settings' | 'checkins';
-
 }
 
 // Component chính
@@ -495,7 +494,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ defaultTab }) => {
 
 
 export default ProfilePage; 
-
 
 
 
