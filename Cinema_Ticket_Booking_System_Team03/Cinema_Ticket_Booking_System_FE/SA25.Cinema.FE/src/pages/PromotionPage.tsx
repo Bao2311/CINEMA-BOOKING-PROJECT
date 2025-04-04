@@ -225,8 +225,8 @@ const UserPromotionsPage = () => {
     return (
       <div className="w-full">
         <div className="flex justify-between text-xs text-gray-400 mb-1">
-          <span>Đã dùng:</span>
-          <span>{`${current} / ${limit}`}</span>
+          <span>Sử dụng:</span>
+          <span>{`${percentage.toFixed(0)}%`}</span>
         </div>
         <div className="w-full bg-gray-700 rounded-full h-2.5 overflow-hidden">
           <div
@@ -237,7 +237,6 @@ const UserPromotionsPage = () => {
       </div>
     );
   };
-
 
   return (
     <motion.div
@@ -316,6 +315,7 @@ const UserPromotionsPage = () => {
                   <p className="text-lg text-gray-300 mb-6 line-clamp-3">
                     {featuredPromo.description}
                   </p>
+
                   <div className="flex flex-wrap justify-center md:justify-start gap-4 mb-6 text-sm">
                     <div className="flex items-center text-purple-300">
                       <FaCalendarAlt className="mr-2" />
@@ -323,6 +323,7 @@ const UserPromotionsPage = () => {
                         Hiệu lực đến: {formatDate(featuredPromo.endDate)}
                       </span>
                     </div>
+
                     <div className="flex items-center text-purple-300">
                       <FaTicketAlt className="mr-2" />
                       <span>
@@ -502,26 +503,29 @@ const UserPromotionsPage = () => {
                       ))}
                     </div>
                     <div className="space-y-3 mb-4">
-                         <div className="text-xs text-gray-400 flex items-center">
-                             <FaCalendarAlt className="mr-2 flex-shrink-0" />
-                             <span>
-                                 Hiệu lực: {formatDate(promotion.startDate)} -{" "}
-                                 {formatDate(promotion.endDate)}
-                             </span>
-                         </div>
-                         {promotion.minimumPurchase > 0 && (
-                             <div className="text-xs text-gray-400 flex items-center">
-                                 <FaShoppingBasket className="mr-2 flex-shrink-0" />
-                                 <span>
-                                     Đơn tối thiểu:{" "}
-                                     {promotion.minimumPurchase.toLocaleString("vi-VN")}{" "}
-                                     VND
-                                 </span>
-                             </div>
-                         )}
-                         {promotion.usageLimit > 0 && (
-                             <UsageProgressBar current={promotion.currentUsage} limit={promotion.usageLimit} />
-                         )}
+                      <div className="text-xs text-gray-400 flex items-center">
+                        <FaCalendarAlt className="mr-2 flex-shrink-0" />
+                        <span>
+                          Hiệu lực: {formatDate(promotion.startDate)} -{" "}
+                          {formatDate(promotion.endDate)}
+                        </span>
+                      </div>
+                      {promotion.minimumPurchase > 0 && (
+                        <div className="text-xs text-gray-400 flex items-center">
+                          <FaShoppingBasket className="mr-2 flex-shrink-0" />
+                          <span>
+                            Đơn tối thiểu:{" "}
+                            {promotion.minimumPurchase.toLocaleString("vi-VN")}{" "}
+                            VND
+                          </span>
+                        </div>
+                      )}
+                      {promotion.usageLimit > 0 && (
+                        <UsageProgressBar
+                          current={promotion.currentUsage}
+                          limit={promotion.usageLimit}
+                        />
+                      )}
                     </div>
                     <div className="mt-auto flex flex-col sm:flex-row gap-2">
                       <button
@@ -546,7 +550,6 @@ const UserPromotionsPage = () => {
         </div>
 
         {/* Promotion Categories Section REMOVED */}
-
       </div>
 
       {/* Promotion Details Modal */}
@@ -691,19 +694,22 @@ const UserPromotionsPage = () => {
                         </div>
                       </div>
                     )}
-                     {selectedPromotion.usageLimit > 0 && (
-                       <div className="flex items-start">
-                         <div className="w-10 h-10 bg-teal-900 bg-opacity-70 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-                             <FaUsers />
-                         </div>
-                         <div className="flex-grow">
-                             <h4 className="font-medium text-gray-200 mb-1">
-                                 Giới hạn sử dụng
-                             </h4>
-                             <UsageProgressBar current={selectedPromotion.currentUsage} limit={selectedPromotion.usageLimit} />
-                         </div>
-                       </div>
-                     )}
+                    {selectedPromotion.usageLimit > 0 && (
+                      <div className="flex items-start">
+                        <div className="w-10 h-10 bg-teal-900 bg-opacity-70 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
+                          <FaUsers />
+                        </div>
+                        <div className="flex-grow">
+                          <h4 className="font-medium text-gray-200 mb-1">
+                            Giới hạn sử dụng
+                          </h4>
+                          <UsageProgressBar
+                            current={selectedPromotion.currentUsage}
+                            limit={selectedPromotion.usageLimit}
+                          />
+                        </div>
+                      </div>
+                    )}
                     <div className="flex items-start">
                       <div className="w-10 h-10 bg-blue-900 bg-opacity-70 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
                         <FaInfoCircle />
