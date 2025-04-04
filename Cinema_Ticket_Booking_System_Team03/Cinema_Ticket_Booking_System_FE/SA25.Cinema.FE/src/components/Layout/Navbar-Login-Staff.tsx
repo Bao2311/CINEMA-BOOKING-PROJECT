@@ -8,9 +8,9 @@ import {
   UserOutlined,
   LogoutOutlined,
   HomeOutlined,
-  ScheduleOutlined, // Icon for showtimes/booking
-  SolutionOutlined, // Icon for booking management
-  VideoCameraOutlined, // Icon for Movies
+  ScheduleOutlined,
+  SolutionOutlined,
+  VideoCameraOutlined,
 } from "@ant-design/icons";
 
 const NavbarLoginStaff: React.FC = () => {
@@ -22,12 +22,10 @@ const NavbarLoginStaff: React.FC = () => {
   };
 
   const handleLogout = () => {
-    // Remove login information from localStorage (or sessionStorage if used)
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("fullname");
     localStorage.removeItem("isLoggedIn");
-    // Redirect to homepage or login page
     window.location.href = "/";
   };
 
@@ -44,7 +42,7 @@ const NavbarLoginStaff: React.FC = () => {
         <Link to="/showtimes">Booking / Showtimes</Link>
       </AntdMenu.Item>
       <AntdMenu.Item key="4" icon={<SolutionOutlined />}>
-        <Link to="/manage-bookings">Manage Bookings</Link>
+        <Link to="/staff">Manage Bookings</Link>
       </AntdMenu.Item>
       <AntdMenu.Item key="6" icon={<VideoCameraOutlined />}>
         <Link to="/qrcode">QR Code</Link>
@@ -74,26 +72,30 @@ const NavbarLoginStaff: React.FC = () => {
           <div className="hidden md:flex items-center space-x-4">
             <Link
               to="/showtimes"
-              className="px-3 py-2 rounded-md hover:bg-teal-600"
+              className="flex items-center px-3 py-2 rounded-md hover:bg-teal-600"
             >
+              <ScheduleOutlined className="mr-2" />
               Showtimes / Booking
             </Link>
             <Link
               to="/staff"
-              className="px-3 py-2 rounded-md hover:bg-teal-600"
+              className="flex items-center px-3 py-2 rounded-md hover:bg-teal-600"
             >
+              <SolutionOutlined className="mr-2" />
               Manage Bookings
             </Link>
             <Link
               to="/movies"
-              className="px-3 py-2 rounded-md hover:bg-teal-600"
+              className="flex items-center px-3 py-2 rounded-md hover:bg-teal-600"
             >
+              <VideoCameraOutlined className="mr-2" />
               Movie List
             </Link>
             <Link
               to="/qrcode"
-              className="px-3 py-2 rounded-md hover:bg-teal-600"
+              className="flex items-center px-3 py-2 rounded-md hover:bg-teal-600"
             >
+              <VideoCameraOutlined className="mr-2" />
               QR Code
             </Link>
 
@@ -138,23 +140,26 @@ const NavbarLoginStaff: React.FC = () => {
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <Link
               to="/showtimes"
-              className="block px-3 py-2 rounded-md hover:bg-teal-500"
-              onClick={() => setIsMenuOpen(false)} // Close menu when link is clicked
+              className="flex items-center block px-3 py-2 rounded-md hover:bg-teal-500"
+              onClick={() => setIsMenuOpen(false)}
             >
+              <ScheduleOutlined className="mr-2" />
               Showtimes / Booking
             </Link>
             <Link
               to="/manage-bookings"
-              className="block px-3 py-2 rounded-md hover:bg-teal-500"
+              className="flex items-center block px-3 py-2 rounded-md hover:bg-teal-500"
               onClick={() => setIsMenuOpen(false)}
             >
+              <SolutionOutlined className="mr-2" />
               Manage Bookings
             </Link>
             <Link
               to="/movies"
-              className="block px-3 py-2 rounded-md hover:bg-teal-500"
+              className="flex items-center block px-3 py-2 rounded-md hover:bg-teal-500"
               onClick={() => setIsMenuOpen(false)}
             >
+              <VideoCameraOutlined className="mr-2" />
               Movie List
             </Link>
 

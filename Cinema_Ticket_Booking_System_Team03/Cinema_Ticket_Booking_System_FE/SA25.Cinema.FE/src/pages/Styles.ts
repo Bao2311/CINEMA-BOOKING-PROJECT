@@ -136,7 +136,11 @@ export const CinemaContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   perspective: 1200px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 `;
 
 export const LoadingContainer = styled.div`
@@ -145,6 +149,7 @@ export const LoadingContainer = styled.div`
   align-items: center;
   justify-content: center;
   height: 350px;
+  width: 100%;
 `;
 
 export const LoadingSpinner = styled.div`
@@ -200,12 +205,17 @@ export const SeatingArea = styled.div`
   gap: 0.6rem;
   width: 100%;
   max-width: 1000px;
+  margin: 0 auto;
+  justify-content: center;
+  align-items: center;
 `;
 
 export const RowContainer = styled(motion.div)`
   display: flex;
   align-items: center;
+  justify-content: center;
   margin-bottom: 0.6rem;
+  width: 100%;
 `;
 
 export const RowLabel = styled.div`
@@ -220,11 +230,13 @@ export const SectionContainer = styled.div`
   display: flex;
   flex: 1;
   justify-content: center;
+  align-items: center;
 `;
 
 export const SeatsSection = styled.div`
   display: flex;
   gap: 0.5rem;
+  justify-content: center;
 `;
 
 export const Aisle = styled.div`
