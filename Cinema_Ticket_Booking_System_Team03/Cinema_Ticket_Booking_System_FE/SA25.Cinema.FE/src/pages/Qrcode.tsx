@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 
 // Define main component
@@ -49,7 +51,7 @@ const QRCodePage: React.FC = () => {
       setQrCodeURL(dataURL);
     } catch (error) {
       console.error('Error generating QR code:', error);
-      alert('Failed to generate QR code. Please try again.');
+      toast.error('Failed to generate QR code. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -127,7 +129,7 @@ const QRCodePage: React.FC = () => {
   // Download QR code
   const downloadQRCode = () => {
     if (!qrCodeURL) {
-      alert('Please generate a QR code first.');
+      toast.warning('Please generate a QR code first.');
       return;
     }
 
@@ -142,7 +144,7 @@ const QRCodePage: React.FC = () => {
       canvas.height = includeText ? size + 40 : size;
      
       if (!ctx) {
-        alert('Failed to create canvas context. Please try again.');
+        toast.error('Failed to create canvas context. Please try again.');
         return;
       }
      
@@ -198,6 +200,7 @@ const QRCodePage: React.FC = () => {
  
   return (
     <div className="qr-code-generator">
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover theme="light" />
       <div className="container mx-auto p-4 max-w-4xl">
         <h1 className="text-3xl font-bold text-center mb-6">QR Code Generator</h1>
        

@@ -24,7 +24,7 @@ import axios from "axios";
 import Modal from "../components/Admin/Modal"; // Assuming Modal component path is correct
 import styled from "styled-components";
 import { motion } from "framer-motion";
-
+import { useNavigate } from "react-router-dom";
 // Define types for seat layout based on API response
 interface Seat {
   layout_ID: number;
@@ -527,6 +527,21 @@ const ManageCinemaRoomPage: React.FC = () => {
   const [roomsPerPage, setRoomsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
 
+  const navigate = useNavigate();
+
+  // Lấy role từ localStorage
+  const getRole = () => {
+    return localStorage.getItem("role") || sessionStorage.getItem("role");
+  };
+
+  // Kiểm tra quyền truy cập
+  useEffect(() => {
+    const role = getRole();
+    if (role !== "Admin") {
+      toast.error("Bạn không có quyền truy cập trang này.");
+      navigate("/"); // Điều hướng sang trang unauthorized
+    }
+  }, [navigate]);
   // Helper function to check for prime numbers
   const isPrime = (num: number) => {
     if (num <= 1) return false;
@@ -1291,7 +1306,7 @@ const ManageCinemaRoomPage: React.FC = () => {
       await fetchRooms(); // Cập nhật danh sách phòng
       await fetchSeatLayout(currentRoomId); // Hiển thị layout map mới nhất
       setIsCreatingSeatLayout(false); // Đóng modal tạo layout
-   //   window.location.reload();
+      //   window.location.reload();
       // Fetch the newly created layout
       fetchSeatLayout(currentRoomId);
     } catch (error: any) {

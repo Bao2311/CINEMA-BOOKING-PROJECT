@@ -694,9 +694,8 @@ namespace STP.Repository.Services
             {
                 _logger.LogInformation($"===== BẮT ĐẦU HỦY ĐƠN ĐẶT VÉ {bookingId} =====");
 
-                // Lấy thông tin đặt vé và bao gồm thông tin về suất chiếu
+                // Lấy thông tin đặt vé - KHÔNG kiểm tra trạng thái Pending
                 var booking = await _context.TicketBookings
-                    .Include(b => b.Showtime)
                     .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
 
                 if (booking == null)
@@ -708,7 +707,7 @@ namespace STP.Repository.Services
                 // Log chi tiết về booking
                 _logger.LogInformation($"[INFO] Chi tiết booking {bookingId}: Status={booking.Status}, " +
                                       $"PromotionID={booking.Promotion_ID}, UserID={booking.User_ID}, " +
-                                      $"PointsUsed={booking.Points_Used}, ShowtimeID={booking.Showtime_ID}");
+                                      $"PointsUsed={booking.Points_Used}");
 
                 // Log nếu có mã khuyến mãi
                 if (booking.Promotion_ID.HasValue)
@@ -876,6 +875,27 @@ namespace STP.Repository.Services
                         // Commit transaction
                         await transaction.CommitAsync();
                         _logger.LogInformation($"===== HỦY ĐƠN ĐẶT VÉ {bookingId} THÀNH CÔNG =====");
+
+                        // Kiểm tra lại trạng thái sau khi commit
+                        var updatedPromotion = booking.Promotion_ID.HasValue ?
+                            await _context.Promotions.FindAsync(booking.Promotion_ID.Value) : null;
+
+                        if (updatedPromotion != null)
+                        {
+                            _logger.LogInformation($"[PROMOTION] Trạng thái sau commit: PromotionID={updatedPromotion.Promotion_ID}, " +
+                                                 $"CurrentUsage={updatedPromotion.Current_Usage}");
+                        }
+
+                        // Kiểm tra lại promotionusage sau khi commit
+                        var updatedUsages = await _context.PromotionUsages
+                            .Where(pu => pu.Booking_ID == bookingId)
+                            .ToListAsync();
+
+                        foreach (var usage in updatedUsages)
+                        {
+                            _logger.LogInformation($"[PROMOTION] Usage sau commit: ID={usage.Usage_ID}, " +
+                                                 $"HasUsed={usage.HasUsed}");
+                        }
 
                         return true;
                     }

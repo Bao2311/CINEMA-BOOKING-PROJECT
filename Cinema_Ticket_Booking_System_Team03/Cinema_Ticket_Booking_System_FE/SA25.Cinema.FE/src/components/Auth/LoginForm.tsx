@@ -189,17 +189,17 @@ const LoginForm: React.FC = () => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    setFormSubmitted(true); // Add this to be consistent with your validation logic
+    setFormSubmitted(true); // Giữ lại cho logic xác thực
   
-    // Check for validation errors before submitting
-    const newErrors: {email?: string; password?: string; general?: string} = {};
-    if (!formData.email) newErrors.email = 'Email is required';
-    else if (!validateEmail(formData.email)) newErrors.email = 'Please enter a valid email address';
-    
-    if (!formData.password) newErrors.password = 'Password is required';
-    else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
-    
-    // If there are validation errors, don't proceed with login
+    // Kiểm tra lỗi xác thực trước khi gửi
+    const newErrors: { email?: string; password?: string; general?: string } = {};
+    if (!formData.email) newErrors.email = 'Email là bắt buộc';
+    else if (!validateEmail(formData.email)) newErrors.email = 'Vui lòng nhập địa chỉ email hợp lệ';
+  
+    if (!formData.password) newErrors.password = 'Mật khẩu là bắt buộc';
+    else if (formData.password.length < 6) newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+  
+    // Nếu có lỗi xác thực, không tiếp tục đăng nhập
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       setTouched({ email: true, password: true });
@@ -209,22 +209,23 @@ const LoginForm: React.FC = () => {
   
     try {
       const result = await login(formData.email, formData.password);
-      
+  
       if (result && result.requiresPasswordChange) {
-        navigate('/profile/settings', { 
-          state: { 
+        navigate('/profile/settings', {
+          state: {
             passwordChangeRequired: true,
-            from: location
-          } 
+            from: location,
+          },
         });
-        toast.info('Please change your password before continuing.');
+        toast.info('Vui lòng thay đổi mật khẩu trước khi tiếp tục.');
       } else {
-        toast.success('Login successful!');
-        // Navigate to home or intended destination
+       
+  
+        // Chuyển hướng đến trang chính hoặc điểm đến mong muốn
         const from = location.state?.from?.pathname || '/';
         navigate(from);
         
-        // Save login info if "Remember me" is checked
+        // Lưu thông tin đăng nhập nếu chọn "Nhớ tôi"
         if (rememberMe) {
           localStorage.setItem('rememberedEmail', formData.email);
         } else {
@@ -232,18 +233,18 @@ const LoginForm: React.FC = () => {
         }
       }
     } catch (err) {
-      console.error('Login error:', err);
+      console.error('Lỗi đăng nhập:', err);
       setLoginAttempts(prev => prev + 1);
-      setError('Invalid email or password');
+      setError('Email hoặc mật khẩu không hợp lệ');
       setErrors({
-        general: 'Login failed. Please check your credentials.'
+        general: 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.',
       });
-      toast.error('Login failed. Please check your credentials.');
+      toast.error('Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.');
     } finally {
       setIsLoading(false);
     }
   };
-
+  
   // Load remembered email on component mount
   useEffect(() => {
     const rememberedEmail = localStorage.getItem('rememberedEmail');

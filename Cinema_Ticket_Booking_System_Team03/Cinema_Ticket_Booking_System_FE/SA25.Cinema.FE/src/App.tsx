@@ -1,3 +1,4 @@
+
 // import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 // import HomePage from './pages/HomePage';
 // import MoviesPage from './pages/MoviesPage';
@@ -180,9 +181,6 @@
 // export default App;
 
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
-import HomePage from './pages/HomePage';
-import MoviesPage from './pages/MoviesPage';
-import MovieDetailPage from './pages/MovieDetailPage';
 import { AuthProvider } from './context/AuthContext';
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -191,29 +189,33 @@ import 'react-toastify/dist/ReactToastify.css';
 import SettingsTab from './components/Profile/SettingsTab';
 import QRCodeScanner from './pages/QRCodeScan';
 // Pages
-import ManageEmployeesPage from './pages/ManageEmployeesPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import ProfilePage from './pages/ProfilePage';
-import BookingPage from './pages/BookingPage';
-import ManageMoviesPage from './pages/ManageMoviesPage';
-import ShowtimesPage from './pages/ShowtimesPage';
-import ManageShowtimesPage from './pages/ManageShowtimesPage';
-import ForgotPassword from './pages/ForgotPassword';
-import CinemaRoomPage from './pages/CinemaRoomPage';
-import ManageCinemaRoomPage from './pages/ManageCinemaRoomPage';
-import ManagePromotionPage from './pages/ManagePromotionPage';
-import UserPromotionsPage from './pages/PromotionPage';
-import TicketSellingByStaff from './pages/StaffPage';
-import BookingSuccessPage from './pages/BookingSuccessPage';
-import ManageBookingPage from './pages/ManageBookingPage';
-import PasswordChangeRequiredGuard from './components/PasswordChangeRequiredGuard';
+import HomePage from "./pages/HomePage";
+import MoviesPage from "./pages/MoviesPage";
+import MovieDetailPage from "./pages/MovieDetailPage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import ForgotPassword from "./pages/ForgotPassword";
+import ProfilePage from "./pages/ProfilePage";
+import BookingPage from "./pages/BookingPage";
+import ManageEmployeesPage from "./pages/ManageEmployeesPage";
+import ManageMoviesPage from "./pages/ManageMoviesPage";
+import ShowtimesPage from "./pages/ShowtimesPage";
+import ManageShowtimesPage from "./pages/ManageShowtimesPage";
+import CinemaRoomPage from "./pages/CinemaRoomPage";
+import ManageCinemaRoomPage from "./pages/ManageCinemaRoomPage";
+import ManagePromotionPage from "./pages/ManagePromotionPage";
+import UserPromotionsPage from "./pages/PromotionPage";
+import TicketSellingByStaff from "./pages/StaffPage";
+import BookingSuccessPage from "./pages/BookingSuccessPage";
+import ManageBookingPage from "./pages/ManageBookingPage";
+import StatisticsPage from "./pages/StatisticsPage";
+
 function App() {
   return (
     <AuthProvider>
       <Router>
-      <PasswordChangeRequiredGuard>
-        <AppContent />
+        <PasswordChangeRequiredGuard>
+          <AppContent />
         </PasswordChangeRequiredGuard>
       </Router>
     </AuthProvider>
@@ -225,10 +227,13 @@ function AppContent() {
 
   return (
     <>
+      {/* Toast notifications */}
       <ToastContainer position="top-right" autoClose={5000} />
+
+      {/* Layout wrapper */}
       <Layout showNavbar={true}>
         <Routes>
-          {/* Route công khai */}
+          {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
