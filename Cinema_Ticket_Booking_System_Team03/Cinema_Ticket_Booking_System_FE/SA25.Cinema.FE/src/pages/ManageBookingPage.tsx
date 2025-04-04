@@ -7,7 +7,8 @@ import { useAuth } from '../context/AuthContext';
 import moment from 'moment';
 import { CSVLink } from 'react-csv';
 import * as XLSX from 'xlsx';
-
+import { toast, ToastContainer } from 'react-toastify';
+import { useNavigate } from "react-router-dom";
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { CheckableTag } = Tag;
@@ -57,7 +58,7 @@ const ManageBooking: React.FC = () => {
   const [bookingIdFilter, setBookingIdFilter] = useState<string>('');
   const { token } = useAuth();
   const [form] = Form.useForm();
-
+  const navigate = useNavigate();
   // Debug useEffect to monitor filter visibility changes
   useEffect(() => {
     console.log("Filter visibility changed:", isFilterVisible);
@@ -80,7 +81,19 @@ const ManageBooking: React.FC = () => {
     { value: 'Card', color: 'blue' },
     { value: 'E-Wallet', color: 'orange' }
   ];
+// Lấy role từ localStorage
+const getRole = () => {
+  return localStorage.getItem("role") || sessionStorage.getItem("role");
+};
 
+// Kiểm tra quyền truy cập
+useEffect(() => {
+  const role = getRole();
+  if (role !== "Admin") {
+    toast.error("Bạn không có quyền truy cập trang này.");
+    navigate("/"); // Điều hướng sang trang unauthorized
+  }
+}, [navigate]);
   useEffect(() => {
     fetchMyBookings();
     fetchMovies();

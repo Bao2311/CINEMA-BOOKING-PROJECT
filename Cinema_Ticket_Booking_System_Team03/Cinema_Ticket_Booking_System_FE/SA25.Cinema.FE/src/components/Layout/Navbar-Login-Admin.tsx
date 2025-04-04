@@ -14,6 +14,8 @@ import {
   BarChartOutlined,
   VideoCameraOutlined,
   CalendarOutlined,
+  TagOutlined,
+  BuildOutlined, // Thêm icon cho "Manage Cinema Room"
 } from "@ant-design/icons";
 
 const NavbarLoginAdmin: React.FC = () => {
@@ -42,6 +44,12 @@ const NavbarLoginAdmin: React.FC = () => {
       </AntdMenu.Item>
       <AntdMenu.Item key="4" icon={<FileSearchOutlined />}>
         <Link to="/manage-booking">Manage Booking</Link>
+      </AntdMenu.Item>
+      <AntdMenu.Item key="5" icon={<TagOutlined />}>
+        <Link to="/manage-promotion">Manage Promotions</Link>
+      </AntdMenu.Item>
+      <AntdMenu.Item key="6" icon={<BuildOutlined />}>
+        <Link to="/manage-cinemaroom">Manage Cinema Room</Link>
       </AntdMenu.Item>
     </AntdMenu>
   );

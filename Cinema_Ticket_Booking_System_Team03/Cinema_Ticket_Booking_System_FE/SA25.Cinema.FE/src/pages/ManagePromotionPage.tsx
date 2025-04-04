@@ -10,7 +10,8 @@ import {
   FaFilm, FaExclamationTriangle, FaClock, FaHistory, FaUndo, FaSearch,
   FaFilter, FaChevronDown, FaChevronUp, FaChevronLeft, FaChevronRight
 } from 'react-icons/fa';
-
+import { useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
 // Types
 interface Promotion {
   id: string;
@@ -1018,7 +1019,20 @@ const PromotionsManagement: React.FC = () => {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const navigate = useNavigate();
+  // Lấy role từ localStorage
+  const getRole = () => {
+    return localStorage.getItem("role") || sessionStorage.getItem("role");
+  };
 
+  // Kiểm tra quyền truy cập
+  useEffect(() => {
+    const role = getRole();
+    if (role !== "Admin") {
+      toast.error("Bạn không có quyền truy cập trang này.");
+      navigate("/"); // Điều hướng sang trang unauthorized
+    }
+  }, [navigate]);
   const fetchPromotions = async () => {
     try {
       setLoading(true);
