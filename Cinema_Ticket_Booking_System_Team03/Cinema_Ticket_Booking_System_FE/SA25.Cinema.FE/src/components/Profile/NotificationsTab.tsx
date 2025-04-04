@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Bell,
   Loader2,
@@ -9,6 +9,7 @@ import {
   XCircle,
   AlertCircle,
 } from "lucide-react";
+import axios from "axios"; // Thêm Axios để gọi API
 import { Notification } from "../../interfaces/ProfileInterfaces";
 import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -24,6 +25,8 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
   isLoading,
   setNotifications,
 }) => {
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false); // Trạng thái cho API đánh dấu tất cả đã đọc
+
   const formatDateTime = (dateString: string | null | undefined) => {
     if (!dateString) return "N/A";
     try {
@@ -35,13 +38,35 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
     }
   };
 
-  const markNotificationAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    );
+  const markAllNotificationsAsRead = async () => {
+    setIsMarkingAllRead(true); // Bắt đầu trạng thái loading
+    try {
+      const token = localStorage.getItem("token"); // Lấy token từ localStorage (hoặc từ nơi bạn lưu trữ)
+      if (!token) {
+        throw new Error("Không tìm thấy token xác thực.");
+      }
+
+      await axios.put("https://localhost:7168/api/notifications/read-all", null, {
+        headers: {
+          Authorization: `Bearer ${token}`, // Thêm Authorization header
+        },
+      });
+
+      // Đánh dấu tất cả thông báo là đã đọc trong UI
+      setNotifications((prev) =>
+        prev.map((notification) => ({ ...notification, isRead: true }))
+      );
+    } catch (error) {
+      console.error(
+        "Có lỗi xảy ra khi đánh dấu tất cả thông báo đã đọc:",
+        error
+      );
+      alert("Không thể đánh dấu tất cả thông báo đã đọc. Vui lòng thử lại.");
+    } finally {
+      setIsMarkingAllRead(false); // Kết thúc trạng thái loading
+    }
   };
 
-  // Helper function to determine the background color based on notification type
   const getBackgroundColor = (type: string) => {
     switch (type) {
       case "promo":
@@ -55,7 +80,6 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
     }
   };
 
-  // Helper function to determine the icon based on notification type
   const getIcon = (type: string) => {
     switch (type) {
       case "promo":
@@ -80,14 +104,15 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
           <h2 className="text-2xl font-bold text-gray-800">Thông báo</h2>
           {notifications.some((n) => !n.isRead) && (
             <button
-              onClick={() =>
-                setNotifications((prev) =>
-                  prev.map((n) => ({ ...n, isRead: true }))
-                )
-              }
-              className="text-sm text-indigo-600 hover:text-indigo-800"
+              onClick={markAllNotificationsAsRead}
+              disabled={isMarkingAllRead} // Disable nút khi đang gọi API
+              className={`text-sm ${
+                isMarkingAllRead
+                  ? "text-gray-400 cursor-not-allowed"
+                  : "text-indigo-600 hover:text-indigo-800"
+              }`}
             >
-              Đánh dấu tất cả đã đọc
+              {isMarkingAllRead ? "Đang xử lý..." : "Đánh dấu tất cả đã đọc"}
             </button>
           )}
         </div>
@@ -99,11 +124,7 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
         )}
         {!isLoading && notifications.length === 0 && (
           <div className="text-center py-12">
-            <img
-              src="/path-to-empty-notification-image.png"
-              alt="No notifications"
-              className="mx-auto h-24 w-24 mb-4"
-            />
+            
             <Bell className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">Bạn không có thông báo nào.</p>
           </div>
@@ -116,7 +137,6 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
                 className={`border border-gray-200 rounded-lg p-4 cursor-pointer transition-all duration-300 ease-in-out ${getBackgroundColor(
                   notification.type
                 )}`}
-                onClick={() => markNotificationAsRead(notification.id)}
               >
                 <div className="flex items-start">
                   <div
@@ -160,16 +180,9 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
                             : notification.type === "alert"
                             ? "text-red-700"
                             : "text-yellow-700"
-                        } relative`}
+                        }`}
                       >
                         {formatDateTime(notification.date)}
-                        <div className="absolute z-10 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-6 ml-2">
-                          {format(
-                            parseISO(notification.date),
-                            "EEEE, d MMMM yyyy",
-                            { locale: vi }
-                          )}
-                        </div>
                       </span>
                     </div>
                     <p
@@ -186,11 +199,6 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
                       }`}
                     >
                       {notification.message}
-                      {notification.type === "promo" && (
-                        <span className="text-green-600 font-semibold ml-1">
-                          +{notification.points} điểm
-                        </span>
-                      )}
                     </p>
                   </div>
                   {!notification.isRead && (
