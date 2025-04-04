@@ -144,6 +144,7 @@ interface BookingSummary {
   discounts: number;
   memberDiscount: number;
   promotionDiscount: number;
+  pointsDiscount: number;
   total: number;
 }
 
@@ -482,6 +483,7 @@ const ManageBookings: React.FC = () => {
     discounts: 0,
     memberDiscount: 0,
     promotionDiscount: 0,
+    pointsDiscount: 0,
     total: 0
   });
   const [bookingId, setBookingId] = useState<number | null>(null);
@@ -883,18 +885,19 @@ const applyMemberInfo = async () => {
   const fetchMemberDiscount = async (membershipLevel: string) => {
     try {
       const token = getAuthToken();
-      const response = await axios.get(`https://localhost:7168/api/Member/discount/${membershipLevel.toLowerCase()}`, {
+      const response = await axios.get(`https://localhost:7168/api/Promotion/member-discount/${membershipLevel}`, {
         headers: {
           Authorization: token ? `Bearer ${token}` : undefined,
         },
       });
+      
       if (response.data) {
         setMemberDiscountAmount(response.data);
-        updateBookingSummary(selectedSeats, response.data, appliedPromotion?.discount_Amount || 0, 0);
+        updateBookingSummary();
       }
     } catch (error) {
       console.error('Error fetching member discount:', error);
-      setMemberDiscountAmount(0);
+      message.error('Không thể lấy thông tin khuyến mãi thành viên');
     }
   };
   // Function to link member to booking
@@ -980,23 +983,17 @@ const linkMemberToBooking = async (bookingId: number, memberIdentifier: string) 
       );
   
       if (response.data && response.data.success) {
+        // Đã tìm được promotion, lưu vào state và tính lại tổng tiền
         setAppliedPromotion({
           promotion_ID: response.data.promotion_id,
           code: response.data.promotion_code,
-          discount_Amount: response.data.discount_amount
+          name: response.data.promotion_detail || 'Khuyến mãi',
+          discount_Value: response.data.discount_value,
+          discount_Amount: response.data.discountAmount
         });
-  
-        // Cập nhật tổng tiền
-        setBookingSummary(prev => ({
-          ...prev,
-          promotionDiscount: response.data.discount_amount,
-          total: response.data.new_total || (prev.subtotal - response.data.discount_amount)
-        }));
-  
-        // Gọi hàm cập nhật tổng quan đặt vé
-        updateBookingSummary();
         
-        message.success(response.data.message || 'Áp dụng mã khuyến mãi thành công!');
+        message.success(`Áp dụng mã khuyến mãi thành công!`);
+        updateBookingSummary();
         setPromotionCode(''); // Xóa mã khuyến mãi sau khi áp dụng thành công
       } else {
         message.error(response.data?.message || 'Mã khuyến mãi không hợp lệ');
@@ -1045,8 +1042,21 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
       return;
     }
     
+    // Validate points is a multiple of 1000
+    if (pointsToUse % 1000 !== 0) {
+      message.warning('Số điểm sử dụng phải là bội của 1000');
+      return;
+    }
+    
     if (pointsToUse > member.currentPoints) {
       message.error('Số điểm sử dụng không thể lớn hơn số điểm hiện có');
+      return;
+    }
+    
+    // Calculate maximum points allowed (50% of total bill)
+    const maxAllowedPoints = Math.floor(bookingSummary.subtotal * 0.5);
+    if (pointsToUse > maxAllowedPoints) {
+      message.warning(`Bạn chỉ có thể sử dụng tối đa ${maxAllowedPoints.toLocaleString()} điểm (50% tổng hóa đơn)`);
       return;
     }
     
@@ -1054,20 +1064,41 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
       setLoading(true);
       const token = getAuthToken();
       
-      const response = await axios.post('https://localhost:7168/api/Points/booking/apply-discount', {
-        bookingId: bookingId,
-        pointsToUse: pointsToUse
-      }, {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : undefined,
-          'Content-Type': 'application/json'
-        },
-      });
+      // Send the points as a direct value, not as a JSON object
+      const response = await axios.post(
+        `https://localhost:7168/api/Points/booking/${bookingId}/apply-discount`,
+        pointsToUse,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
       
       if (response.data) {
-        const discountAmount = response.data.pointDiscountAmount;
-        message.success(`Đã sử dụng ${pointsToUse} điểm để giảm giá ${discountAmount.toLocaleString()} VND`);
-        updateBookingSummary(selectedSeats, memberDiscountAmount, appliedPromotion?.discount_Amount || 0, discountAmount);
+        console.log('Point discount response:', response.data);
+        
+        // Update member points from the response
+        if (response.data.currentPoints !== undefined) {
+          setMember(prev => prev ? {...prev, currentPoints: response.data.currentPoints} : prev);
+        }
+        
+        // Use the discountedTotalAmount from the response
+        const discountedTotal = response.data.discountedTotalAmount;
+        const discountAmount = bookingSummary.subtotal - discountedTotal;
+        
+        message.success(`Đã sử dụng ${pointsToUse.toLocaleString()} điểm để giảm giá ${discountAmount.toLocaleString()} VND`);
+        
+        // Update booking summary with the new total from the response
+        setBookingSummary(prev => ({
+          ...prev,
+          pointsDiscount: discountAmount,
+          total: discountedTotal
+        }));
+        
+        // Reset points input field
+        setPointsToUse(0);
       }
     } catch (error) {
       console.error('Error applying points discount:', error);
@@ -1081,7 +1112,7 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
   const removePromotion = () => {
     setAppliedPromotion(null);
     setPromotionCode('');
-    updateBookingSummary(selectedSeats, memberDiscountAmount, 0, pointsToUse);
+    updateBookingSummary();
     message.success('Đã xóa mã khuyến mãi');
   };
 
@@ -1146,6 +1177,7 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
       discounts: 0,
       memberDiscount: 0,
       promotionDiscount: 0,
+      pointsDiscount: 0,
       total: subtotal
     });
     
@@ -1332,8 +1364,8 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
       promotionDiscount = appliedPromotion.discount_Amount;
     }
     
-    // Tính điểm tích lũy sử dụng
-    const pointsDiscount = pointsToUse * 1000;
+    // Tính điểm tích lũy sử dụng - đơn giản là 1:1
+    const pointsDiscount = pointsToUse;
     
     // Tổng giảm giá
     const totalDiscounts = memberDiscount + promotionDiscount + pointsDiscount;
@@ -1852,7 +1884,7 @@ const EnhancedPromotionSection = () => {
               <Spin size="large" />
             </div>
           ) : (
-            <div className="seat-layout-container mt-8">
+            <div className="seat-layout-container mt-8 flex flex-col items-center">
               <Screen>
                 <ScreenText>Màn hình</ScreenText>
               </Screen>
@@ -1937,7 +1969,7 @@ const EnhancedPromotionSection = () => {
                 </LegendItem>
               </SeatLegend>
               
-              <div className="mt-8 bg-gray-50 p-6 rounded-lg shadow-sm">
+              <div className="mt-8 bg-gray-50 p-6 rounded-lg shadow-sm mx-auto max-w-4xl">
                 <Row gutter={24}>
                   <Col span={16}>
                     <div className="mb-4">
@@ -2213,7 +2245,17 @@ const EnhancedPromotionSection = () => {
                           type="number"
                           placeholder="Số điểm muốn sử dụng"
                           value={pointsToUse}
-                          onChange={(e) => setPointsToUse(Math.min(parseInt(e.target.value) || 0, member.currentPoints))}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value) || 0;
+                            // Round to nearest multiple of 1000
+                            const roundedValue = Math.floor(value / 1000) * 1000;
+                            // Ensure not exceeding member points or 50% of total bill
+                            const maxAllowedPoints = Math.floor(bookingSummary.subtotal * 0.5);
+                            setPointsToUse(Math.min(roundedValue, member.currentPoints, maxAllowedPoints));
+                          }}
+                          step="1000"
+                          min="0"
+                          max={Math.min(member.currentPoints, Math.floor(bookingSummary.subtotal * 0.5))}
                           style={{ width: '60%' }}
                         />
                         <Button 
@@ -2271,16 +2313,17 @@ const EnhancedPromotionSection = () => {
                   {pointsToUse > 0 && (
                     <div className="flex justify-between mb-2 text-green-600">
                       <Text>Điểm tích lũy ({pointsToUse} điểm):</Text>
-                      <Text>-{pointsToUse .toLocaleString()} VND</Text>
+                      <Text>-{pointsToUse.toLocaleString()} VND</Text>
                     </div>
                   )}
                   
                   <Divider />
                   
-                  <div className="flex justify-between text-lg font-bold">
-                    <Text>Tổng cộng:</Text>
-                    <Text className="text-red-600">{bookingSummary.total.toLocaleString()} VND</Text>
+                  <div className="flex justify-between items-center font-bold">
+                    <Text className="text-lg">Tổng thanh toán:</Text>
+                    <Text className="text-xl text-red-600">{bookingSummary.total.toLocaleString()} VND</Text>
                   </div>
+                  
                 </div>
                 
                 <Button 
