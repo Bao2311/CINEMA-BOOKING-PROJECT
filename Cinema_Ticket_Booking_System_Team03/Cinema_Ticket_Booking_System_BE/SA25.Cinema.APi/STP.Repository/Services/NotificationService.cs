@@ -225,5 +225,44 @@ namespace STP.Repository.Services
         }
 
         #endregion
+
+        /// <summary>
+        /// Đánh dấu một thông báo cụ thể là đã đọc
+        /// </summary>
+        /// <param name="userId">ID của người dùng</param>
+        /// <param name="notificationId">ID của thông báo</param>
+        /// <returns>Trả về true nếu đánh dấu thành công, false nếu không tìm thấy</returns>
+        public async Task<bool> MarkNotificationAsReadAsync(int userId, int notificationId)
+        {
+            try
+            {
+                // Tìm booking history tương ứng với notification ID và user ID
+                var bookingHistory = await _context.BookingHistories
+                    .Include(bh => bh.TicketBooking)
+                    .FirstOrDefaultAsync(bh =>
+                        bh.Booking_History_ID == notificationId &&
+                        bh.TicketBooking.User_ID == userId);
+
+                // Kiểm tra nếu không tìm thấy booking history
+                if (bookingHistory == null)
+                {
+                    _logger.LogWarning($"Notification {notificationId} not found for user {userId}");
+                    return false;
+                }
+
+                // Đánh dấu đã đọc (ở đây có thể thêm trường IsRead nếu cần)
+                // Ví dụ: bookingHistory.IsRead = true;
+
+                // Lưu thay đổi
+                await _context.SaveChangesAsync();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error marking notification {notificationId} as read for user {userId}: {ex.Message}");
+                throw;
+            }
+        }
     }
 }

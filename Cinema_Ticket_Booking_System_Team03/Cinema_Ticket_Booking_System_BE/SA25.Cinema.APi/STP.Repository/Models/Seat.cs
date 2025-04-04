@@ -39,6 +39,8 @@ namespace STP.Repository.Models
         /// </summary>
         public DateTime Last_Updated { get; set; } = DateTime.Now;
 
+        public int Showtime_ID { get; set; }
+
         /// <summary>
         /// Bố cục ghế mà ghế này thuộc về
         /// </summary>
@@ -56,5 +58,7 @@ namespace STP.Repository.Models
         /// </summary>
         [InverseProperty("Seat")]
         public virtual ICollection<Ticket> Tickets { get; set; }
+
+        public virtual Showtime Showtime { get; set; }
     }
 }

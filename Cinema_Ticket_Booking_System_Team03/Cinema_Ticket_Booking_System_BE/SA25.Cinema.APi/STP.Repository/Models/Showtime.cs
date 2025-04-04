@@ -101,5 +101,7 @@ namespace STP.Repository.Models
         /// </summary>
         [InverseProperty("Showtime")]
         public virtual ICollection<TicketBooking> TicketBookings { get; set; }
+
+        public virtual ICollection<Seat> Seats { get; set; } = new List<Seat>();
     }
 }

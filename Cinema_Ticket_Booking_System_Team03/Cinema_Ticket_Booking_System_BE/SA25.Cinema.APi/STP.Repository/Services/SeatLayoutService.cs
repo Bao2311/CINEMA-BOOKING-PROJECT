@@ -92,11 +92,12 @@ namespace STP.Repository.Services
             if (cinemaRoom == null)
                 throw new KeyNotFoundException($"Không tìm thấy phòng chiếu có ID {roomId}");
 
-            var hasBookedSeats = await _context.Seats
-                .AnyAsync(s => s.SeatLayout.Cinema_Room_ID == roomId && s.Booking_ID != null);
+            // Kiểm tra xem phòng có showtime không
+            var hasShowtimes = await _context.Showtimes
+                .AnyAsync(s => s.Cinema_Room_ID == roomId && s.Show_Date >= DateTime.Today && s.Status != "Hidden");
 
-            if (hasBookedSeats)
-                throw new InvalidOperationException("Không thể thay đổi sơ đồ ghế vì có ghế đang được sử dụng trong đặt vé");
+            if (hasShowtimes)
+                throw new InvalidOperationException("Không thể thay đổi sơ đồ ghế vì phòng đã có lịch chiếu");
 
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -109,15 +110,7 @@ namespace STP.Repository.Services
                     .Where(sl => sl.Cinema_Room_ID == roomId && newRowLabels.Contains(sl.Row_Label))
                     .ToListAsync();
 
-                // Xóa tất cả Seats liên kết với các SeatLayout sẽ bị xóa
-                var layoutIdsToRemove = layoutsToRemove.Select(l => l.Layout_ID).ToList();
-                var seatsToRemove = await _context.Seats
-                    .Where(s => layoutIdsToRemove.Contains(s.Layout_ID))
-                    .ToListAsync();
-
-                if (seatsToRemove.Any())
-                    _context.Seats.RemoveRange(seatsToRemove);
-
+                // Xóa tất cả các layout đã chọn
                 if (layoutsToRemove.Any())
                     _context.SeatLayouts.RemoveRange(layoutsToRemove);
 
@@ -145,36 +138,19 @@ namespace STP.Repository.Services
                 }
 
                 await _context.SeatLayouts.AddRangeAsync(newLayouts);
-                await _context.SaveChangesAsync(); // Lưu để có Layout_ID
-
-                // Tạo bản ghi Seats cho mỗi SeatLayout mới
-                List<Seat> newSeats = new List<Seat>();
-                foreach (var layout in newLayouts)
-                {
-                    newSeats.Add(new Seat
-                    {
-                        Layout_ID = layout.Layout_ID,
-                        Seat_Status = "Available",
-                        Last_Updated = DateTime.Now,
-                        Booking_ID = null
-                    });
-                }
-
-                await _context.Seats.AddRangeAsync(newSeats);
 
                 // Cập nhật tổng số ghế trong phòng
-                var totalSeats = await _context.SeatLayouts
-                    .Where(sl => sl.Cinema_Room_ID == roomId)
-                    .CountAsync();
-
+                var totalSeats = newLayouts.Count;
                 cinemaRoom.Seat_Quantity = totalSeats;
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                // LƯU Ý: Không tạo Seat ở đây nữa - sẽ tạo khi tạo Showtime
+
                 return new
                 {
-                    id = Guid.NewGuid().ToString(), // Tạo một ID duy nhất cho response
+                    id = Guid.NewGuid().ToString(),
                     cinema_room_id = roomId,
                     total_rows = await _context.SeatLayouts
                         .Where(sl => sl.Cinema_Room_ID == roomId)
@@ -568,18 +544,19 @@ namespace STP.Repository.Services
             if (model.LayoutIds == null || !model.LayoutIds.Any())
                 throw new ArgumentException("Danh sách ghế cần xóa không được trống");
 
-            // Kiểm tra xem có ghế nào đang được sử dụng trong đặt vé không
+            // Kiểm tra xem có SeatLayout nào đang được sử dụng trong Showtime không
             var usedLayoutIds = await _context.Seats
                 .Where(s => model.LayoutIds.Contains(s.Layout_ID) && s.Booking_ID != null)
                 .Select(s => s.Layout_ID)
+                .Distinct()
                 .ToListAsync();
 
             if (usedLayoutIds.Any())
                 return new
                 {
                     success = false,
-                    message = "Một số ghế đã được sử dụng trong đặt vé và không thể xóa",
-                    used_seats = usedLayoutIds
+                    message = "Một số layout ghế đã được sử dụng trong đặt vé và không thể xóa",
+                    used_layouts = usedLayoutIds
                 };
 
             // Lấy các SeatLayout cần xóa mềm
@@ -588,7 +565,7 @@ namespace STP.Repository.Services
                 .ToListAsync();
 
             if (!seatLayouts.Any())
-                throw new KeyNotFoundException("Không tìm thấy ghế nào cần xóa");
+                throw new KeyNotFoundException("Không tìm thấy layout ghế nào cần xóa");
 
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -599,19 +576,10 @@ namespace STP.Repository.Services
                     layout.Is_Active = false;
                 }
 
-                // Cập nhật trạng thái seat tương ứng thành Unavailable
-                var layoutIds = seatLayouts.Select(sl => sl.Layout_ID).ToList();
-                var seats = await _context.Seats
-                    .Where(s => layoutIds.Contains(s.Layout_ID))
-                    .ToListAsync();
+                // Không cần cập nhật trạng thái Seat vì Seat sẽ được tạo theo Showtime,
+                // và khi tạo Seat mới sẽ dựa vào SeatLayout.Is_Active
 
-                foreach (var seat in seats)
-                {
-                    seat.Seat_Status = "Unavailable";
-                    seat.Last_Updated = DateTime.Now;
-                }
-
-                // Cập nhật tổng số ghế trong phòng nếu xóa hết ghế một hàng
+                // Cập nhật tổng số ghế trong phòng
                 if (seatLayouts.Any())
                 {
                     var roomId = seatLayouts.First().Cinema_Room_ID;
@@ -632,9 +600,9 @@ namespace STP.Repository.Services
                 return new
                 {
                     success = true,
-                    message = $"Đã xóa mềm {seatLayouts.Count} ghế thành công",
+                    message = $"Đã xóa mềm {seatLayouts.Count} layout ghế thành công",
                     deleted_count = seatLayouts.Count,
-                    deleted_seats = seatLayouts.Select(sl => new
+                    deleted_layouts = seatLayouts.Select(sl => new
                     {
                         layout_id = sl.Layout_ID,
                         row_label = sl.Row_Label,
@@ -645,7 +613,7 @@ namespace STP.Repository.Services
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                _logger.LogError(ex, "Lỗi khi xóa mềm ghế: {Message}", ex.Message);
+                _logger.LogError(ex, "Lỗi khi xóa mềm layout ghế: {Message}", ex.Message);
                 throw;
             }
         }
@@ -673,7 +641,8 @@ namespace STP.Repository.Services
                 {
                     Room_Name = model.RoomName,
                     Room_Type = model.RoomType,
-                    Seat_Quantity = 0 // Sẽ cập nhật sau khi sao chép layout
+                    Seat_Quantity = templateLayouts.Count, // Số lượng ghế bằng số lượng layout
+                    Status = "Active"
                 };
                 _context.CinemaRooms.Add(newRoom);
                 await _context.SaveChangesAsync(); // Lưu để lấy Cinema_Room_ID
@@ -693,25 +662,9 @@ namespace STP.Repository.Services
                     newLayouts.Add(newLayout);
                 }
                 await _context.SeatLayouts.AddRangeAsync(newLayouts);
-                await _context.SaveChangesAsync(); // Lưu để lấy Layout_ID
-
-                // Tạo các bản ghi Seats cho mỗi SeatLayout mới
-                var newSeats = new List<Seat>();
-                foreach (var layout in newLayouts)
-                {
-                    newSeats.Add(new Seat
-                    {
-                        Layout_ID = layout.Layout_ID,
-                        Seat_Status = "Available",
-                        Last_Updated = DateTime.Now,
-                        Booking_ID = null
-                    });
-                }
-                await _context.Seats.AddRangeAsync(newSeats);
-
-                // Cập nhật tổng số ghế của phòng chiếu mới
-                newRoom.Seat_Quantity = newLayouts.Count;
                 await _context.SaveChangesAsync();
+
+                // LƯU Ý: Không tạo Seat ở đây nữa
 
                 // Xác nhận giao dịch
                 await transaction.CommitAsync();
@@ -734,7 +687,7 @@ namespace STP.Repository.Services
                 // Hủy giao dịch nếu có lỗi
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "Lỗi khi tạo phòng chiếu mới với layout có sẵn: {Message}", ex.Message);
-                throw; // Ném lỗi để controller xử lý
+                throw;
             }
         }
     }

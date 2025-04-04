@@ -45,6 +45,8 @@ namespace STP.Repository.Dtos
 
         public bool Is_Active { get; set; }
 
+        public int Showtime_ID { get; set; }
+
     }
 
     public class CreateRoomWithLayoutDto

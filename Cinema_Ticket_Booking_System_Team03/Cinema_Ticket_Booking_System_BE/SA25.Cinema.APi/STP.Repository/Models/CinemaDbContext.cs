@@ -329,6 +329,18 @@ namespace STP.Repository.Data
 
             modelBuilder.Entity<PointsEarning>()
                 .HasIndex(pe => pe.Booking_ID);
+
+            modelBuilder.Entity<Seat>()
+       .HasOne(s => s.Showtime)
+       .WithMany(st => st.Seats)
+       .HasForeignKey(s => s.Showtime_ID)
+       .OnDelete(DeleteBehavior.Restrict);
+
+            // Bổ sung navigation property trong Showtime
+            modelBuilder.Entity<Showtime>()
+                .HasMany(st => st.Seats)
+                .WithOne(s => s.Showtime)
+                .HasForeignKey(s => s.Showtime_ID);
         }
     }
 }

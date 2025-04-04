@@ -8,6 +8,8 @@ using STP.Repository.Data;
 using Microsoft.Extensions.Logging;
 using STP.Repository.Dtos;
 using Microsoft.EntityFrameworkCore;
+using STP.APIService.Services;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace STP.Service.Services
 {
@@ -19,6 +21,7 @@ namespace STP.Service.Services
         private readonly ShowtimeRepository _showtimeRepository; // Repository xử lý dữ liệu lịch chiếu
         private readonly CinemaDbContext _context; // Context database
         private readonly ILogger<ShowtimeService> _logger; // Logger ghi nhật ký
+        private readonly SeatService _seatService;
 
         /// <summary>
         /// Khởi tạo dịch vụ quản lý lịch chiếu
@@ -26,11 +29,12 @@ namespace STP.Service.Services
         /// <param name="showtimeRepository">Repository xử lý dữ liệu lịch chiếu</param>
         /// <param name="context">Context database</param>
         /// <param name="logger">Logger ghi nhật ký</param>
-        public ShowtimeService(ShowtimeRepository showtimeRepository, CinemaDbContext context, ILogger<ShowtimeService> logger)
+        public ShowtimeService(ShowtimeRepository showtimeRepository, CinemaDbContext context, ILogger<ShowtimeService> logger, SeatService seatService)
         {
             _showtimeRepository = showtimeRepository;
             _context = context;
             _logger = logger;
+            _seatService = seatService;
         }
 
         /// <summary>
@@ -105,7 +109,14 @@ namespace STP.Service.Services
             }
         }
 
-        public async Task<ShowtimeDto> CreateShowtimeAsync(ShowtimeCreateDto model, int userId)
+        /// <summary>
+        /// Tạo suất chiếu mới và tạo ghế tương ứng
+        /// </summary>
+        /// <param name="model">Thông tin suất chiếu</param>
+        /// <param name="userId">ID người tạo</param>
+        /// <param name="existingTransaction">Transaction đã tồn tại (nếu có)</param>
+        /// <returns>Thông tin suất chiếu đã tạo</returns>
+        public async Task<ShowtimeDto> CreateShowtimeAsync(ShowtimeCreateDto model, int userId, IDbContextTransaction existingTransaction = null)
         {
             // Log thông tin đầu vào
             _logger.LogInformation($"Bắt đầu tạo xuất chiếu - Phim ID: {model.Movie_ID}, Phòng ID: {model.Cinema_Room_ID}, Ngày: {model.Show_Date}, Giờ bắt đầu: {model.Start_Time}");
@@ -190,29 +201,76 @@ namespace STP.Service.Services
                 throw new InvalidOperationException("Suất chiếu bị trùng lịch với suất chiếu khác trong cùng phòng");
             }
 
-            // Tạo xuất chiếu mới
-            var showtime = new Showtime
-            {
-                Movie_ID = model.Movie_ID,
-                Cinema_Room_ID = model.Cinema_Room_ID,
-                Show_Date = model.Show_Date,
-                Start_Time = model.Start_Time,
-                End_Time = endTime,
-                Price_Tier = model.Price_Tier ?? "Normal",
-                Base_Price = model.Base_Price > 0 ? model.Base_Price : 90000,
-                Status = "Scheduled",
-                Capacity_Available = cinemaRoom.Seat_Quantity,
-                Created_By = userId,
-                Created_At = DateTime.Now,
-                Updated_At = DateTime.Now
-            };
+            // Xác định xem cần tạo transaction mới hay sử dụng transaction được truyền vào
+            IDbContextTransaction transaction = null;
+            bool ownTransaction = false;
 
             try
             {
+                // Kiểm tra số lượng layout ghế của phòng
+                var seatLayoutCount = await _context.SeatLayouts
+                    .CountAsync(sl => sl.Cinema_Room_ID == model.Cinema_Room_ID && sl.Is_Active);
+
+                if (seatLayoutCount == 0)
+                {
+                    _logger.LogWarning($"Phòng chiếu {model.Cinema_Room_ID} chưa được cấu hình ghế ngồi");
+                    throw new InvalidOperationException("Phòng chiếu chưa được cấu hình ghế ngồi");
+                }
+
+                // Xác định transaction
+                if (existingTransaction == null)
+                {
+                    // Nếu không có transaction được truyền vào, tạo mới
+                    transaction = await _context.Database.BeginTransactionAsync();
+                    ownTransaction = true;
+                }
+                else
+                {
+                    // Sử dụng transaction được truyền vào
+                    transaction = existingTransaction;
+                }
+
+                // Tạo xuất chiếu mới
+                var showtime = new Showtime
+                {
+                    Movie_ID = model.Movie_ID,
+                    Cinema_Room_ID = model.Cinema_Room_ID,
+                    Show_Date = model.Show_Date,
+                    Start_Time = model.Start_Time,
+                    End_Time = endTime,
+                    Price_Tier = model.Price_Tier ?? "Normal",
+                    Base_Price = model.Base_Price > 0 ? model.Base_Price : 90000,
+                    Status = "Scheduled",
+                    Capacity_Available = seatLayoutCount,
+                    Created_By = userId,
+                    Created_At = DateTime.Now,
+                    Updated_At = DateTime.Now
+                };
+
                 _context.Showtimes.Add(showtime);
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation($"Tạo xuất chiếu thành công - ID: {showtime.Showtime_ID}");
+
+                // Tạo ghế cho suất chiếu
+                try
+                {
+                    int seatsCreated = await _seatService.CreateSeatsForShowtimeAsync(showtime.Showtime_ID);
+                    _logger.LogInformation($"Đã tạo {seatsCreated} ghế cho xuất chiếu ID: {showtime.Showtime_ID}");
+
+                    // Cập nhật lại số ghế khả dụng (nếu cần)
+                    if (showtime.Capacity_Available != seatsCreated && seatsCreated > 0)
+                    {
+                        showtime.Capacity_Available = seatsCreated;
+                        await _context.SaveChangesAsync();
+                        _logger.LogInformation($"Đã cập nhật số ghế khả dụng cho xuất chiếu: {seatsCreated}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Ghi log nhưng không ném lỗi, vì không muốn làm gián đoạn quá trình tạo showtime
+                    _logger.LogError(ex, $"Lỗi khi tạo ghế cho xuất chiếu ID: {showtime.Showtime_ID}");
+                }
 
                 // Cập nhật trạng thái phim nếu cần
                 if (movie.Status == "Coming Soon" && model.Show_Date.Date <= DateTime.Today)
@@ -222,12 +280,24 @@ namespace STP.Service.Services
                     _logger.LogInformation($"Cập nhật trạng thái phim {movie.Movie_Name} thành Now Showing");
                 }
 
+                // Chỉ commit transaction nếu chúng ta tạo ra nó
+                if (ownTransaction)
+                {
+                    await transaction.CommitAsync();
+                    _logger.LogInformation($"Hoàn tất tạo xuất chiếu ID: {showtime.Showtime_ID}");
+                }
+
                 return MapToShowtimeDto(showtime, cinemaRoom.Room_Name);
             }
             catch (Exception ex)
             {
+                // Chỉ rollback transaction nếu chúng ta tạo ra nó
+                if (transaction != null && ownTransaction)
+                {
+                    await transaction.RollbackAsync();
+                }
                 _logger.LogError(ex, $"Lỗi khi lưu xuất chiếu - Chi tiết: {ex.Message}");
-                throw;
+                throw new Exception($"Không thể tạo xuất chiếu: {ex.Message}", ex);
             }
         }
 
@@ -1228,10 +1298,19 @@ namespace STP.Service.Services
         /// <summary>
         /// Tạo và lưu lịch chiếu tự động
         /// </summary>
+        /// <param name="request">Yêu cầu lập lịch tự động</param>
+        /// <param name="userId">ID người tạo</param>
+        /// <returns>Danh sách xuất chiếu được tạo</returns>
         public async Task<List<ShowtimeDto>> SaveAutoScheduledShowtimesAsync(AutoScheduleRequest request, int userId)
         {
             // Log thông tin đầu vào
             _logger.LogInformation($"Bắt đầu lưu lịch chiếu tự động - Phòng: {request.CinemaRoomId}, Ngày: {request.ShowDate}");
+
+            if (request == null || request.Movies == null || !request.Movies.Any())
+            {
+                _logger.LogWarning("Yêu cầu lập lịch tự động không hợp lệ");
+                throw new ArgumentException("Yêu cầu lập lịch tự động không hợp lệ");
+            }
 
             // Kiểm tra xem đã có lịch chiếu cho ngày này chưa
             var existingShowtimesForDate = await _context.Showtimes
@@ -1241,14 +1320,47 @@ namespace STP.Service.Services
                     s.Status != "Hidden")
                 .ToListAsync();
 
-            if (existingShowtimesForDate.Any())
+            if (existingShowtimesForDate.Any() && !request.OverwriteExisting)
             {
                 _logger.LogWarning($"Đã tồn tại {existingShowtimesForDate.Count} xuất chiếu trong phòng {request.CinemaRoomId} vào ngày {request.ShowDate.Date}");
-                throw new InvalidOperationException($"Đã có lịch chiếu trong phòng {request.CinemaRoomId} vào ngày {request.ShowDate.Date}. Vui lòng xóa hoặc ẩn các xuất chiếu hiện tại.");
+                throw new InvalidOperationException($"Đã có lịch chiếu trong phòng {request.CinemaRoomId} vào ngày {request.ShowDate.Date}. Vui lòng xóa hoặc ẩn các xuất chiếu hiện tại, hoặc thiết lập OverwriteExisting = true để ghi đè.");
             }
 
+            // Kiểm tra phòng chiếu
+            var cinemaRoom = await _context.CinemaRooms.FindAsync(request.CinemaRoomId);
+            if (cinemaRoom == null)
+            {
+                _logger.LogWarning($"Không tìm thấy phòng chiếu có ID {request.CinemaRoomId}");
+                throw new ArgumentException($"Không tìm thấy phòng chiếu có ID {request.CinemaRoomId}");
+            }
+
+            // Kiểm tra xem phòng có layout ghế không
+            var hasSeats = await _context.SeatLayouts
+                .AnyAsync(sl => sl.Cinema_Room_ID == request.CinemaRoomId && sl.Is_Active);
+
+            if (!hasSeats)
+            {
+                _logger.LogWarning($"Phòng chiếu {request.CinemaRoomId} chưa được cấu hình ghế ngồi");
+                throw new InvalidOperationException("Phòng chiếu chưa được cấu hình ghế ngồi");
+            }
+
+            // Bắt đầu transaction để đảm bảo tính toàn vẹn dữ liệu
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                // Nếu yêu cầu ghi đè, ẩn các xuất chiếu hiện có
+                if (existingShowtimesForDate.Any() && request.OverwriteExisting)
+                {
+                    _logger.LogInformation($"Đang ẩn {existingShowtimesForDate.Count} xuất chiếu hiện có để ghi đè");
+                    foreach (var existingShowtime in existingShowtimesForDate)
+                    {
+                        existingShowtime.Status = "Hidden";
+                        existingShowtime.Updated_At = DateTime.Now;
+                    }
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Đã ẩn các xuất chiếu hiện có");
+                }
+
                 // Đầu tiên tạo lịch tự động
                 var scheduledResult = await AutoScheduleShowtimesAsync(request, userId);
 
@@ -1257,7 +1369,7 @@ namespace STP.Service.Services
 
                 // Lưu các lịch chiếu vào database
                 var createdShowtimes = new List<ShowtimeDto>();
-                var failedShowtimes = new List<(GeneratedShowtime Showtime, Exception Error)>();
+                var failedShowtimes = new List<(GeneratedShowtime Showtime, string ErrorMessage)>();
 
                 foreach (var showtime in scheduledResult.Showtimes)
                 {
@@ -1275,15 +1387,16 @@ namespace STP.Service.Services
 
                         _logger.LogInformation($"Đang tạo xuất chiếu - Phim: {showtime.MovieName}, Giờ bắt đầu: {showtime.StartTime}");
 
-                        var createdShowtime = await CreateShowtimeAsync(createDto, userId);
-                        createdShowtimes.Add(createdShowtime);
+                        // Truyền transaction hiện tại vào CreateShowtimeAsync
+                        var createdShowtime = await CreateShowtimeAsync(createDto, userId, transaction);
 
+                        createdShowtimes.Add(createdShowtime);
                         _logger.LogInformation($"Tạo xuất chiếu thành công - ID: {createdShowtime.Showtime_ID}");
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, $"Lỗi khi tạo xuất chiếu cho phim {showtime.MovieName}");
-                        failedShowtimes.Add((showtime, ex));
+                        _logger.LogWarning(ex, $"Lỗi khi tạo xuất chiếu cho phim {showtime.MovieName}: {ex.Message}");
+                        failedShowtimes.Add((showtime, ex.Message));
                     }
                 }
 
@@ -1293,24 +1406,47 @@ namespace STP.Service.Services
                     _logger.LogWarning($"Có {failedShowtimes.Count} xuất chiếu không thể tạo:");
                     foreach (var failed in failedShowtimes)
                     {
-                        _logger.LogWarning($"Phim: {failed.Showtime.MovieName}, Lỗi: {failed.Error.Message}");
+                        _logger.LogWarning($"Phim: {failed.Showtime.MovieName}, Lỗi: {failed.ErrorMessage}");
                     }
 
                     // Nếu không tạo được xuất chiếu nào
                     if (createdShowtimes.Count == 0)
                     {
-                        throw new InvalidOperationException("Không thể tạo bất kỳ xuất chiếu nào");
+                        await transaction.RollbackAsync();
+                        throw new InvalidOperationException("Không thể tạo bất kỳ xuất chiếu nào. Vui lòng kiểm tra lại thông tin và thử lại.");
                     }
                 }
 
+                // Commit transaction
+                await transaction.CommitAsync();
                 _logger.LogInformation($"Hoàn tất lưu lịch chiếu - Tổng: {createdShowtimes.Count} xuất chiếu");
+
+                // Thêm thông tin về các xuất chiếu thất bại (nếu có) vào response
+                if (failedShowtimes.Any())
+                {
+                    foreach (var createdShowtime in createdShowtimes)
+                    {
+                        createdShowtime.WarningMessage = $"Có {failedShowtimes.Count} xuất chiếu không thể tạo. Vui lòng kiểm tra logs.";
+                    }
+                }
 
                 return createdShowtimes;
             }
             catch (Exception ex)
             {
+                // Rollback transaction nếu có lỗi
+                try
+                {
+                    await transaction.RollbackAsync();
+                }
+                catch (InvalidOperationException transactionEx)
+                {
+                    // Xử lý trường hợp transaction đã kết thúc
+                    _logger.LogError(transactionEx, "Lỗi khi rollback transaction: Transaction đã kết thúc");
+                }
+
                 _logger.LogError(ex, "Lỗi hệ thống khi lưu lịch chiếu tự động");
-                throw;
+                throw new Exception($"Không thể lưu lịch chiếu tự động: {ex.Message}", ex);
             }
         }
 
