@@ -45,6 +45,8 @@ namespace STP.Repository.Dtos
 
         public bool Is_Active { get; set; }
 
+        public int Showtime_ID { get; set; }
+
     }
 
     public class CreateRoomWithLayoutDto
@@ -187,7 +189,7 @@ namespace STP.Repository.Dtos
     public class BulkRowConfigurationDto
     {
         public string RowsInput { get; set; }  // Chuỗi chứa các hàng, ví dụ: "A,B,C" hoặc "A-Z"
-        
+
         public int ColumnsPerRow { get; set; }
 
         public string SeatType { get; set; }
@@ -220,5 +222,6 @@ namespace STP.Repository.Dtos
         public List<int> LayoutIds { get; set; }
     }
 }
+
 
 

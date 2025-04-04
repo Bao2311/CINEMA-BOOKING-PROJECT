@@ -1878,6 +1878,7 @@ import BookingsHistoryTab from '../components/Profile/BookingsHistoryTab';
 import NotificationsTab from '../components/Profile/NotificationsTab';
 import SettingsTab from '../components/Profile/SettingsTab';
 import TicketDetailModal from '../components/Profile/TicketDetailModal';
+import CheckInsTab from '../components/Profile/CheckInsTab';
 
 // Import các interfaces
 import {
@@ -1887,7 +1888,7 @@ import {
 
 // Thêm interface cho props
 interface ProfilePageProps {
-  defaultTab?: 'profile' | 'bookings' | 'notifications' | 'settings';
+  defaultTab?: 'profile' | 'bookings' | 'notifications' | 'settings' | 'checkins';
 }
 
 // Component chính
@@ -1915,6 +1916,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ defaultTab }) => {
     if (path.includes('/profile/bookings')) return 'bookings';
     if (path.includes('/profile/notifications')) return 'notifications';
     if (path.includes('/profile/settings')) return 'settings';
+    if (path.includes('/profile/checkins')) return 'checkins';
     return 'profile';
   };
   
@@ -1958,6 +1960,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ defaultTab }) => {
       navigate('/profile/notifications', { replace: true });
     } else if (activeTab === 'settings' && !location.pathname.endsWith('/settings')) {
       navigate('/profile/settings', { replace: true });
+    } else if (activeTab === 'checkins' && !location.pathname.endsWith('/checkins')) {
+      navigate('/profile/checkins', { replace: true });
     }
   }, [activeTab, navigate, location.pathname]);
 
@@ -2278,6 +2282,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ defaultTab }) => {
                 navigate={navigate}
               />
             )}
+            {activeTab === 'checkins' && (
+              <CheckInsTab 
+                showAlert={showAlert}
+                apiBaseUrl={apiBaseUrl}
+                navigate={navigate}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -2290,7 +2301,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ defaultTab }) => {
   );
 };
 
-export default ProfilePage;
+export default ProfilePage; 
 
 
 

@@ -1118,7 +1118,7 @@ interface Promotion {
   id: string;
   name: string;
   code: string;
-  discountType: 'percentage' | 'fixed';
+  discountType: 'Percentage' | 'fixed';
   discountValue: number;
   maxDiscount?: number;
   minPurchase?: number;

@@ -3464,7 +3464,7 @@ import {
   FaRegCalendarAlt, FaRegCalendar, FaRegClock, FaRegMoneyBillWave, FaRegFileAlt, FaRegFile, FaCalendarWeek,
   FaEye, FaTicketAlt, FaPercentage, FaGlobe, FaStar, FaCalendarTimes, FaSliders
 } from 'react-icons/fa';
-
+import BulkShowtimeCreator from '../components/Showtime/BulkShowtimeCreator';
 import { useNavigate } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -4523,48 +4523,57 @@ const ManageShowtimesPage = () => {
           </div>
           
           <div className="flex flex-wrap gap-3">
-            <button 
-              onClick={toggleCreateForm} 
-              className={`px-4 py-2.5 rounded-full flex items-center font-medium transition-all shadow-sm ${
-                showCreateForm 
-                  ? 'bg-red-100 text-red-600 hover:bg-red-200' 
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-            >
-              {showCreateForm ? (
-                <>
-                  <FaTimes className="mr-2" />
-                  Đóng form
-                </>
-              ) : (
-                <>
-                  <FaPlus className="mr-2" />
-                  Tạo lịch chiếu mới
-                </>
-              )}
-            </button>
-            
-            <button 
-              onClick={toggleFilters} 
-              className={`px-4 py-2.5 rounded-full flex items-center font-medium transition-all shadow-sm ${
-                showFilters 
-                  ? 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              <FaFilter className="mr-2" />
-              {showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
-            </button>
-            
-            <button 
-              onClick={handleRefresh} 
-              className="px-4 py-2.5 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition-all flex items-center font-medium shadow-sm"
-              disabled={refreshing}
-            >
-              <FaSync className={`mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Đang tải...' : 'Làm mới'}
-            </button>
-          </div>
+  <button 
+    onClick={toggleCreateForm} 
+    className={`px-4 py-2.5 rounded-full flex items-center font-medium transition-all shadow-sm ${
+      showCreateForm 
+        ? 'bg-red-100 text-red-600 hover:bg-red-200' 
+        : 'bg-blue-600 text-white hover:bg-blue-700'
+    }`}
+  >
+    {showCreateForm ? (
+      <>
+        <FaTimes className="mr-2" />
+        Đóng form
+      </>
+    ) : (
+      <>
+        <FaPlus className="mr-2" />
+        Tạo lịch chiếu mới
+      </>
+    )}
+  </button>
+  
+  {/* Thêm nút tạo nhiều suất chiếu ở đây */}
+  <BulkShowtimeCreator 
+    token={token}
+    movies={movies}
+    cinemaRooms={cinemaRooms}
+    onShowtimesCreated={fetchShowtimes}
+  />
+  
+  <button 
+    onClick={toggleFilters} 
+    className={`px-4 py-2.5 rounded-full flex items-center font-medium transition-all shadow-sm ${
+      showFilters 
+        ? 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200' 
+        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+    }`}
+  >
+    <FaFilter className="mr-2" />
+    {showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
+  </button>
+  
+  <button 
+    onClick={handleRefresh} 
+    className="px-4 py-2.5 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition-all flex items-center font-medium shadow-sm"
+    disabled={refreshing}
+  >
+    <FaSync className={`mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+    {refreshing ? 'Đang tải...' : 'Làm mới'}
+  </button>
+</div>
+
         </div>
       </motion.div>
 

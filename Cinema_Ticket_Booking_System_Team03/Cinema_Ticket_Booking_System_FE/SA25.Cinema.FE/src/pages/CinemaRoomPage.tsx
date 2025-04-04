@@ -3,6 +3,8 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Modal } from 'antd';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import * as Styles from './Styles';
 
 // Define interfaces with proper typing
@@ -96,7 +98,6 @@ const Seat: React.FC<SeatProps> = ({ seat, isSelected, onSelect, seatSize = 'med
     $isSelected={isSelected}
     $seatType={seat.seatType}
     $seatSize={seatSize}
-    $isActive={seat.isActive}
     onClick={() => onSelect(seat)}
     disabled={seat.isBooked || !seat.isActive}
     aria-label={`Seat ${seat.id}, ${seat.seatType} seat, ${seat.isBooked ? 'booked' : seat.isActive ? 'available' : 'inactive'}`}
@@ -128,7 +129,6 @@ const CinemaRoomPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [movieDetails, setMovieDetails] = useState<MovieDetails | null>(null);
   const [showtimeDetails, setShowtimeDetails] = useState<ShowtimeDetails | null>(null);
-  const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingId, setBookingId] = useState<number | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const screenRef = useRef<HTMLDivElement>(null);
@@ -149,7 +149,7 @@ const CinemaRoomPage: React.FC = () => {
         setMovieDetails(response.data);
       } catch (error) {
         console.error("Error fetching movie details:", error);
-        alert("Không thể tải thông tin phim. Vui lòng thử lại sau.");
+        toast.error("Không thể tải thông tin phim. Vui lòng thử lại sau.");
       } finally {
         setIsLoading(false);
       }
@@ -166,7 +166,7 @@ const CinemaRoomPage: React.FC = () => {
         setShowtimeDetails(response.data);
       } catch (error) {
         console.error("Error fetching showtime details:", error);
-        alert("Không thể tải thông tin suất chiếu. Vui lòng thử lại sau.");
+        toast.error("Không thể tải thông tin suất chiếu. Vui lòng thử lại sau.");
       } finally {
         setIsLoading(false);
       }
@@ -216,7 +216,7 @@ const CinemaRoomPage: React.FC = () => {
         setSeats(mappedSeats);
       } catch (error) {
         console.error('Error fetching seat layout or status:', error);
-        alert('Failed to load seat layout or status.');
+        toast.error('Không thể tải sơ đồ ghế. Vui lòng thử lại sau.');
       } finally {
         setIsLoading(false);
       }
@@ -231,7 +231,7 @@ const CinemaRoomPage: React.FC = () => {
       const isAlreadySelected = prev.some(s => s.id === seat.id);
       if (isAlreadySelected) return prev.filter(s => s.id !== seat.id);
       if (prev.length >= 8) {
-        alert('Bạn chỉ có thể chọn tối đa 8 ghế mỗi lần');
+        toast.warning('Bạn chỉ có thể chọn tối đa 8 ghế mỗi lần');
         return prev;
       }
       return [...prev, seat];
@@ -278,11 +278,11 @@ const CinemaRoomPage: React.FC = () => {
             },
           }
         );
-        alert('Đã hết thời gian thanh toán. Vé của bạn đã bị hủy.');
+        toast.info('Đã hết thời gian thanh toán. Vé của bạn đã bị hủy.');
         navigate('/showtimes');
       } catch (error) {
         console.error('Error cancelling booking:', error);
-        alert('Có lỗi xảy ra khi hủy vé. Vui lòng thử lại.');
+        toast.error('Có lỗi xảy ra khi hủy vé. Vui lòng thử lại.');
       }
     }
   };
@@ -295,7 +295,7 @@ const CinemaRoomPage: React.FC = () => {
 
   const sendBookingRequest = async () => {
     if (selectedSeats.length === 0) {
-      alert('Vui lòng chọn ít nhất một ghế');
+      toast.warning('Vui lòng chọn ít nhất một ghế');
       return false;
     }
 
@@ -305,7 +305,8 @@ const CinemaRoomPage: React.FC = () => {
 
     if (seat_IDs.length !== selectedSeats.length) {
       console.error('Some selected seats do not have seat_ID');
-      alert('Có lỗi xảy ra với thông tin ghế. Vui lòng thử lại.');
+      toast.error('Có lỗi xảy ra với thông tin ghế. Vui lòng thử lại.');
+      window.location.reload(); // Reload the page on error
       return false;
     }
 
@@ -317,7 +318,6 @@ const CinemaRoomPage: React.FC = () => {
 
     try {
       setIsLoading(true);
-      setBookingError(null);
       setTotalPointsUsed(0); // Reset total points used when creating a new booking
       const token = localStorage.getItem('token');
       const response = await axios.post(
@@ -336,7 +336,9 @@ const CinemaRoomPage: React.FC = () => {
       return true;
     } catch (error: any) {
       console.error('Error creating booking:', error);
-      setBookingError(error.response?.data?.message || 'Không thể tạo đặt vé. Vui lòng thử lại sau.');
+      const errorMessage = error.response?.data?.message || 'Không thể tạo đặt vé. Vui lòng thử lại sau.';
+      toast.error(errorMessage);
+      setTimeout(() => window.location.reload(), 2000); // Reload the page after showing error message
       return false;
     } finally {
       setIsLoading(false);
@@ -346,7 +348,7 @@ const CinemaRoomPage: React.FC = () => {
   const completeBooking = async () => {
     if (step === 'select') {
       if (selectedSeats.length === 0) {
-        alert('Vui lòng chọn ít nhất một ghế');
+        toast.warning('Vui lòng chọn ít nhất một ghế');
         return;
       }
       setShowConfirm(true);
@@ -355,6 +357,7 @@ const CinemaRoomPage: React.FC = () => {
 
     if (step === 'payment') {
       try {
+        setIsLoading(true);
         const payosResponse = await axios.post(
           'https://localhost:7168/api/payos/create',
           { bookingId: bookingId },
@@ -373,7 +376,8 @@ const CinemaRoomPage: React.FC = () => {
         }
       } catch (error) {
         console.error('Error creating payment link:', error);
-        setBookingError('Không thể tạo liên kết thanh toán. Vui lòng thử lại.');
+        toast.error('Không thể tạo liên kết thanh toán. Vui lòng thử lại.');
+        setTimeout(() => window.location.reload(), 2000); // Reload the page after showing error message
         setIsLoading(false);
       }
       return;
@@ -435,17 +439,17 @@ const CinemaRoomPage: React.FC = () => {
     try {
       const points = parseInt(pointsToUse);
       if (isNaN(points)) {
-        alert('Vui lòng nhập số điểm hợp lệ');
+        toast.warning('Vui lòng nhập số điểm hợp lệ');
         return;
       }
       
       if (points % 1000 !== 0) {
-        alert('Số điểm sử dụng phải là bội của 1000');
+        toast.warning('Số điểm sử dụng phải là bội của 1000');
         return;
       }
 
       if (points < 0 || points > userPoints) {
-        alert('Số điểm không hợp lệ');
+        toast.error('Số điểm không hợp lệ');
         return;
       }
 
@@ -454,7 +458,7 @@ const CinemaRoomPage: React.FC = () => {
       const remainingAllowedPoints = maxAllowedPoints - totalPointsUsed;
       
       if (points > remainingAllowedPoints) {
-        alert(`Bạn chỉ có thể sử dụng tối đa ${remainingAllowedPoints.toLocaleString('vi-VN')} điểm (50% tổng hóa đơn)`);
+        toast.warning(`Bạn chỉ có thể sử dụng tối đa ${remainingAllowedPoints.toLocaleString('vi-VN')} điểm (50% tổng hóa đơn)`);
         return;
       }
 
@@ -474,17 +478,17 @@ const CinemaRoomPage: React.FC = () => {
       setUserPoints(response.data.currentPoints);
       setTotalPointsUsed(prev => prev + points); // Track total points used
       setPointsToUse('');
-      alert(`Áp dụng ${points.toLocaleString('vi-VN')} điểm thành công!`);
+      toast.success(`Áp dụng ${points.toLocaleString('vi-VN')} điểm thành công!`);
     } catch (error) {
       console.error('Error applying points:', error);
-      alert('Không thể áp dụng điểm. Vui lòng thử lại.');
+      toast.error('Không thể áp dụng điểm. Vui lòng thử lại.');
     }
   };
 
   const handleApplyPromotion = async () => {
     try {
       if (!promotionCode.trim()) {
-        alert('Vui lòng nhập mã khuyến mãi');
+        toast.warning('Vui lòng nhập mã khuyến mãi');
         return;
       }
 
@@ -505,19 +509,20 @@ const CinemaRoomPage: React.FC = () => {
 
       if (response.data.success) {
         setNewTotal(response.data.new_total / 1000); // Chuyển đổi sang đơn vị k
-        alert('Áp dụng mã khuyến mãi thành công!');
+        toast.success('Áp dụng mã khuyến mãi thành công!');
       } else {
-        alert(response.data.message || 'Mã khuyến mãi không hợp lệ');
+        toast.error(response.data.message || 'Mã khuyến mãi không hợp lệ');
       }
     } catch (error) {
       console.error('Error applying promotion:', error);
-      alert('Không thể áp dụng mã khuyến mãi. Vui lòng thử lại.');
+      toast.error('Không thể áp dụng mã khuyến mãi. Vui lòng thử lại.');
     }
   };
 
   return (
     <>
       <Styles.GlobalStyle />
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover theme="light" />
       <Styles.PageContainer>
         <Styles.BookingSection>
           <Styles.StepsIndicator>
@@ -533,7 +538,7 @@ const CinemaRoomPage: React.FC = () => {
           </Styles.StepsIndicator>
           <AnimatePresence mode="wait">
             {step === 'select' && (
-              <motion.div key="select" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+              <motion.div key="select" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
                 <Styles.MovieInfoCard>
                   <Styles.MovieInfoContent>
                     {isLoading ? (
@@ -600,11 +605,6 @@ const CinemaRoomPage: React.FC = () => {
                         <Styles.LegendItem><Styles.ColorBox $color="#28a745" /><span>Đã chọn</span></Styles.LegendItem>
                         <Styles.LegendItem><Styles.ColorBox $color="#6c757d" /><span>Đã đặt</span></Styles.LegendItem>
                       </Styles.SeatLegend>
-                      {bookingError && (
-                        <Styles.ErrorMessage>
-                          {bookingError}
-                        </Styles.ErrorMessage>
-                      )}
                     </>
                   )}
                 </Styles.CinemaContainer>
@@ -767,7 +767,7 @@ const CinemaRoomPage: React.FC = () => {
                         setDiscountedTotal(null);
                       } catch (error) {
                         console.error('Error cancelling booking:', error);
-                        alert('Không thể hủy đặt vé. Vui lòng thử lại.');
+                        toast.error('Không thể hủy đặt vé. Vui lòng thử lại.');
                       }
                     } else {
                       setStep('select');
