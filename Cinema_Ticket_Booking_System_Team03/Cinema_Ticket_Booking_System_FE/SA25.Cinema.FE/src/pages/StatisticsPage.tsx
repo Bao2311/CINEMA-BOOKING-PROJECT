@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState ,useEffect} from "react";
 import axios from "axios";
 import {
   Row,
@@ -13,14 +13,30 @@ import {
   Form,
   message,
 } from "antd";
-
+import { toast, ToastContainer } from 'react-toastify';
+import { useNavigate } from "react-router-dom";
 const { Title } = Typography;
 
 const Statistics = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
+  const navigate = useNavigate();
 
+
+// Lấy role từ localStorage
+const getRole = () => {
+  return localStorage.getItem("role") || sessionStorage.getItem("role");
+};
+
+// Kiểm tra quyền truy cập
+useEffect(() => {
+  const role = getRole();
+  if (role !== "Admin") {
+    toast.error("Bạn không có quyền truy cập trang này.");
+    navigate("/"); // Điều hướng sang trang unauthorized
+  }
+}, [navigate]);
   // Hàm gọi API
   const fetchStatistics = async (startDate, endDate) => {
     setLoading(true);
