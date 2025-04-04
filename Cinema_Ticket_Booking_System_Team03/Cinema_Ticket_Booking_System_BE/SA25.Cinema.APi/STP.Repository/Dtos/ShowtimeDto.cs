@@ -4,6 +4,38 @@ using System.ComponentModel.DataAnnotations;
 
 namespace STP.Repository.Dtos
 {
+
+    public class AutoScheduleRequest
+    {
+        public DateTime ShowDate { get; set; }
+        public int CinemaRoomId { get; set; }
+        public List<MovieScheduleInput> Movies { get; set; }
+    }
+
+    public class MovieScheduleInput
+    {
+        public int MovieId { get; set; }
+        public int ShowtimeCount { get; set; }
+    }
+
+    public class AutoScheduleResult
+    {
+        public DateTime Date { get; set; }
+        public string RoomName { get; set; }
+        public List<GeneratedShowtime> Showtimes { get; set; }
+    }
+
+    public class GeneratedShowtime
+    {
+        public int MovieId { get; set; }
+        public string MovieName { get; set; }
+        public DateTime StartDateTime { get; set; }
+        public DateTime EndDateTime { get; set; }
+        public TimeSpan StartTime { get; set; }
+        public TimeSpan EndTime { get; set; }
+        public string PriceTier { get; set; }
+        public decimal BasePrice { get; set; }
+    }
     // DTO hiển thị thông tin chi tiết của một lịch chiếu phim
     public class ShowtimeDto
     {

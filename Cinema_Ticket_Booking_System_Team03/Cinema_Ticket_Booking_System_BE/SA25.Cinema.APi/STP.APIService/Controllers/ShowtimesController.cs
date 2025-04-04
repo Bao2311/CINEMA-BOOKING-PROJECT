@@ -372,5 +372,89 @@ namespace STP.API.Controllers
 
             return userId;
         }
+
+        [HttpPost("preview")]
+        public async Task<IActionResult> PreviewAutoSchedule([FromBody] AutoScheduleRequest request)
+        {
+            try
+            {
+                // Giả sử User ID là 1 cho người quản trị
+                int userId = 1; // Hoặc lấy từ token xác thực
+
+                var result = await _showtimeService.AutoScheduleShowtimesAsync(request, userId);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Dữ liệu đầu vào không hợp lệ");
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tạo lịch chiếu tự động");
+                return StatusCode(500, new { error = "Đã xảy ra lỗi khi tạo lịch chiếu tự động" });
+            }
+        }
+
+        [HttpPost("create")]
+        public async Task<IActionResult> CreateAutoSchedule([FromBody] AutoScheduleRequest request)
+        {
+            try
+            {
+                // Giả sử User ID là 1 cho người quản trị
+                int userId = 1; // Hoặc lấy từ token xác thực
+
+                var result = await _showtimeService.SaveAutoScheduledShowtimesAsync(request, userId);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Dữ liệu đầu vào không hợp lệ");
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tạo và lưu lịch chiếu tự động");
+                return StatusCode(500, new { error = "Đã xảy ra lỗi khi tạo và lưu lịch chiếu tự động" });
+            }
+        }
+
+        /// <summary>
+        /// Ẩn tất cả các xuất chiếu trong một ngày cho một phòng chiếu
+        /// </summary>
+        /// <param name="roomId">ID phòng chiếu</param>
+        /// <param name="date">Ngày cần ẩn xuất chiếu</param>
+        /// <returns>Số lượng xuất chiếu đã ẩn</returns>
+        [HttpPut("hide-all-showtimes")]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> HideAllShowtimesForDate(
+            [FromQuery] int roomId,
+            [FromQuery] DateTime date)
+        {
+            try
+            {
+                // Lấy ID người dùng từ token
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+
+                // Gọi service để ẩn xuất chiếu
+                int hiddenCount = await _showtimeService.HideAllShowtimesForDateAsync(roomId, date, userId);
+
+                return Ok(new
+                {
+                    message = $"Đã ẩn {hiddenCount} xuất chiếu",
+                    hiddenCount
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Lỗi validate dữ liệu");
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi hệ thống khi ẩn xuất chiếu");
+                return StatusCode(500, new { message = "Đã có lỗi xảy ra" });
+            }
+        }
     }
 }
