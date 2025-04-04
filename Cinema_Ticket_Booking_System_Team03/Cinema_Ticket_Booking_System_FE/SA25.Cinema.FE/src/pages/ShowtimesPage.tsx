@@ -481,7 +481,7 @@ const ShowtimesPage = () => {
                       </div>
                       
                       <div className="mt-4 text-sm text-gray-500">
-                        <p>Price tier: {sortedShowtimes[0].price_Tier} - {sortedShowtimes[0].base_Price.toLocaleString()} VND</p>
+                        {/* <p>Price tier: {sortedShowtimes[0].price_Tier} - {sortedShowtimes[0].base_Price.toLocaleString()} VND</p> */}
                         <p>Room: {sortedShowtimes[0].room_Name}</p>
                       </div>
                     </div>

@@ -967,3 +967,100 @@ export const CalculationItem = styled.div`
     margin-bottom: 0;
   }
 `;
+
+// Thêm vào cuối file Styles.ts
+
+export const Modal3DContainer = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.9);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+`;
+
+export const Canvas3DContainer = styled.div`
+  width: 100%;
+  height: 100%;
+  flex: 1;
+`;
+
+export const CloseButton = styled.button`
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 32px;
+  cursor: pointer;
+  z-index: 1001;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: scale(1.1);
+    color: #ef4444;
+  }
+`;
+
+export const ViewToggleContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  padding: 15px;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1001;
+`;
+
+export const ViewToggleButton = styled.button<{ $active?: boolean, disabled?: boolean }>`
+  padding: 10px 20px;
+  margin: 0 10px;
+  background-color: ${props => props.$active ? '#ef4444' : '#2c3e50'};
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  opacity: ${props => props.disabled ? 0.5 : 1};
+  transition: all 0.3s ease;
+  font-weight: 600;
+  
+  &:hover:not(:disabled) {
+    background-color: ${props => props.$active ? '#c0392b' : '#34495e'};
+    transform: translateY(-2px);
+  }
+`;
+
+export const ViewIn3DButton = styled(motion.button)`
+  background-color: #2c3e50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 15px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 20px auto;
+  transition: all 0.3s ease;
+  
+  &:hover:not(:disabled) {
+    background-color: #34495e;
+    transform: translateY(-2px);
+  }
+  
+  &:disabled {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+  
+  &:before {
+    content: '🎬';
+    margin-right: 8px;
+    font-size: 16px;
+  }
+`;

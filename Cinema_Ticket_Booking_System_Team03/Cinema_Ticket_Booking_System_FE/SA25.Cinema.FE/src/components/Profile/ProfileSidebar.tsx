@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Settings, Ticket, LogOut, Home, Bell, Phone, Mail } from 'lucide-react';
+import { User, Settings, Ticket, LogOut, Home, Bell, Phone, Mail, QrCode } from 'lucide-react'; // Added QrCode import
 import { UserProfile } from '../../interfaces/ProfileInterfaces';
 
 interface ProfileSidebarProps {
@@ -78,6 +78,16 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
               >
                 <Ticket className="h-5 w-5 mr-3 flex-shrink-0" />
                 Lịch sử đặt vé
+              </button>
+            </li>
+            {/* New Check-in Tab */}
+            <li>
+              <button
+                onClick={() => setActiveTab('checkins')}
+                className={`w-full flex items-center px-4 py-2 rounded-md text-left ${activeTab === 'checkins' ? 'bg-indigo-50 text-indigo-600 font-medium' : 'text-gray-700 hover:bg-gray-100'}`}
+              >
+                <QrCode className="h-5 w-5 mr-3 flex-shrink-0" />
+                Check-in vé
               </button>
             </li>
             <li>

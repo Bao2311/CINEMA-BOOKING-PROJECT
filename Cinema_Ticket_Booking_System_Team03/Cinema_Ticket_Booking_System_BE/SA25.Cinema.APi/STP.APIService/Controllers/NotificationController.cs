@@ -63,5 +63,34 @@ namespace STP.APIService.Controllers
                 return StatusCode(500, new { success = false, message = "Đã xảy ra lỗi khi đánh dấu tất cả thông báo đã đọc" });
             }
         }
+
+        /// <summary>
+        /// Đánh dấu một thông báo cụ thể là đã đọc
+        /// </summary>
+        /// <param name="notificationId">ID của thông báo cần đánh dấu</param>
+        [HttpPut("{notificationId}/read")]
+        public async Task<IActionResult> MarkNotificationAsRead(int notificationId)
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var result = await _notificationService.MarkNotificationAsReadAsync(userId, notificationId);
+
+                if (result)
+                {
+                    return Ok(new { success = true, message = "Đã đánh dấu thông báo đã đọc" });
+                }
+                else
+                {
+                    return NotFound(new { success = false, message = "Không tìm thấy thông báo" });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error marking notification {notificationId} as read: {ex.Message}");
+                return StatusCode(500, new { success = false, message = "Đã xảy ra lỗi khi đánh dấu thông báo đã đọc" });
+            }
+        }
     }
 }
+

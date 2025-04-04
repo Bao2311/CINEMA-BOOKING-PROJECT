@@ -119,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         error: null,
       });
 
-      toast.success("Login successful!");
+      
     } catch (error: any) {
       console.error("Login Error:", error);
       setAuthState((prevState) => ({

@@ -6,13 +6,15 @@ import { useAuth } from "../context/AuthContext";
 import { parseISO, isFuture } from "date-fns";
 
 // Import các components
-import ProfileSidebar from "../components/Profile/ProfileSidebar";
-import AlertMessage from "../components/Profile/AlertMessage";
-import PersonalInfoTab from "../components/Profile/PersonalInfoTab";
-import BookingsHistoryTab from "../components/Profile/BookingsHistoryTab";
-import NotificationsTab from "../components/Profile/NotificationsTab";
-import SettingsTab from "../components/Profile/SettingsTab";
-import TicketDetailModal from "../components/Profile/TicketDetailModal";
+import ProfileSidebar from '../components/Profile/ProfileSidebar';
+import AlertMessage from '../components/Profile/AlertMessage';
+import PersonalInfoTab from '../components/Profile/PersonalInfoTab';
+import BookingsHistoryTab from '../components/Profile/BookingsHistoryTab';
+import NotificationsTab from '../components/Profile/NotificationsTab';
+import SettingsTab from '../components/Profile/SettingsTab';
+import TicketDetailModal from '../components/Profile/TicketDetailModal';
+import CheckInsTab from '../components/Profile/CheckInsTab';
+
 
 // Import các interfaces
 import {
@@ -25,7 +27,7 @@ import {
 
 // Thêm interface cho props
 interface ProfilePageProps {
-  defaultTab?: "profile" | "bookings" | "notifications" | "settings";
+  defaultTab?: 'profile' | 'bookings' | 'notifications' | 'settings' | 'checkins';
 }
 
 // Component chính
@@ -50,10 +52,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ defaultTab }) => {
     if (defaultTab) return defaultTab;
 
     const path = location.pathname;
-    if (path.includes("/profile/bookings")) return "bookings";
-    if (path.includes("/profile/notifications")) return "notifications";
-    if (path.includes("/profile/settings")) return "settings";
-    return "profile";
+    if (path.includes('/profile/bookings')) return 'bookings';
+    if (path.includes('/profile/notifications')) return 'notifications';
+    if (path.includes('/profile/settings')) return 'settings';
+    if (path.includes('/profile/checkins')) return 'checkins';
+    return 'profile';
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -92,23 +95,17 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ defaultTab }) => {
   // Cập nhật URL khi tab thay đổi
   useEffect(() => {
     // Cập nhật URL khi tab thay đổi, nhưng không gây reload trang
-    if (activeTab === "profile" && !location.pathname.endsWith("/profile")) {
-      navigate("/profile", { replace: true });
-    } else if (
-      activeTab === "bookings" &&
-      !location.pathname.endsWith("/bookings")
-    ) {
-      navigate("/profile/bookings", { replace: true });
-    } else if (
-      activeTab === "notifications" &&
-      !location.pathname.endsWith("/notifications")
-    ) {
-      navigate("/profile/notifications", { replace: true });
-    } else if (
-      activeTab === "settings" &&
-      !location.pathname.endsWith("/settings")
-    ) {
-      navigate("/profile/settings", { replace: true });
+    if (activeTab === 'profile' && !location.pathname.endsWith('/profile')) {
+      navigate('/profile', { replace: true });
+    } else if (activeTab === 'bookings' && !location.pathname.endsWith('/bookings')) {
+      navigate('/profile/bookings', { replace: true });
+    } else if (activeTab === 'notifications' && !location.pathname.endsWith('/notifications')) {
+      navigate('/profile/notifications', { replace: true });
+    } else if (activeTab === 'settings' && !location.pathname.endsWith('/settings')) {
+      navigate('/profile/settings', { replace: true });
+    } else if (activeTab === 'checkins' && !location.pathname.endsWith('/checkins')) {
+      navigate('/profile/checkins', { replace: true });
+
     }
   }, [activeTab, navigate, location.pathname]);
 
@@ -476,6 +473,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ defaultTab }) => {
                 navigate={navigate}
               />
             )}
+            {activeTab === 'checkins' && (
+              <CheckInsTab 
+                showAlert={showAlert}
+                apiBaseUrl={apiBaseUrl}
+                navigate={navigate}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -488,4 +492,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ defaultTab }) => {
   );
 };
 
-export default ProfilePage;
+
+export default ProfilePage; 
+
+
+
+
+
+

@@ -59,7 +59,7 @@ const promotionService = {
         id: item.promotion_ID.toString(),
         name: item.title,
         code: item.promotion_Code,
-        discountType: item.discount_Type.toLowerCase() === 'Percentage' ? 'Percentage' : 'Fixed',
+        discountType: item.discount_Type.toLowerCase() === 'percentage' ? 'percentage' : 'fixed',
         discountValue: item.discount_Value,
         maxDiscount: item.maximum_Discount || undefined,
         minPurchase: item.minimum_Purchase || undefined,
@@ -153,7 +153,7 @@ const validatePromotionData = (data: any): { isValid: boolean; errors: Record<st
   // Validate discount value
   if (!data.discountValue || data.discountValue <= 0) {
     errors.discountValue = "Giá trị giảm giá phải lớn hơn 0";
-  } else if (data.discountType === 'Percentage' && data.discountValue > 100) {
+  } else if (data.discountType === 'percentage' && data.discountValue > 100) {
     errors.discountValue = "Phần trăm không vượt quá 100%";
   }
   
@@ -306,7 +306,7 @@ const PromotionRow: React.FC<{ promotion: Promotion; onEdit: () => void; onDelet
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
   <div className="flex items-center">
-    {promotion.discountType === 'Percentage' ? (
+    {promotion.discountType === 'percentage' ? (
       <div className="flex items-center text-sm text-gray-900">
         <span className="font-medium">{promotion.discountValue}%</span>
         {promotion.maxDiscount ? <span className="text-gray-500 ml-1.5">(tối đa {formatNumberWithDots(promotion.maxDiscount)}đ)</span> : null}
@@ -400,8 +400,8 @@ const PromotionsFilter: React.FC<{ filters: FilterOptions; setFilters: React.Dis
     { value: 'Inactive', label: 'Đã vô hiệu' }
   ];
   const promotionTypes = [
-    { id: 'Percentage', label: 'Giảm theo %', icon: <FaPercent /> },
-    { id: 'Fixed', label: 'Giảm số tiền cố định', icon: <FaTag /> }
+    { id: 'percentage', label: 'Giảm theo %', icon: <FaPercent /> },
+    { id: 'fixed', label: 'Giảm số tiền cố định', icon: <FaTag /> }
   ];
 
   const handlePromotionTypeToggle = (type: string) => {
@@ -477,7 +477,7 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
     id: '',
     name: '',
     code: '',
-    discountType: 'Percentage',
+    discountType: 'percentage',
     discountValue: 0,
     maxDiscount: 0,
     minPurchase: 0,
@@ -504,7 +504,7 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
         id: initialData.id || '',
         name: initialData.name || '',
         code: initialData.code || '',
-        discountType: initialData.discountType || 'Percentage',
+        discountType: initialData.discountType || 'percentage',
         discountValue: initialData.discountValue || 0,
         maxDiscount: initialData.maxDiscount || 0,
         minPurchase: initialData.minPurchase || 0,
@@ -557,7 +557,7 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
       // Validate discount value
       if (!formData.discountValue || formData.discountValue <= 0) {
         newErrors.discountValue = 'Giá trị giảm giá phải lớn hơn 0';
-      } else if (formData.discountType === 'Percentage' && formData.discountValue > 100) {
+      } else if (formData.discountType === 'percentage' && formData.discountValue > 100) {
         newErrors.discountValue = 'Phần trăm không vượt quá 100%';
       }
       
@@ -631,13 +631,13 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
                 <div>
                   <label htmlFor="discountType" className="block text-sm font-medium text-gray-700 mb-1">Loại giảm giá <span className="text-red-500">*</span></label>
                   <select id="discountType" name="discountType" value={formData.discountType} onChange={handleChange} className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="Percentage">Giảm theo phần trăm (%)</option>
-                    <option value="Fixed">Giảm số tiền cố định</option>
+                    <option value="percentage">Giảm theo phần trăm (%)</option>
+                    <option value="fixed">Giảm số tiền cố định</option>
                   </select>
                 </div>
                 <div>
                   <label htmlFor="discountValue" className="block text-sm font-medium text-gray-700 mb-1">Giá trị giảm giá <span className="text-red-500">*</span></label>
-                  {formData.discountType === 'Fixed' ? (
+                  {formData.discountType === 'fixed' ? (
                     <>
                       <DiscountValueSelector selectedValue={formData.discountValue} onChange={handleDiscountValueSelect} />
                       <div className="flex items-center mt-2">
@@ -685,7 +685,7 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
                   {errors.discountValue && <p className="mt-1 text-sm text-red-600">{errors.discountValue}</p>}
                 </div>
                 
-{formData.discountType === 'Percentage' && (
+{formData.discountType === 'percentage' && (
   <div>
     <label htmlFor="maxDiscount" className="block text-sm font-medium text-gray-700 mb-1">Giảm tối đa</label>
     <div className="flex items-center">
@@ -700,7 +700,6 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
         }}
         className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
       >
-        <option value="0">Không giới hạn</option>
         <option value="50000">50.000đ</option>
         <option value="100000">100.000đ</option>
         <option value="200000">200.000đ</option>
@@ -725,7 +724,7 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
                       }}
                       className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
-                      <option value="0">Không giới hạn</option>
+                      
                       <option value="100000">100.000đ</option>
                       <option value="200000">200.000đ</option>
                       <option value="500000">500.000đ</option>
@@ -832,7 +831,7 @@ const PromotionDetailsModal: React.FC<{ promotion: Promotion; onClose: () => voi
             <div>
   <h4 className="text-sm font-medium text-gray-500">Giảm giá</h4>
   <p className="text-base font-medium text-gray-900 mt-1">
-    {promotion.discountType === 'Percentage' ? (
+    {promotion.discountType === 'percentage' ? (
       <>
         {promotion.discountValue}% 
         {promotion.maxDiscount ? <span className="text-sm text-gray-500 ml-1">(tối đa {formatNumberWithDots(promotion.maxDiscount)}đ)</span> : null}
@@ -1019,20 +1018,7 @@ const PromotionsManagement: React.FC = () => {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const navigate = useNavigate();
-  // Lấy role từ localStorage
-  const getRole = () => {
-    return localStorage.getItem("role") || sessionStorage.getItem("role");
-  };
 
-  // Kiểm tra quyền truy cập
-  useEffect(() => {
-    const role = getRole();
-    if (role !== "Admin") {
-      toast.error("Bạn không có quyền truy cập trang này.");
-      navigate("/"); // Điều hướng sang trang unauthorized
-    }
-  }, [navigate]);
   const fetchPromotions = async () => {
     try {
       setLoading(true);
