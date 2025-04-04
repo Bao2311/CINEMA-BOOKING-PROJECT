@@ -27,6 +27,7 @@ import TicketSellingByStaff from './pages/StaffPage';
 import BookingSuccessPage from './pages/BookingSuccessPage';
 import ManageBookingPage from './pages/ManageBookingPage';
 import PasswordChangeRequiredGuard from './components/PasswordChangeRequiredGuard';
+import Statistics from './pages/StatisticsPage';
 function App() {
   return (
     <AuthProvider>
@@ -168,7 +169,11 @@ function AppContent() {
               <ManageCinemaRoomPage />
             </ProtectedRoute>
           } />
-          
+          <Route path="/statistics" element={
+            <ProtectedRoute>
+              < Statistics/>
+            </ProtectedRoute>
+          } />
           {/* Catch-all route */}
           <Route path="*" element={<div>Page not found</div>} />
         </Routes>
