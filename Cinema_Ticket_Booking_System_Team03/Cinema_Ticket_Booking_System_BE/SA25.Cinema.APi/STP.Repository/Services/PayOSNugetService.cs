@@ -292,9 +292,12 @@ namespace STP.Repository.Services
                 // Lưu thông tin điểm và userId trước khi hủy
                 int pointsToRefund = booking.Points_Used;
                 int? userId = booking.User_ID;
+                int? promotionId = booking.Promotion_ID;
 
                 // Ghi log chi tiết thông tin booking
-                _logger.LogInformation($"*** THÔNG TIN BOOKING {bookingId}: Status={booking.Status}, Points_Used={pointsToRefund}, User_ID={userId} ***");
+                _logger.LogInformation($"*** THÔNG TIN BOOKING {bookingId}: Status={booking.Status}, " +
+                                      $"Points_Used={pointsToRefund}, User_ID={userId}, " +
+                                      $"Promotion_ID={promotionId} ***");
 
                 using (var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable))
                 {
@@ -352,10 +355,95 @@ namespace STP.Repository.Services
                             _logger.LogInformation($"Không cần hoàn trả điểm: Points_Used={pointsToRefund}, User_ID={userId}");
                         }
 
-                        // 2. CẬP NHẬT TRẠNG THÁI BOOKING
+                        // 2. HOÀN TRẢ MÃ KHUYẾN MÃI - PHẦN MỚI THÊM VÀO
+                        if (promotionId.HasValue)
+                        {
+                            _logger.LogInformation($"*** ĐANG XỬ LÝ HOÀN TRẢ MÃ KHUYẾN MÃI ID={promotionId} ***");
+
+                            try
+                            {
+                                // Lấy thông tin chi tiết về promotion
+                                var promotion = await _context.Promotions
+                                    .FindAsync(promotionId.Value);
+
+                                if (promotion != null)
+                                {
+                                    _logger.LogInformation($"*** TÌM THẤY MÃ KHUYẾN MÃI: {promotion.Promotion_Code}, " +
+                                                         $"CurrentUsage={promotion.Current_Usage} ***");
+
+                                    // Tìm các bản ghi PromotionUsage liên quan đến booking
+                                    var promotionUsages = await _context.PromotionUsages
+                                        .Where(pu => pu.Booking_ID == bookingId)
+                                        .ToListAsync();
+
+                                    _logger.LogInformation($"*** TÌM THẤY {promotionUsages.Count} BẢN GHI PROMOTION USAGE ***");
+
+                                    foreach (var usage in promotionUsages)
+                                    {
+                                        _logger.LogInformation($"*** USAGE ID={usage.Usage_ID}, HasUsed={usage.HasUsed} ***");
+                                        usage.HasUsed = false;
+                                        _logger.LogInformation($"*** ĐÃ CẬP NHẬT HasUsed=false CHO USAGE ID={usage.Usage_ID} ***");
+                                    }
+
+                                    // Giảm lượt sử dụng của mã khuyến mãi
+                                    if (promotion.Current_Usage > 0)
+                                    {
+                                        int oldUsage = promotion.Current_Usage;
+                                        promotion.Current_Usage -= 1;
+                                        _logger.LogInformation($"*** ĐÃ GIẢM Current_Usage TỪ {oldUsage} XUỐNG {promotion.Current_Usage} ***");
+                                    }
+                                    else
+                                    {
+                                        _logger.LogWarning($"*** CẢNH BÁO: Current_Usage ĐÃ LÀ {promotion.Current_Usage}, KHÔNG THỂ GIẢM THÊM ***");
+                                    }
+
+                                    // Thêm lịch sử hoàn trả khuyến mãi
+                                    var promotionRefundHistory = new BookingHistory
+                                    {
+                                        Booking_ID = bookingId,
+                                        Status = "Promotion Refunded",
+                                        Date = DateTime.Now,
+                                        Notes = $"Hoàn trả mã khuyến mãi {promotion.Promotion_Code} (ID: {promotionId}) do hủy đơn"
+                                    };
+                                    _context.BookingHistories.Add(promotionRefundHistory);
+
+                                    // Xóa liên kết với promotion
+                                    booking.Promotion_ID = null;
+                                    _logger.LogInformation($"*** ĐÃ XÓA LIÊN KẾT PROMOTION_ID={promotionId} TỪ BOOKING ***");
+
+                                    await _context.SaveChangesAsync();
+                                    _logger.LogInformation($"*** HOÀN TRẢ MÃ KHUYẾN MÃI THÀNH CÔNG ***");
+                                }
+                                else
+                                {
+                                    _logger.LogWarning($"*** KHÔNG TÌM THẤY MÃ KHUYẾN MÃI VỚI ID={promotionId} ***");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, $"*** LỖI KHI HOÀN TRẢ MÃ KHUYẾN MÃI: {ex.Message} ***");
+
+                                // Ghi lại lỗi vào lịch sử
+                                var errorHistory = new BookingHistory
+                                {
+                                    Booking_ID = bookingId,
+                                    Status = "Promotion Refund Error",
+                                    Date = DateTime.Now,
+                                    Notes = $"Lỗi khi hoàn trả mã khuyến mãi: {ex.Message.Substring(0, Math.Min(ex.Message.Length, 200))}"
+                                };
+                                _context.BookingHistories.Add(errorHistory);
+                                await _context.SaveChangesAsync();
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogInformation($"*** BOOKING {bookingId} KHÔNG CÓ MÃ KHUYẾN MÃI CẦN HOÀN TRẢ ***");
+                        }
+
+                        // 3. CẬP NHẬT TRẠNG THÁI BOOKING
                         booking.Status = "Cancelled";
 
-                        // 3. CẬP NHẬT GHẾ
+                        // 4. CẬP NHẬT GHẾ
                         var seats = await _context.Seats
                             .Where(s => s.Booking_ID == bookingId)
                             .ToListAsync();
@@ -369,7 +457,7 @@ namespace STP.Repository.Services
                             seat.Booking_ID = null;
                         }
 
-                        // 4. CẬP NHẬT VÉ 
+                        // 5. CẬP NHẬT VÉ 
                         var tickets = await _context.Tickets
                             .Where(t => t.Booking_ID == bookingId)
                             .ToListAsync();
@@ -379,7 +467,7 @@ namespace STP.Repository.Services
                             ticket.Status = "Cancelled";
                         }
 
-                        // 5. THÊM LỊCH SỬ HỦY ĐƠN
+                        // 6. THÊM LỊCH SỬ HỦY ĐƠN
                         var bookingHistory = new BookingHistory
                         {
                             Booking_ID = bookingId,
@@ -389,10 +477,10 @@ namespace STP.Repository.Services
                         };
                         _context.BookingHistories.Add(bookingHistory);
 
-                        // 6. LƯU TẤT CẢ THAY ĐỔI
+                        // 7. LƯU TẤT CẢ THAY ĐỔI
                         await _context.SaveChangesAsync();
 
-                        // 7. COMMIT TRANSACTION
+                        // 8. COMMIT TRANSACTION
                         await transaction.CommitAsync();
 
                         _logger.LogInformation($"*** HỦY ĐƠN ĐẶT VÉ {bookingId} THÀNH CÔNG ***");
