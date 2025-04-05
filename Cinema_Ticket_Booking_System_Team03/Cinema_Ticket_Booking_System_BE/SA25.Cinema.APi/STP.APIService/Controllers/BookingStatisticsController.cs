@@ -20,30 +20,15 @@ namespace STP.API.Controllers
         }
 
         /// <summary>
-        /// Lấy thống kê đặt vé và doanh thu
+        /// Lấy tất cả thống kê đặt vé và doanh thu để FE tự filter theo ngày
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetBookingStatistics([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+        public async Task<IActionResult> GetBookingStatistics([FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
         {
             try
             {
-                // Kiểm tra tham số đầu vào
-                if (startDate == default)
-                {
-                    return BadRequest("Ngày bắt đầu không được để trống");
-                }
-
-                if (endDate == default)
-                {
-                    return BadRequest("Ngày kết thúc không được để trống");
-                }
-
-                if (startDate > endDate)
-                {
-                    return BadRequest("Ngày bắt đầu phải trước ngày kết thúc");
-                }
-
-                var statistics = await _bookingStatisticsService.GetBookingStatisticsAsync(startDate, endDate);
+                // Lấy tất cả dữ liệu để FE tự filter
+                var statistics = await _bookingStatisticsService.GetAllBookingStatisticsAsync();
                 return Ok(statistics);
             }
             catch (Exception ex)
@@ -57,26 +42,23 @@ namespace STP.API.Controllers
         /// Xuất thống kê đặt vé ra file
         /// </summary>
         [HttpGet("export")]
-        public async Task<IActionResult> ExportBookingStatistics([FromQuery] DateTime startDate, [FromQuery] DateTime endDate, [FromQuery] string format = "excel")
+        public async Task<IActionResult> ExportBookingStatistics([FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, [FromQuery] string format = "excel")
         {
             try
             {
-                // Kiểm tra tham số
-                if (startDate == default || endDate == default || startDate > endDate)
-                {
-                    return BadRequest("Khoảng thời gian không hợp lệ");
-                }
-
+                // Kiểm tra định dạng file
                 if (!new[] { "excel", "pdf" }.Contains(format.ToLower()))
                 {
                     return BadRequest("Định dạng phải là 'excel' hoặc 'pdf'");
                 }
 
-                // Lấy dữ liệu thống kê
-                var statistics = await _bookingStatisticsService.GetBookingStatisticsAsync(startDate, endDate);
+                // Lấy tất cả dữ liệu thống kê
+                var statistics = await _bookingStatisticsService.GetAllBookingStatisticsAsync();
 
                 // Tạo file theo định dạng được yêu cầu
-                string fileName = $"ThongKeDatVe_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}.{(format.ToLower() == "excel" ? "xlsx" : "pdf")}";
+                string startDateStr = startDate.HasValue ? startDate.Value.ToString("yyyyMMdd") : "all";
+                string endDateStr = endDate.HasValue ? endDate.Value.ToString("yyyyMMdd") : "all";
+                string fileName = $"ThongKeDatVe_{startDateStr}_{endDateStr}.{(format.ToLower() == "excel" ? "xlsx" : "pdf")}";
 
                 // Trong triển khai thực tế, sẽ gọi service tạo file ở đây
                 // Hiện tại, chỉ trả về thông báo thành công

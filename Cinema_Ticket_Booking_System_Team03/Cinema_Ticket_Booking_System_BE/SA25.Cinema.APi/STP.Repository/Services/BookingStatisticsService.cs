@@ -174,5 +174,64 @@ namespace STP.Repository.Services
 
             return result;
         }
+
+        /// <summary>
+        /// Lấy tất cả thống kê đặt vé và doanh thu để FE tự filter theo ngày
+        /// </summary>
+        public async Task<BookingStatisticsDTO> GetAllBookingStatisticsAsync()
+        {
+            try
+            {
+                // Lấy tất cả booking và bao gồm Tickets và Payments
+                var bookings = await _context.TicketBookings
+                    .Include(b => b.Showtime)
+                    .ThenInclude(s => s.Movie)
+                    .Include(b => b.Showtime)
+                    .ThenInclude(s => s.CinemaRoom)
+                    .Include(b => b.Tickets)
+                    .Include(b => b.Payments)
+                    .ToListAsync();
+
+                var confirmedBookings = bookings.Where(b => b.Status == "Confirmed").ToList();
+
+                // Tính tổng số vé từ các tickets
+                int totalTickets = confirmedBookings.Sum(b => b.Tickets != null ? b.Tickets.Count : 0);
+
+                // Tính trung bình số vé trên mỗi booking
+                double avgTickets = confirmedBookings.Any()
+                    ? confirmedBookings.Average(b => b.Tickets != null ? b.Tickets.Count : 0)
+                    : 0;
+
+                var result = new BookingStatisticsDTO
+                {
+                    StartDate = DateTime.MinValue, // Not used for filtering anymore
+                    EndDate = DateTime.MaxValue, // Not used for filtering anymore
+                    TotalBookings = bookings.Count,
+                    ConfirmedBookings = confirmedBookings.Count,
+                    CancelledBookings = bookings.Count(b => b.Status == "Cancelled"),
+                    TotalRevenue = confirmedBookings.Sum(b => b.Total_Amount),
+                    AverageTicketsPerBooking = avgTickets,
+
+                    // Thống kê theo phim
+                    MovieStatistics = GetMovieStatistics(confirmedBookings),
+
+                    // Thống kê theo phòng
+                    RoomStatistics = GetRoomStatistics(confirmedBookings),
+
+                    // Thống kê theo thời gian
+                    DailyStatistics = GetDailyStatistics(confirmedBookings),
+
+                    // Thống kê theo phương thức thanh toán
+                    PaymentMethodStatistics = GetPaymentMethodStatistics(confirmedBookings)
+                };
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tạo thống kê đặt vé");
+                throw;
+            }
+        }
     }
 }
