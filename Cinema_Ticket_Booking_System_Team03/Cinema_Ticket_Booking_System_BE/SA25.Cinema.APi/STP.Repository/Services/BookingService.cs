@@ -637,8 +637,64 @@ namespace STP.Repository.Services
                     _context.BookingHistories.Add(bookingHistory);
                     await _context.SaveChangesAsync();
 
-                    // [phần còn lại của phương thức không cần thay đổi]
-                    // ...
+                    // THÊM MỚI: Tạo vé sau khi booking được xác nhận
+                    try
+                    {
+                        _logger.LogInformation($"Bắt đầu tạo vé cho đơn đặt vé đã xác nhận {bookingId}");
+
+                        // Kiểm tra xem đã có vé chưa
+                        var existingTickets = await _context.Tickets
+                            .Where(t => t.Booking_ID == bookingId && t.Status == "Active")
+                            .ToListAsync();
+
+                        if (existingTickets.Any())
+                        {
+                            _logger.LogInformation($"Đã có {existingTickets.Count} vé cho đơn đặt vé {bookingId}, không cần tạo thêm");
+                        }
+                        else
+                        {
+                            // Tạo vé sử dụng TicketService
+                            var generatedTickets = await _ticketService.GenerateTicketsAsync(bookingId);
+
+                            if (generatedTickets != null && generatedTickets.Any())
+                            {
+                                _logger.LogInformation($"Đã tạo thành công {generatedTickets.Count} vé cho đơn đặt vé {bookingId}");
+
+                                // Thêm lịch sử về việc tạo vé
+                                var ticketHistory = new BookingHistory
+                                {
+                                    Booking_ID = bookingId,
+                                    Status = "Tickets Generated",
+                                    Date = DateTime.Now,
+                                    Notes = $"Đã tạo {generatedTickets.Count} vé cho đơn đặt vé"
+                                };
+
+                                _context.BookingHistories.Add(ticketHistory);
+                                await _context.SaveChangesAsync();
+                            }
+                            else
+                            {
+                                _logger.LogWarning($"Không thể tạo vé cho đơn đặt vé {bookingId}");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Ghi nhận lỗi nhưng không ảnh hưởng đến giao dịch chính
+                        _logger.LogError(ex, $"Lỗi khi tạo vé cho đơn đặt vé {bookingId}: {ex.Message}");
+
+                        // Thêm lịch sử lỗi
+                        var errorHistory = new BookingHistory
+                        {
+                            Booking_ID = bookingId,
+                            Status = "Ticket Generation Failed",
+                            Date = DateTime.Now,
+                            Notes = $"Lỗi khi tạo vé: {ex.Message}"
+                        };
+
+                        _context.BookingHistories.Add(errorHistory);
+                        await _context.SaveChangesAsync();
+                    }
 
                     // Commit the transaction
                     await transaction.CommitAsync();
@@ -685,6 +741,7 @@ namespace STP.Repository.Services
                 throw;
             }
         }
+
         /// <summary>
         /// Cập nhật trạng thái đơn hàng thành "Cancelled" khi người dùng hủy thanh toán
         /// </summary>
