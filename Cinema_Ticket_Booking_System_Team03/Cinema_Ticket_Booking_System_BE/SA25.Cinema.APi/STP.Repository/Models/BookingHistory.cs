@@ -35,6 +35,7 @@ namespace STP.Repository.Models
 
         public string Notes { get; set; }
 
+        public bool IsRead { get; set; } = false;
         /// <summary>
         /// Thuộc tính điều hướng đến đơn đặt vé liên quan
         /// </summary>
