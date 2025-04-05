@@ -771,6 +771,32 @@ const ManageBookings: React.FC = () => {
       });
 
       if (response.data) {
+        // Reset any applied promotion when looking up a new member
+        if (appliedPromotion) {
+          setAppliedPromotion(null);
+          setPromotionCode('');
+          
+          // Recalculate total without promotion discount
+          const subtotal = bookingSummary.subtotal;
+          const memberDiscount = 0; // Reset member discount
+          const pointsDiscount = bookingSummary.pointsDiscount;
+          
+          // Calculate total without promotion discount
+          const totalDiscounts = memberDiscount + pointsDiscount;
+          const newTotal = Math.max(0, subtotal - totalDiscounts);
+          
+          // Update booking summary
+          setBookingSummary({
+            ...bookingSummary,
+            discounts: totalDiscounts,
+            promotionDiscount: 0,
+            memberDiscount: 0,
+            total: newTotal
+          });
+          
+          message.info('Mã khuyến mãi đã bị hủy. Vui lòng áp dụng lại mã khuyến mãi nếu cần.');
+        }
+        
         // Update member state with API response
         setMember({
           user_ID: response.data.user_ID,
@@ -924,6 +950,31 @@ const linkMemberToBooking = async (bookingId: number, memberIdentifier: string) 
     if (response.data) {
       message.success('Liên kết thành viên với đơn đặt vé thành công!');
       
+      // Reset any applied promotion when linking a new member
+      if (appliedPromotion) {
+        setAppliedPromotion(null);
+        setPromotionCode('');
+        
+        // Recalculate total without promotion discount
+        const subtotal = bookingSummary.subtotal;
+        const memberDiscount = bookingSummary.memberDiscount;
+        const pointsDiscount = bookingSummary.pointsDiscount;
+        
+        // Calculate total without promotion discount
+        const totalDiscounts = memberDiscount + pointsDiscount;
+        const newTotal = Math.max(0, subtotal - totalDiscounts);
+        
+        // Update booking summary
+        setBookingSummary({
+          ...bookingSummary,
+          discounts: totalDiscounts,
+          promotionDiscount: 0,
+          total: newTotal
+        });
+        
+        message.info('Mã khuyến mãi đã bị hủy. Vui lòng áp dụng lại mã khuyến mãi nếu cần.');
+      }
+      
       // Cập nhật số điểm hiện tại của thành viên và hiển thị thông báo
       if (response.data.currentPoints !== undefined && member) {
         setMember(prev => {
@@ -982,21 +1033,82 @@ const linkMemberToBooking = async (bookingId: number, memberIdentifier: string) 
         }
       );
   
-      if (response.data && response.data.success) {
-        // Đã tìm được promotion, lưu vào state và tính lại tổng tiền
+      console.log('Promotion API response:', response.data);
+      
+      // Guard against undefined response data
+      if (response && response.data && response.data.success) {
+        // Extract discount amount from the response
+        // If discountAmount is 0 or not provided in the response, use the discount_amount property or calculate from original_total and new_total
+        let discountAmount = response.data.discountAmount || response.data.discount_amount || 0;
+        
+        // If discount amount is still 0, calculate from original_total and new_total if both are provided
+        if (discountAmount === 0 && response.data.original_total && response.data.new_total) {
+          discountAmount = response.data.original_total - response.data.new_total;
+        }
+        
+        // Handle different property names that might be in the response
+        const discountValue = response.data.discount_value || 0;
+        const promoCode = response.data.promotion_code || promotionCode;
+        const promotionDetail = response.data.promotion_detail || 'Khuyến mãi';
+        const promotionId = response.data.promotion_id || 0;
+        
+        // If server provides new_total, use it directly
+        const newTotalFromServer = response.data.new_total;
+        
+        // Đã tìm được promotion, lưu vào state 
         setAppliedPromotion({
-          promotion_ID: response.data.promotion_id,
-          code: response.data.promotion_code,
-          name: response.data.promotion_detail || 'Khuyến mãi',
-          discount_Value: response.data.discount_value,
-          discount_Amount: response.data.discountAmount
+          promotion_ID: promotionId,
+          code: promoCode,
+          name: promotionDetail,
+          discount_Value: discountValue,
+          discount_Amount: discountAmount
         });
         
-        message.success(`Áp dụng mã khuyến mãi thành công!`);
-        updateBookingSummary();
+        // Calculate booking summary with the new discount
+        const subtotal = bookingSummary.subtotal;
+        
+        // Calculate member discount if applicable
+        let memberDiscount = bookingSummary.memberDiscount || 0;
+        if (member && memberDiscountAmount > 0 && memberDiscount === 0) {
+          memberDiscount = (memberDiscountAmount / 100) * subtotal;
+        }
+        
+        // Calculate points discount
+        const pointsDiscount = bookingSummary.pointsDiscount || 0;
+        
+        // Calculate total discount (member + promotion + points)
+        const totalDiscounts = memberDiscount + discountAmount + pointsDiscount;
+        
+        // Calculate new total after discounts
+        // If server provided new_total, use it, otherwise calculate
+        const newTotal = newTotalFromServer !== undefined 
+          ? newTotalFromServer 
+          : Math.max(0, subtotal - totalDiscounts);
+        
+        console.log('Discount calculation:', {
+          subtotal,
+          memberDiscount,
+          discountAmount,
+          pointsDiscount,
+          totalDiscounts,
+          newTotal,
+          newTotalFromServer
+        });
+        
+        // Update the booking summary
+        setBookingSummary({
+          subtotal,
+          discounts: totalDiscounts,
+          memberDiscount,
+          promotionDiscount: discountAmount,
+          pointsDiscount,
+          total: newTotal
+        });
+        
+        message.success(`Áp dụng mã khuyến mãi thành công! Giảm ${discountAmount.toLocaleString()} VND`);
         setPromotionCode(''); // Xóa mã khuyến mãi sau khi áp dụng thành công
       } else {
-        message.error(response.data?.message || 'Mã khuyến mãi không hợp lệ');
+        message.error((response && response.data && response.data.message) || 'Mã khuyến mãi không hợp lệ');
       }
     } catch (error) {
       console.error('Error applying promotion code:', error);
@@ -1086,7 +1198,9 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
         
         // Use the discountedTotalAmount from the response
         const discountedTotal = response.data.discountedTotalAmount;
-        const discountAmount = bookingSummary.subtotal - discountedTotal;
+        
+        // Calculate the discount amount (this is the VND value, which is the same as points used 1:1)
+        const discountAmount = pointsToUse; // In this system, 1 point = 1 VND discount
         
         message.success(`Đã sử dụng ${pointsToUse.toLocaleString()} điểm để giảm giá ${discountAmount.toLocaleString()} VND`);
         
@@ -1094,11 +1208,12 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
         setBookingSummary(prev => ({
           ...prev,
           pointsDiscount: discountAmount,
-          total: discountedTotal
+          discounts: (prev.memberDiscount + prev.promotionDiscount + discountAmount),
+          total: discountedTotal || (prev.subtotal - prev.memberDiscount - prev.promotionDiscount - discountAmount)
         }));
         
-        // Reset points input field
-        setPointsToUse(0);
+        // Don't reset points input field to show how many points are being used
+        // setPointsToUse(0);
       }
     } catch (error) {
       console.error('Error applying points discount:', error);
@@ -1112,7 +1227,24 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
   const removePromotion = () => {
     setAppliedPromotion(null);
     setPromotionCode('');
-    updateBookingSummary();
+    
+    // Directly update the booking summary to remove the promotion discount
+    const subtotal = bookingSummary.subtotal;
+    const memberDiscount = bookingSummary.memberDiscount;
+    const pointsDiscount = bookingSummary.pointsDiscount;
+    
+    // Calculate new total without promotion discount
+    const totalDiscounts = memberDiscount + pointsDiscount;
+    const newTotal = Math.max(0, subtotal - totalDiscounts);
+    
+    // Update booking summary
+    setBookingSummary({
+      ...bookingSummary,
+      discounts: totalDiscounts,
+      promotionDiscount: 0,
+      total: newTotal
+    });
+    
     message.success('Đã xóa mã khuyến mãi');
   };
 
@@ -1350,37 +1482,52 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
   };
 
   const updateBookingSummary = () => {
-    const subtotal = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
-    
-    // Tính khuyến mãi thành viên
-    let memberDiscount = 0;
-    if (member && memberDiscountAmount > 0) {
-      memberDiscount = (memberDiscountAmount / 100) * subtotal;
+    try {
+      const subtotal = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
+      
+      // Tính khuyến mãi thành viên
+      let memberDiscount = 0;
+      if (member && memberDiscountAmount > 0) {
+        memberDiscount = (memberDiscountAmount / 100) * subtotal;
+      }
+      
+      // Tính khuyến mãi từ mã giảm giá
+      let promotionDiscount = 0;
+      if (appliedPromotion && typeof appliedPromotion.discount_Amount === 'number') {
+        promotionDiscount = appliedPromotion.discount_Amount;
+      }
+      
+      // Tính điểm tích lũy sử dụng - đơn giản là 1:1
+      const pointsDiscount = pointsToUse;
+      
+      // Tổng giảm giá
+      const totalDiscounts = memberDiscount + promotionDiscount + pointsDiscount;
+      
+      // Tổng tiền sau giảm giá
+      const total = Math.max(0, subtotal - totalDiscounts);
+      
+      console.log('Update booking summary:', {
+        subtotal,
+        memberDiscount,
+        promotionDiscount,
+        pointsDiscount,
+        totalDiscounts,
+        total,
+        appliedPromotion
+      });
+      
+      setBookingSummary({
+        subtotal,
+        discounts: totalDiscounts,
+        memberDiscount,
+        promotionDiscount,
+        pointsDiscount,
+        total
+      });
+    } catch (error) {
+      console.error('Error updating booking summary:', error);
+      message.error('Có lỗi xảy ra khi cập nhật thông tin đặt vé');
     }
-    
-    // Tính khuyến mãi từ mã giảm giá
-    let promotionDiscount = 0;
-    if (appliedPromotion) {
-      promotionDiscount = appliedPromotion.discount_Amount;
-    }
-    
-    // Tính điểm tích lũy sử dụng - đơn giản là 1:1
-    const pointsDiscount = pointsToUse;
-    
-    // Tổng giảm giá
-    const totalDiscounts = memberDiscount + promotionDiscount + pointsDiscount;
-    
-    // Tổng tiền sau giảm giá
-    const total = Math.max(0, subtotal - totalDiscounts);
-    
-    setBookingSummary({
-      subtotal,
-      discounts: totalDiscounts,
-      memberDiscount,
-      promotionDiscount,
-      pointsDiscount,
-      total
-    });
   };
   
 
@@ -1655,6 +1802,16 @@ const MemberDetailsView = ({ member }) => {
           </Tag>
         </Descriptions.Item>
       </Descriptions>
+      
+      {!appliedPromotion && (
+        <Alert
+          message="Áp dụng mã khuyến mãi"
+          description="Mã khuyến mãi trước đó đã bị hủy. Vui lòng nhập và áp dụng lại mã khuyến mãi nếu cần."
+          type="info"
+          showIcon
+          className="mt-4"
+        />
+      )}
     </div>
   );
 };
@@ -1679,8 +1836,28 @@ const EnhancedPromotionSection = () => {
               type="default"
               danger
               onClick={() => {
+                // Reset promotion state
                 setAppliedPromotion(null);
-                updateBookingSummary();
+                setPromotionCode('');
+                
+                // Recalculate total without promotion discount
+                const subtotal = bookingSummary.subtotal;
+                const memberDiscount = bookingSummary.memberDiscount;
+                const pointsDiscount = bookingSummary.pointsDiscount;
+                
+                // Calculate total without promotion discount
+                const totalDiscounts = memberDiscount + pointsDiscount;
+                const newTotal = Math.max(0, subtotal - totalDiscounts);
+                
+                // Update booking summary
+                setBookingSummary({
+                  ...bookingSummary,
+                  discounts: totalDiscounts,
+                  promotionDiscount: 0,
+                  total: newTotal
+                });
+                
+                message.success('Đã xóa mã khuyến mãi');
               }}
               loading={loading}
             >
@@ -1702,7 +1879,15 @@ const EnhancedPromotionSection = () => {
       {appliedPromotion && (
         <Alert
           message="Mã khuyến mãi đã được áp dụng"
-          description={`Mã: ${appliedPromotion.code} - Giảm: ${appliedPromotion.discount_Amount.toLocaleString()} VND`}
+          description={
+            `Mã: ${appliedPromotion.code} - Giảm: ${
+              appliedPromotion.discount_Amount > 0 
+                ? appliedPromotion.discount_Amount.toLocaleString() 
+                : bookingSummary.promotionDiscount > 0 
+                  ? bookingSummary.promotionDiscount.toLocaleString()
+                  : '0'
+            } VND`
+          }
           type="success"
           showIcon
           className="mb-4"
@@ -2306,22 +2491,32 @@ const EnhancedPromotionSection = () => {
                   {appliedPromotion && (
                     <div className="flex justify-between mb-2 text-green-600">
                       <Text>Mã khuyến mãi ({appliedPromotion.code}):</Text>
-                      <Text>-{appliedPromotion.discount_Amount.toLocaleString() } VND</Text>
+                      <Text>-{appliedPromotion.discount_Amount.toLocaleString()} VND</Text>
                     </div>
                   )}
                   
-                  {pointsToUse > 0 && (
+                  {bookingSummary.pointsDiscount > 0 && (
                     <div className="flex justify-between mb-2 text-green-600">
-                      <Text>Điểm tích lũy ({pointsToUse} điểm):</Text>
-                      <Text>-{pointsToUse.toLocaleString()} VND</Text>
+                      <Text>Điểm tích lũy sử dụng:</Text>
+                      <Text>-{bookingSummary.pointsDiscount.toLocaleString()} VND</Text>
                     </div>
                   )}
+                  
                   
                   <Divider />
                   
                   <div className="flex justify-between items-center font-bold">
                     <Text className="text-lg">Tổng thanh toán:</Text>
-                    <Text className="text-xl text-red-600">{bookingSummary.total.toLocaleString()} VND</Text>
+                    <Text className="text-xl text-red-600" id="total-amount">
+                      {bookingSummary.total.toLocaleString()} VND 
+                      {/* Debugging info - remove in production */}
+                      <span style={{ display: 'none' }}>
+                        (ST: {bookingSummary.subtotal}, 
+                        MD: {bookingSummary.memberDiscount}, 
+                        PD: {bookingSummary.promotionDiscount}, 
+                        PTD: {bookingSummary.pointsDiscount})
+                      </span>
+                    </Text>
                   </div>
                   
                 </div>

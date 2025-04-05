@@ -140,6 +140,7 @@ const CinemaRoomPage: React.FC = () => {
   const [newTotal, setNewTotal] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(300); // 5 minutes in seconds
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
+  const [promoDiscountAmount, setPromoDiscountAmount] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchMovieDetails = async () => {
@@ -245,6 +246,11 @@ const CinemaRoomPage: React.FC = () => {
 
   useEffect(() => {
     if (step === 'payment' && countdown > 0) {
+      // Clear any existing interval first to prevent duplicates
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+      }
+      
       countdownRef.current = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
@@ -260,9 +266,10 @@ const CinemaRoomPage: React.FC = () => {
     return () => {
       if (countdownRef.current) {
         clearInterval(countdownRef.current);
+        countdownRef.current = null;
       }
     };
-  }, [step, countdown]);
+  }, [step, countdown, bookingId]); // Add bookingId to dependencies to reset timer when booking changes
 
   const handlePaymentTimeout = async () => {
     if (bookingId) {
@@ -279,6 +286,19 @@ const CinemaRoomPage: React.FC = () => {
           }
         );
         toast.info('Đã hết thời gian thanh toán. Vé của bạn đã bị hủy.');
+        
+        // Reset all booking-related state
+        setStep('select');
+        setSelectedSeats([]);
+        setBookingId(null);
+        setTotalPointsUsed(0);
+        setDiscountedTotal(null);
+        setNewTotal(null);
+        setPromotionCode('');
+        setPointsToUse('');
+        setCountdown(300);
+        setPromoDiscountAmount(null); // Reset promotion discount amount
+        
         navigate('/showtimes');
       } catch (error) {
         console.error('Error cancelling booking:', error);
@@ -387,6 +407,21 @@ const CinemaRoomPage: React.FC = () => {
   const handleConfirm = async (confirmed: boolean) => {
     setShowConfirm(false);
     if (confirmed) {
+      // Reset all pricing and timer related state before creating a new booking
+      setTotalPointsUsed(0);
+      setDiscountedTotal(null);
+      setNewTotal(null);
+      setPromotionCode('');
+      setPointsToUse('');
+      setCountdown(300); // Reset to 5 minutes
+      setPromoDiscountAmount(null); // Reset promotion discount amount
+      
+      // Clear any existing timer
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
+      }
+      
       const success = await sendBookingRequest();
       if (success) {
         setStep('payment');
@@ -453,8 +488,11 @@ const CinemaRoomPage: React.FC = () => {
         return;
       }
 
-      // Calculate maximum points allowed (50% of total bill)
-      const maxAllowedPoints = Math.floor(totalPrice * 1000 * 0.5);
+      // If a promotion is already applied, calculate the maximum points based on the discounted total
+      const baseForPointCalculation = newTotal !== null ? newTotal * 1000 : totalPrice * 1000;
+      
+      // Calculate maximum points allowed (50% of current total)
+      const maxAllowedPoints = Math.floor(baseForPointCalculation * 0.5);
       const remainingAllowedPoints = maxAllowedPoints - totalPointsUsed;
       
       if (points > remainingAllowedPoints) {
@@ -463,6 +501,7 @@ const CinemaRoomPage: React.FC = () => {
       }
 
       const token = localStorage.getItem('token');
+      
       const response = await axios.post(
         `https://localhost:7168/api/Points/booking/${bookingId}/apply-discount`,
         points,
@@ -473,10 +512,29 @@ const CinemaRoomPage: React.FC = () => {
           },
         }
       );
-
-      setDiscountedTotal(response.data.discountedTotalAmount / 1000);
+      
+      // Store the exact values from the API response
+      const originalAmount = response.data.originalTotalAmount;
+      const discountedAmount = response.data.discountedTotalAmount;
+      const pointsUsed = response.data.pointsUsed;
+      
+      // If a promotion was already applied
+      if (newTotal !== null) {
+        // Calculate final amount after both discounts
+        const finalAmount = Math.max(0, newTotal * 1000 - points);
+        
+        // Store the original discount for display purposes
+        setDiscountedTotal(discountedAmount / 1000);
+        
+        // Set the final price after both discounts
+        setNewTotal(finalAmount / 1000);
+      } else {
+        // Just points applied, use API response directly
+        setDiscountedTotal(discountedAmount / 1000);
+      }
+      
+      setTotalPointsUsed(pointsUsed);
       setUserPoints(response.data.currentPoints);
-      setTotalPointsUsed(prev => prev + points); // Track total points used
       setPointsToUse('');
       toast.success(`Áp dụng ${points.toLocaleString('vi-VN')} điểm thành công!`);
     } catch (error) {
@@ -493,6 +551,7 @@ const CinemaRoomPage: React.FC = () => {
       }
 
       const token = localStorage.getItem('token');
+      
       const response = await axios.post(
         'https://localhost:7168/api/Promotion/apply',
         {
@@ -508,7 +567,15 @@ const CinemaRoomPage: React.FC = () => {
       );
 
       if (response.data.success) {
-        setNewTotal(response.data.new_total / 1000); // Chuyển đổi sang đơn vị k
+        // Use the exact values from the API response
+        const originalTotal = response.data.original_total;
+        const newTotal = response.data.new_total;
+        const discountAmount = response.data.discount_amount;
+        
+        // Store the promotion details
+        setPromoDiscountAmount(discountAmount);
+        setNewTotal(newTotal / 1000);
+        
         toast.success('Áp dụng mã khuyến mãi thành công!');
       } else {
         toast.error(response.data.message || 'Mã khuyến mãi không hợp lệ');
@@ -685,17 +752,17 @@ const CinemaRoomPage: React.FC = () => {
                           <span>{(totalPrice * 1000).toLocaleString('vi-VN')} VNĐ</span>
                         </Styles.CalculationItem>
                         
-                        {discountedTotal && discountedTotal < totalPrice && (
+                        {promoDiscountAmount !== null && (
                           <Styles.CalculationItem>
-                            <span>Giảm giá từ điểm:</span>
-                            <span>-{((totalPrice - discountedTotal) * 1000).toLocaleString('vi-VN')} VNĐ</span>
+                            <span>Giảm giá từ mã khuyến mãi:</span>
+                            <span>-{promoDiscountAmount.toLocaleString('vi-VN')} VNĐ</span>
                           </Styles.CalculationItem>
                         )}
                         
-                        {newTotal && newTotal < (discountedTotal || totalPrice) && (
+                        {totalPointsUsed > 0 && (
                           <Styles.CalculationItem>
-                            <span>Giảm giá từ mã khuyến mãi:</span>
-                            <span>-{(((discountedTotal || totalPrice) - newTotal) * 1000).toLocaleString('vi-VN')} VNĐ</span>
+                            <span>Giảm giá từ điểm:</span>
+                            <span>-{totalPointsUsed.toLocaleString('vi-VN')} VNĐ</span>
                           </Styles.CalculationItem>
                         )}
                         
@@ -703,7 +770,7 @@ const CinemaRoomPage: React.FC = () => {
                         
                         <Styles.SummaryItem $total>
                           <span>Tổng cộng:</span>
-                          <span>{((newTotal || discountedTotal || totalPrice) * 1000).toLocaleString('vi-VN')} VNĐ</span>
+                          <span>{Math.round((newTotal !== null ? newTotal : (discountedTotal !== null ? discountedTotal : totalPrice)) * 1000).toLocaleString('vi-VN')} VNĐ</span>
                         </Styles.SummaryItem>
                       </Styles.PriceCalculation>
                     </Styles.OrderSummary>
@@ -765,6 +832,17 @@ const CinemaRoomPage: React.FC = () => {
                         setBookingId(null);
                         setTotalPointsUsed(0); // Reset total points used
                         setDiscountedTotal(null);
+                        setNewTotal(null); // Reset promo code discount
+                        setPromotionCode(''); // Clear promotion code
+                        setPointsToUse(''); // Clear points input
+                        setCountdown(300); // Reset countdown timer
+                        setPromoDiscountAmount(null); // Reset promotion discount amount
+                        
+                        // Clear the existing interval
+                        if (countdownRef.current) {
+                          clearInterval(countdownRef.current);
+                          countdownRef.current = null;
+                        }
                       } catch (error) {
                         console.error('Error cancelling booking:', error);
                         toast.error('Không thể hủy đặt vé. Vui lòng thử lại.');
@@ -773,6 +851,17 @@ const CinemaRoomPage: React.FC = () => {
                       setStep('select');
                       setTotalPointsUsed(0); // Reset total points used
                       setDiscountedTotal(null);
+                      setNewTotal(null); // Reset promo code discount
+                      setPromotionCode(''); // Clear promotion code
+                      setPointsToUse(''); // Clear points input
+                      setCountdown(300); // Reset countdown timer
+                      setPromoDiscountAmount(null); // Reset promotion discount amount
+                      
+                      // Clear the existing interval
+                      if (countdownRef.current) {
+                        clearInterval(countdownRef.current);
+                        countdownRef.current = null;
+                      }
                     }
                   }}
                   whileHover={{ scale: 1.05 }}

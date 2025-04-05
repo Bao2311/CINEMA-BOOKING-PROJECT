@@ -54,7 +54,7 @@ const PromotionForm: React.FC<PromotionFormProps> = ({ promotion, onSubmit, onCa
       promotionId: promotion?.promotionId || 0,
       title: name,
       promotionCode: code,
-      discountType: 'percentage',
+      discountType: 'Percentage',
       discountValue: Number(discountPercentage),
       minimumPurchase: 0,
       applicableFor: 'all',
