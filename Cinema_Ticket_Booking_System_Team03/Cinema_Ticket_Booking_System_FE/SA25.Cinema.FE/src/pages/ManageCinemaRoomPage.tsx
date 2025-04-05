@@ -1085,15 +1085,30 @@ const ManageCinemaRoomPage: React.FC = () => {
     } else {
       // --- Logic for Create Manually ---
       // Validate input
+
       if (!newRoom.room_Name.trim()) {
         toast.error("Room name is required.");
         return;
       }
-      if (newRoom.seat_Quantity <= 0) {
-        toast.error("Seat quantity must be greater than 0.");
+      if (
+        newRoom.seat_Quantity === undefined ||
+        newRoom.seat_Quantity === null
+      ) {
+        toast.error("Seat quantity is required and cannot be empty.");
         return;
       }
-
+      if (!Number.isInteger(newRoom.seat_Quantity)) {
+        toast.error("Seat quantity must be an integer.");
+        return;
+      }
+      if (newRoom.seat_Quantity < 50) {
+        toast.error("Seat quantity must be greater than 50.");
+        return;
+      }
+      if (newRoom.seat_Quantity > 150) {
+        toast.error("Seat quantity must be lower than 150.");
+        return;
+      }
       try {
         const response = await axios.post(
           "https://localhost:7168/api/CinemaRoom",
@@ -1142,12 +1157,25 @@ const ManageCinemaRoomPage: React.FC = () => {
     }
 
     // Validate input
+
     if (!newRoom.room_Name.trim()) {
       toast.error("Room name is required.");
       return;
     }
-    if (newRoom.seat_Quantity <= 0) {
-      toast.error("Seat quantity must be greater than 0.");
+    if (newRoom.seat_Quantity === undefined || newRoom.seat_Quantity === null) {
+      toast.error("Seat quantity is required and cannot be empty.");
+      return;
+    }
+    if (!Number.isInteger(newRoom.seat_Quantity)) {
+      toast.error("Seat quantity must be an integer.");
+      return;
+    }
+    if (newRoom.seat_Quantity <= 50) {
+      toast.error("Seat quantity must be greater than 50.");
+      return;
+    }
+    if (newRoom.seat_Quantity > 150) {
+      toast.error("Seat quantity must be lower than 150.");
       return;
     }
 
