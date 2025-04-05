@@ -235,9 +235,9 @@ const LoginForm: React.FC = () => {
     } catch (err) {
       console.error('Lỗi đăng nhập:', err);
       setLoginAttempts(prev => prev + 1);
-      setError('Email hoặc mật khẩu không hợp lệ');
+         setError('Email hoặc mật khẩu không hợp lệ');
       setErrors({
-        general: 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.',
+          general: 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.',
       });
       toast.error('Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.');
     } finally {
