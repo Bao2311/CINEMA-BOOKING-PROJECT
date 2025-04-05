@@ -616,8 +616,8 @@ namespace STP.Repository.Services
                     {
                         Booking_ID = bookingId,
                         Amount = booking.Total_Amount,
-                        Payment_Method = "Online", // Hoặc lấy từ request
-                        Payment_Status = "Completed",
+                        Payment_Method = "Cash", // Hoặc lấy từ request
+                        Payment_Status = "Confirmed",
                         Transaction_Date = DateTime.Now,
                         Payment_Reference = Guid.NewGuid().ToString(),
                         Processor_Response = "Payment completed successfully"
@@ -699,6 +699,96 @@ namespace STP.Repository.Services
                     // Commit the transaction
                     await transaction.CommitAsync();
                     _logger.LogInformation($"Transaction successfully committed for booking {bookingId}");
+
+                    // THÊM MỚI: Cập nhật điểm tích lũy cho người dùng nếu là thành viên
+                    if (booking.User_ID.HasValue && booking.User_ID.Value > 0)
+                    {
+                        try
+                        {
+                            _logger.LogInformation($"Bắt đầu tích điểm cho booking {bookingId}, user {booking.User_ID.Value}");
+
+                            // Tích điểm cho người dùng (5% giá trị đơn hàng)
+                            int pointsEarned = await _pointsService.AddPointsFromBookingAsync(
+                                booking.User_ID.Value,
+                                bookingId,
+                                booking.Total_Amount,
+                                booking?.Points_Used ?? 0);
+
+                            if (pointsEarned > 0)
+                            {
+                                _logger.LogInformation($"Đã tích {pointsEarned} điểm cho user {booking.User_ID.Value}");
+
+                                // Cập nhật số điểm đã tích vào booking
+                                booking.Points_Earned = pointsEarned;
+                                await _context.SaveChangesAsync();
+
+                                // Thêm lịch sử booking
+                                var pointsHistory = new BookingHistory
+                                {
+                                    Booking_ID = bookingId,
+                                    Status = "Points Earned",
+                                    Date = DateTime.Now,
+                                    Notes = $"Tích lũy {pointsEarned} điểm từ đơn hàng"
+                                };
+
+                                _context.BookingHistories.Add(pointsHistory);
+                                await _context.SaveChangesAsync();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // Ghi log lỗi nhưng không ảnh hưởng đến xác nhận đơn hàng
+                            _logger.LogError(ex, $"Lỗi khi tích điểm cho booking {bookingId}: {ex.Message}");
+                        }
+                    }
+
+                    // THÊM MỚI: Tự động gửi email vé cho khách hàng
+                    if (booking.User_ID.HasValue && booking.User_ID.Value > 0)
+                    {
+                        try
+                        {
+                            // Lấy thông tin người dùng - không cần query lại nếu đã có đủ thông tin
+                            var user = await _context.Users.FindAsync(booking.User_ID.Value);
+
+                            if (user != null && !string.IsNullOrEmpty(user.Email))
+                            {
+                                _logger.LogInformation($"Đang gửi email vé cho booking {bookingId} tới email: {user.Email}");
+
+                                // Gọi phương thức gửi email từ TicketService
+                                bool emailSent = await _ticketService.SendTicketFromTemplateByEmailAsync(bookingId, user.Email);
+
+                                if (emailSent)
+                                {
+                                    _logger.LogInformation($"Đã gửi email vé thành công cho booking {bookingId}");
+
+                                    // Thêm lịch sử gửi email
+                                    var emailHistory = new BookingHistory
+                                    {
+                                        Booking_ID = bookingId,
+                                        Status = "Email Sent",
+                                        Date = DateTime.Now,
+                                        Notes = $"Email vé đã được gửi đến {user.Email}"
+                                    };
+
+                                    _context.BookingHistories.Add(emailHistory);
+                                    await _context.SaveChangesAsync();
+                                }
+                                else
+                                {
+                                    _logger.LogWarning($"Không thể gửi email vé cho booking {bookingId}");
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogWarning($"Không thể gửi email vé cho booking {bookingId}: Email không hợp lệ");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // Ghi log lỗi nhưng không ảnh hưởng đến xác nhận đơn hàng
+                            _logger.LogError(ex, $"Lỗi khi gửi email vé cho booking {bookingId}: {ex.Message}");
+                        }
+                    }
 
                     // Lấy thông tin ghế đã định dạng
                     string formattedSeats = await GetFormattedSeatPositions(bookingId);

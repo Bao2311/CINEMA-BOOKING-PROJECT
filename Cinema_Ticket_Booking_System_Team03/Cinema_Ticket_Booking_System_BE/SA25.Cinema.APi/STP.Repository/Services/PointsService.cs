@@ -115,7 +115,7 @@ namespace STP.Repository.Services
                     Booking_ID = bookingId,
                     Status = "Points Applied",
                     Date = DateTime.Now,
-                    Notes = $"Áp dụng {actualPointsToUse} điểm giảm giá ({discountAmount:C0})"
+                    Notes = $"Áp dụng {actualPointsToUse} điểm giảm giá {discountAmount:NO} VND"
                 };
                 _context.BookingHistories.Add(bookingHistory);
 

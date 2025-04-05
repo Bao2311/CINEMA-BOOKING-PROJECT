@@ -189,15 +189,15 @@ namespace STP.Repository.Services
                     }
 
                     // Cập nhật trạng thái đặt vé
-                    booking.Status = "Completed";
+                    booking.Status = "Confirmed";
 
                     // Tạo lịch sử đặt vé
                     var bookingHistory = new BookingHistory
                     {
                         Booking_ID = bookingId,
                         Date = DateTime.Now,
-                        Status = "Completed",
-                        Notes = $"Đã tạo {tickets.Count} vé"
+                        Status = "Confirmed",
+                        Notes = $"Thanh toán hoàn tất {tickets.Count} vé"
                     };
 
                     await _context.BookingHistories.AddAsync(bookingHistory);
@@ -366,8 +366,8 @@ namespace STP.Repository.Services
 
                     // Điều chỉnh kích thước font cho tên phim nếu quá dài
                     float movieFontSize = 30;
-                    if (movieTitle.Length > 15) movieFontSize = 12;
-                    if (movieTitle.Length > 25) movieFontSize = 10;
+                    //if (movieTitle.Length > 15) movieFontSize = 12;
+                    //if (movieTitle.Length > 25) movieFontSize = 10;
 
                     contentByte.SetFontAndSize(baseFont, movieFontSize);
                     contentByte.SetTextMatrix(170, 378); // Movie title - bên phải "MOVIE TITLE"

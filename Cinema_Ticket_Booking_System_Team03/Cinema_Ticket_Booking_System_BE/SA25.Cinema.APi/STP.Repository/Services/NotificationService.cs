@@ -14,6 +14,7 @@ namespace STP.Repository.Services
     {
         private readonly CinemaDbContext _context;
         private readonly ILogger<NotificationService> _logger;
+        private readonly string[] _allowedStatuses = { "Confirmed", "Cancelled", "Points Earned", "Points Refunded", "Reminder Sent" };
 
         public NotificationService(
             CinemaDbContext context,
@@ -24,50 +25,59 @@ namespace STP.Repository.Services
         }
 
         /// <summary>
-        /// Lấy danh sách thông báo của người dùng dựa trên BookingHistories
+        /// Lấy danh sách thông báo của người dùng (chỉ lấy các loại thông báo được phép)
         /// </summary>
         public async Task<NotificationListResponseDto> GetUserNotificationsAsync(int userId, int skip = 0, int take = 10)
         {
             try
             {
-                // Updated query to exclude records with Status "Pending"
+                // Chỉ truy vấn những booking history có status nằm trong danh sách cho phép
                 var bookingHistories = await _context.BookingHistories
                     .Include(bh => bh.TicketBooking)
                         .ThenInclude(tb => tb.Showtime)
                             .ThenInclude(s => s.Movie)
                     .Where(bh => bh.TicketBooking.User_ID == userId &&
-                          bh.Status != null &&
-                          bh.Status != "Pending") // Added this condition
+                                _allowedStatuses.Contains(bh.Status)) // Chỉ lấy các status được phép
                     .OrderByDescending(bh => bh.Date)
                     .Skip(skip)
                     .Take(take)
                     .ToListAsync();
 
-                // Chuyển đổi booking histories thành thông báo
-                var notificationDtos = bookingHistories.Select(bh => new NotificationDto
-                {
-                    Notification_ID = bh.Booking_History_ID,
-                    Title = GetTitleFromStatus(bh.Status),
-                    Content = GetContentFromBookingHistory(bh),
-                    Creation_Date = bh.Date,
-                    Type = MapBookingHistoryStatusToType(bh.Status),
-                    Related_ID = bh.Booking_ID
-                }).ToList();
+                // Chuyển đổi sang đối tượng thông báo
+                var notificationDtos = new List<NotificationDto>();
 
-                // Updated query to exclude "Pending" status for unread count
-                var recentNotificationsCount = await _context.BookingHistories
+                foreach (var bh in bookingHistories)
+                {
+                    var title = GetTitleFromStatus(bh.Status);
+                    if (title == null) continue; // Bỏ qua các status không được phép
+
+                    notificationDtos.Add(new NotificationDto
+                    {
+                        Notification_ID = bh.Booking_History_ID,
+                        Title = title,
+                        Content = GetContentFromBookingHistory(bh),
+                        Creation_Date = bh.Date,
+                        Is_Read = bh.IsRead, // Sử dụng trực tiếp từ model
+                        Read_Date = bh.IsRead ? bh.Date : null, // Có thể thêm trường ngày đọc nếu cần
+                        Type = MapBookingHistoryStatusToType(bh.Status),
+                        Related_ID = bh.Booking_ID
+                    });
+                }
+
+                // Đếm số lượng thông báo chưa đọc (dựa trên IsRead)
+                var unreadCount = await _context.BookingHistories
                     .Include(bh => bh.TicketBooking)
                     .Where(bh => bh.TicketBooking.User_ID == userId &&
                            bh.Date > DateTime.Now.AddDays(-7) &&
-                           bh.Status != null &&
-                           bh.Status != "Pending") // Added this condition
+                           _allowedStatuses.Contains(bh.Status) &&
+                           !bh.IsRead) // Kiểm tra chưa đọc
                     .CountAsync();
 
                 return new NotificationListResponseDto
                 {
                     Success = true,
                     TotalCount = notificationDtos.Count,
-                    UnreadCount = recentNotificationsCount,
+                    UnreadCount = unreadCount,
                     Notifications = notificationDtos
                 };
             }
@@ -79,25 +89,68 @@ namespace STP.Repository.Services
         }
 
         /// <summary>
-        /// Đánh dấu tất cả thông báo đã đọc (giả lập)
+        /// Đánh dấu tất cả thông báo là đã đọc
         /// </summary>
         public async Task<int> MarkAllNotificationsAsReadAsync(int userId)
         {
             try
             {
-                // Updated query to exclude "Pending" status
-                var recentNotificationsCount = await _context.BookingHistories
+                // Tìm tất cả thông báo chưa đọc trong 7 ngày gần đây
+                var unreadNotifications = await _context.BookingHistories
                     .Include(bh => bh.TicketBooking)
                     .Where(bh => bh.TicketBooking.User_ID == userId &&
                            bh.Date > DateTime.Now.AddDays(-7) &&
-                           bh.Status != "Pending") // Added this condition
-                    .CountAsync();
+                           _allowedStatuses.Contains(bh.Status) &&
+                           !bh.IsRead)
+                    .ToListAsync();
 
-                return recentNotificationsCount;
+                // Đánh dấu tất cả là đã đọc
+                foreach (var notification in unreadNotifications)
+                {
+                    notification.IsRead = true;
+                }
+
+                await _context.SaveChangesAsync();
+
+                return unreadNotifications.Count;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error marking all notifications as read for user {userId}: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Đánh dấu một thông báo cụ thể là đã đọc
+        /// </summary>
+        public async Task<bool> MarkNotificationAsReadAsync(int userId, int notificationId)
+        {
+            try
+            {
+                // Tìm thông báo cụ thể
+                var notification = await _context.BookingHistories
+                    .Include(bh => bh.TicketBooking)
+                    .FirstOrDefaultAsync(bh =>
+                        bh.Booking_History_ID == notificationId &&
+                        bh.TicketBooking.User_ID == userId &&
+                        _allowedStatuses.Contains(bh.Status));
+
+                if (notification == null)
+                {
+                    _logger.LogWarning($"Notification {notificationId} not found for user {userId}");
+                    return false;
+                }
+
+                // Đánh dấu đã đọc
+                notification.IsRead = true;
+                await _context.SaveChangesAsync();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error marking notification {notificationId} as read for user {userId}: {ex.Message}");
                 throw;
             }
         }
@@ -120,87 +173,44 @@ namespace STP.Repository.Services
                 case "Reminder Sent":
                     return "Phim sắp chiếu";
                 default:
-                    return $"Cập nhật trạng thái: {status}";
+                    return null; // Trả về null với các status không cần hiển thị
             }
         }
 
-        // Hàm helper để chuyển đổi BookingHistory thành nội dung thông báo
+        // Hàm helper để tạo nội dung thông báo từ BookingHistory
         private string GetContentFromBookingHistory(BookingHistory bh)
         {
             try
             {
-                // Kiểm tra null cho tất cả các tham chiếu
-                if (bh == null || bh.TicketBooking == null || bh.TicketBooking.Showtime == null)
+                if (bh?.TicketBooking?.Showtime?.Movie == null)
                 {
                     return "Thông tin đặt vé đã được cập nhật";
                 }
 
-                string movieName = bh.TicketBooking?.Showtime?.Movie?.Movie_Name ?? "Không xác định";
-                string showDate = bh.TicketBooking?.Showtime?.Show_Date.ToString("dd/MM/yyyy") ?? "";
-                string showTime = bh.TicketBooking?.Showtime?.Start_Time.ToString(@"hh\:mm") ?? "";
+                string movieName = bh.TicketBooking.Showtime.Movie.Movie_Name ?? "Không xác định";
+                string showDate = bh.TicketBooking.Showtime.Show_Date.ToString("dd/MM/yyyy") ?? "";
+                string showTime = bh.TicketBooking.Showtime.Start_Time.ToString(@"hh\:mm") ?? "";
 
-                // Đảm bảo Status không null trước khi sử dụng
-                string status = bh.Status ?? "Unknown";
-
-                switch (status)
+                switch (bh.Status)
                 {
                     case "Confirmed":
                         return $"Bạn đã đặt vé xem phim {movieName} thành công. Suất chiếu: {showDate} {showTime}";
-
                     case "Cancelled":
                         return $"Đơn đặt vé xem phim {movieName} đã bị hủy. Suất chiếu: {showDate} {showTime}";
-
                     case "Points Earned":
-                        if (bh.Notes != null && bh.Notes.Contains("thêm"))
-                        {
-                            // Trích xuất số điểm từ Notes nếu có
-                            int points = ExtractPointsFromNotes(bh.Notes);
-                            return $"Bạn đã tích lũy thêm {points} điểm từ đơn đặt vé phim {movieName}. Kiểm tra tài khoản của bạn.";
-                        }
                         return $"Bạn đã tích lũy điểm từ đơn đặt vé phim {movieName}. Kiểm tra tài khoản của bạn.";
-
                     case "Points Refunded":
-                        if (bh.Notes != null && bh.Notes.Contains("hoàn"))
-                        {
-                            // Trích xuất số điểm từ Notes nếu có
-                            int points = ExtractPointsFromNotes(bh.Notes);
-                            return $"Bạn đã được hoàn {points} điểm từ đơn đặt vé phim {movieName}. Kiểm tra tài khoản của bạn.";
-                        }
                         return $"Bạn đã được hoàn điểm từ đơn đặt vé phim {movieName}. Kiểm tra tài khoản của bạn.";
-
                     case "Reminder Sent":
                         return $"Phim {movieName} sẽ bắt đầu trong 15 phút. Vui lòng đến rạp sớm để check-in.";
-
                     default:
-                        return bh.Notes ?? $"Trạng thái đơn đặt vé của bạn đã được cập nhật thành {status}";
+                        return "Thông tin đơn đặt vé đã được cập nhật";
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, $"Error creating notification content for history ID {bh?.Booking_History_ID}: {ex.Message}");
                 return "Thông tin đơn đặt vé đã được cập nhật";
-            }
-        }
-
-        // Hàm helper để trích xuất số điểm từ nội dung Notes
-        private int ExtractPointsFromNotes(string notes)
-        {
-            try
-            {
-                // Tìm số điểm từ notes, ví dụ: "Đã thêm 25 điểm thưởng"
-                var parts = notes.Split(' ');
-                for (int i = 0; i < parts.Length - 1; i++)
-                {
-                    if (int.TryParse(parts[i], out int points))
-                    {
-                        return points;
-                    }
-                }
-                return 0;
-            }
-            catch
-            {
-                return 0;
             }
         }
 
@@ -225,45 +235,5 @@ namespace STP.Repository.Services
         }
 
         #endregion
-
-        /// <summary>
-        /// Đánh dấu một thông báo cụ thể là đã đọc
-        /// </summary>
-        /// <param name="userId">ID của người dùng</param>
-        /// <param name="notificationId">ID của thông báo</param>
-        /// <returns>Trả về true nếu đánh dấu thành công, false nếu không tìm thấy</returns>
-        public async Task<bool> MarkNotificationAsReadAsync(int userId, int notificationId)
-        {
-            try
-            {
-                // Tìm booking history tương ứng với notification ID và user ID
-                var bookingHistory = await _context.BookingHistories
-                    .Include(bh => bh.TicketBooking)
-                    .FirstOrDefaultAsync(bh =>
-                        bh.Booking_History_ID == notificationId &&
-                        bh.TicketBooking.User_ID == userId);
-
-                // Kiểm tra nếu không tìm thấy booking history
-                if (bookingHistory == null)
-                {
-                    _logger.LogWarning($"Notification {notificationId} not found for user {userId}");
-                    return false;
-                }
-
-                // Đánh dấu đã đọc (ở đây có thể thêm trường IsRead nếu cần)
-                // Ví dụ: bookingHistory.IsRead = true;
-
-                // Lưu thay đổi
-                await _context.SaveChangesAsync();
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error marking notification {notificationId} as read for user {userId}: {ex.Message}");
-                throw;
-            }
-        }
     }
 }
-
