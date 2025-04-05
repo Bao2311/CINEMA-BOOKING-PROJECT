@@ -28,13 +28,13 @@ namespace STP.APIService.Controllers
         /// Lấy danh sách thông báo của người dùng
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetNotifications([FromQuery] int skip = 0, [FromQuery] int take = 10)
+        public async Task<IActionResult> GetNotifications()
         {
             try
             {
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-                var result = await _notificationService.GetUserNotificationsAsync(userId, skip, take);
+                var result = await _notificationService.GetUserNotificationsAsync(userId);
                 return Ok(result);
             }
             catch (Exception ex)

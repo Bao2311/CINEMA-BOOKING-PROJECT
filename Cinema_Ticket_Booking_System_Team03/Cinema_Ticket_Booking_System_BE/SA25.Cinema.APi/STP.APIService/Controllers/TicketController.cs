@@ -627,17 +627,13 @@ namespace STP.Web.Controllers
 
         [HttpGet("all")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> GetAllTickets(
-    [FromQuery] int page = 1,
-    [FromQuery] int pageSize = 20)
+        public async Task<IActionResult> GetAllTickets()
         {
             try
             {
                 // Chỉ lấy danh sách tickets cơ bản, không include các bảng khác
                 var tickets = await _context.Tickets
                     .OrderByDescending(t => t.Ticket_ID)
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
                     .ToListAsync();
 
                 var totalCount = await _context.Tickets.CountAsync();
@@ -645,9 +641,6 @@ namespace STP.Web.Controllers
                 return Ok(new
                 {
                     success = true,
-                    page,
-                    page_size = pageSize,
-                    total_pages = (int)Math.Ceiling(totalCount / (double)pageSize),
                     total_records = totalCount,
                     tickets = tickets.Select(t => new
                     {
