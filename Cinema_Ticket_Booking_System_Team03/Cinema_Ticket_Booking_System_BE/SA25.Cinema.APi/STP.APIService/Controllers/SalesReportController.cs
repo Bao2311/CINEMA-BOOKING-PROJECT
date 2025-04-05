@@ -20,35 +20,21 @@ namespace STP.API.Controllers
         }
 
         /// <summary>
-        /// Lấy báo cáo doanh thu theo khoảng thời gian
+        /// Lấy tất cả báo cáo doanh thu để FE tự filter theo ngày
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetSalesReport([FromQuery] DateTime startDate, [FromQuery] DateTime endDate, [FromQuery] string period = "daily")
+        public async Task<IActionResult> GetSalesReport([FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, [FromQuery] string period = "daily")
         {
             try
             {
-                // Kiểm tra tham số đầu vào
-                if (startDate == default)
-                {
-                    return BadRequest("Ngày bắt đầu không được để trống");
-                }
-
-                if (endDate == default)
-                {
-                    return BadRequest("Ngày kết thúc không được để trống");
-                }
-
-                if (startDate > endDate)
-                {
-                    return BadRequest("Ngày bắt đầu phải trước ngày kết thúc");
-                }
-
+                // Kiểm tra tham số period
                 if (!new[] { "daily", "weekly", "monthly" }.Contains(period.ToLower()))
                 {
                     return BadRequest("Loại báo cáo phải là 'daily', 'weekly', hoặc 'monthly'");
                 }
 
-                var report = await _salesReportService.GetSalesReportAsync(startDate, endDate, period);
+                // Lấy tất cả dữ liệu để FE tự filter
+                var report = await _salesReportService.GetAllSalesReportAsync(period);
                 return Ok(report);
             }
             catch (Exception ex)
@@ -62,26 +48,29 @@ namespace STP.API.Controllers
         /// Xuất báo cáo doanh thu ra file
         /// </summary>
         [HttpGet("export")]
-        public async Task<IActionResult> ExportSalesReport([FromQuery] DateTime startDate, [FromQuery] DateTime endDate, [FromQuery] string period = "daily", [FromQuery] string format = "excel")
+        public async Task<IActionResult> ExportSalesReport([FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, [FromQuery] string period = "daily", [FromQuery] string format = "excel")
         {
             try
             {
-                // Kiểm tra tham số
-                if (startDate == default || endDate == default || startDate > endDate)
-                {
-                    return BadRequest("Khoảng thời gian không hợp lệ");
-                }
-
+                // Kiểm tra định dạng file
                 if (!new[] { "excel", "pdf" }.Contains(format.ToLower()))
                 {
                     return BadRequest("Định dạng phải là 'excel' hoặc 'pdf'");
                 }
 
-                // Lấy dữ liệu báo cáo
-                var report = await _salesReportService.GetSalesReportAsync(startDate, endDate, period);
+                // Kiểm tra loại báo cáo
+                if (!new[] { "daily", "weekly", "monthly" }.Contains(period.ToLower()))
+                {
+                    return BadRequest("Loại báo cáo phải là 'daily', 'weekly', hoặc 'monthly'");
+                }
+
+                // Lấy tất cả dữ liệu báo cáo
+                var report = await _salesReportService.GetAllSalesReportAsync(period);
 
                 // Tạo file theo định dạng được yêu cầu
-                string fileName = $"BaoCaoDoanhThu_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}.{(format.ToLower() == "excel" ? "xlsx" : "pdf")}";
+                string startDateStr = startDate.HasValue ? startDate.Value.ToString("yyyyMMdd") : "all";
+                string endDateStr = endDate.HasValue ? endDate.Value.ToString("yyyyMMdd") : "all";
+                string fileName = $"BaoCaoDoanhThu_{period}_{startDateStr}_{endDateStr}.{(format.ToLower() == "excel" ? "xlsx" : "pdf")}";
 
                 // Trong triển khai thực tế, sẽ gọi service tạo file ở đây
                 // Hiện tại, chỉ trả về thông báo thành công
