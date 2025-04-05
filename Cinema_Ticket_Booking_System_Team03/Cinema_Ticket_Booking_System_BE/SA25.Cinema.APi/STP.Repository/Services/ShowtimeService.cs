@@ -116,9 +116,6 @@ namespace STP.Service.Services
         /// <param name="userId">ID người tạo</param>
         /// <param name="existingTransaction">Transaction đã tồn tại (nếu có)</param>
         /// <returns>Thông tin suất chiếu đã tạo</returns>
-        /// <summary>
-        /// Tạo suất chiếu mới và tạo ghế tương ứng
-        /// </summary>
         public async Task<ShowtimeDto> CreateShowtimeAsync(ShowtimeCreateDto model, int userId, IDbContextTransaction existingTransaction = null)
         {
             // Log thông tin đầu vào
@@ -165,11 +162,14 @@ namespace STP.Service.Services
                 throw new ArgumentException("Phòng chiếu không hoạt động");
             }
 
-            // Kiểm tra ngày chiếu
-            if (model.Show_Date.Date < DateTime.Today)
+            // THÊM MỚI: Kiểm tra kỹ hơn về thời gian chiếu - không được là quá khứ
+            var now = DateTime.Now;
+            var showDateTime = model.Show_Date.Date.Add(model.Start_Time);
+
+            if (showDateTime < now)
             {
-                _logger.LogWarning($"Ngày chiếu không hợp lệ: {model.Show_Date}");
-                throw new ArgumentException("Ngày chiếu phải từ hôm nay trở đi");
+                _logger.LogWarning($"Thời gian chiếu không hợp lệ: {showDateTime} là thời điểm đã qua ({now})");
+                throw new ArgumentException($"Không thể tạo xuất chiếu trong quá khứ. Thời gian chiếu phải sau thời điểm hiện tại.");
             }
 
             // Tính toán thời gian kết thúc
@@ -180,12 +180,20 @@ namespace STP.Service.Services
 
             TimeSpan endTime = suggestedEndTime;
 
-            // LỖI Ở ĐÂY - SỬA CÁCH KIỂM TRA XUNG ĐỘT LỊCH CHIẾU
+            // THÊM MỚI: Kiểm tra thời gian kết thúc không vượt quá giờ đóng cửa (00:00)
+            TimeSpan closingTime = new TimeSpan(23, 59, 59); // 23:59:59 - cuối ngày
+            if (endTime > closingTime)
+            {
+                _logger.LogWarning($"Thời gian kết thúc {endTime} vượt quá giờ đóng cửa {closingTime}");
+                throw new InvalidOperationException($"Không thể tạo xuất chiếu kết thúc sau giờ đóng cửa (00:00). Với thời lượng phim {movie.Duration} phút, giờ bắt đầu muộn nhất có thể là {closingTime.Subtract(TimeSpan.FromMinutes(movie.Duration + 15)).ToString(@"hh\:mm")}.");
+            }
+
+            // Kiểm tra trùng lịch
             var conflictingShowtimes = await _context.Showtimes
                 .Where(s => s.Cinema_Room_ID == model.Cinema_Room_ID &&
                        s.Show_Date.Date == model.Show_Date.Date &&
                        s.Status != "Hidden" &&
-                       model.Start_Time < s.End_Time && s.Start_Time < endTime) // Công thức kiểm tra giao nhau đơn giản hơn và chính xác hơn
+                       model.Start_Time < s.End_Time && s.Start_Time < endTime) // Công thức kiểm tra giao nhau đơn giản và chính xác hơn
                 .ToListAsync();
 
             // Log các xuất chiếu trùng lịch
@@ -330,6 +338,24 @@ namespace STP.Service.Services
                     throw new InvalidOperationException("Phim không tồn tại.");
                 }
 
+                // THÊM MỚI: Kiểm tra kỹ hơn về thời gian chiếu - không được là quá khứ
+                var now = DateTime.Now;
+                var showDateTime = showtimeDto.Show_Date.Date.Add(showtimeDto.Start_Time);
+
+                if (showDateTime < now)
+                {
+                    _logger.LogWarning($"Thời gian chiếu không hợp lệ: {showDateTime} là thời điểm đã qua ({now})");
+                    throw new ArgumentException($"Không thể cập nhật xuất chiếu vào thời điểm trong quá khứ. Thời gian chiếu phải sau thời điểm hiện tại.");
+                }
+
+                // THÊM MỚI: Kiểm tra thời gian kết thúc không vượt quá giờ đóng cửa (00:00)
+                TimeSpan closingTime = new TimeSpan(23, 59, 59); // 23:59:59 - cuối ngày
+                if (showtimeDto.End_Time > closingTime)
+                {
+                    _logger.LogWarning($"Thời gian kết thúc {showtimeDto.End_Time} vượt quá giờ đóng cửa {closingTime}");
+                    throw new InvalidOperationException($"Không thể cập nhật xuất chiếu kết thúc sau giờ đóng cửa (00:00). Với thời lượng phim {movie.Duration} phút, giờ bắt đầu muộn nhất có thể là {closingTime.Subtract(TimeSpan.FromMinutes(movie.Duration + 15)).ToString(@"hh\:mm")}.");
+                }
+
                 // Kiểm tra thời gian kết thúc có hợp lệ không
                 if (!IsEndTimeValid(showtimeDto.Start_Time, showtimeDto.End_Time, movie.Duration))
                 {
@@ -342,16 +368,16 @@ namespace STP.Service.Services
                     // Tạo DateTime kết hợp ngày chiếu và giờ bắt đầu
                     var showDate = showtimeDto.Show_Date.Date; // Đảm bảo chỉ lấy phần ngày
                     var showTime = DateTime.Today.Add(showtimeDto.Start_Time); // Lấy phần giờ
-                    var showDateTime = new DateTime(
+                    var combinedDateTime = new DateTime(
                         showDate.Year, showDate.Month, showDate.Day,
                         showTime.Hour, showTime.Minute, showTime.Second
                     );
 
-                    var now = DateTime.Now;
+                    var dayNow = DateTime.Now;
 
-                    _logger.LogInformation($"Kiểm tra thời gian chiếu: ShowTime={showDateTime}, CurrentTime={now}");
+                    _logger.LogInformation($"Kiểm tra thời gian chiếu: ShowTime={combinedDateTime}, CurrentTime={dayNow}");
 
-                    if (showDateTime <= now)
+                    if (combinedDateTime <= dayNow)
                     {
                         _logger.LogWarning($"Cannot set status to Scheduled: Showtime ID {id} has show time ({showDateTime}) that has already passed current time ({now})");
                         throw new InvalidOperationException($"Không thể đặt trạng thái 'Scheduled' cho suất chiếu đã qua. Thời gian chiếu: {showDateTime:yyyy-MM-dd HH:mm:ss}, Thời gian hiện tại: {now:yyyy-MM-dd HH:mm:ss}");
@@ -517,11 +543,11 @@ namespace STP.Service.Services
         /// <param name="excludeId">ID lịch chiếu cần loại trừ (dùng khi cập nhật)</param>
         /// <returns>True nếu khung giờ khả dụng và có khoảng cách 15 phút</returns>
         public async Task<bool> IsShowtimeAvailableAsync(
-            int cinemaRoomId,
-            DateTime date,
-            TimeSpan startTime,
-            TimeSpan endTime,
-            int? excludeId = null)
+    int cinemaRoomId,
+    DateTime date,
+    TimeSpan startTime,
+    TimeSpan endTime,
+    int? excludeId = null)
         {
             try
             {
@@ -531,6 +557,22 @@ namespace STP.Service.Services
                 if (startTime >= endTime)
                 {
                     _logger.LogWarning("Invalid time range: start time must be before end time");
+                    return false;
+                }
+
+                // THÊM MỚI: Kiểm tra thời gian chiếu không ở quá khứ
+                var showDateTime = date.Date.Add(startTime);
+                if (showDateTime < DateTime.Now)
+                {
+                    _logger.LogWarning($"Showtime {showDateTime} is in the past");
+                    return false;
+                }
+
+                // THÊM MỚI: Kiểm tra thời gian kết thúc không vượt quá giờ đóng cửa (00:00)
+                TimeSpan closingTime = new TimeSpan(23, 59, 59); // 23:59:59 - cuối ngày
+                if (endTime > closingTime)
+                {
+                    _logger.LogWarning($"End time {endTime} exceeds cinema closing time {closingTime}");
                     return false;
                 }
 
@@ -548,7 +590,7 @@ namespace STP.Service.Services
                 // Kiểm tra xem có bị trùng khung giờ không
                 foreach (var showtime in showtimes)
                 {
-                    // SỬA LẠI: Kiểm tra xung đột thời gian - Công thức đơn giản và chính xác hơn
+                    // Kiểm tra xung đột thời gian - Công thức đơn giản và chính xác hơn
                     if (startTime < showtime.End_Time && showtime.Start_Time < endTime)
                     {
                         _logger.LogWarning($"Time slot conflicts with existing showtime ID: {showtime.Showtime_ID} in the same room");
@@ -593,12 +635,12 @@ namespace STP.Service.Services
         /// Kiểm tra xem phim có lịch chiếu trùng thời gian ở phòng khác không
         /// </summary>
         public async Task<bool> IsMovieAvailableAtTimeAsync(
-            int movieId,
-            int currentRoomId,
-            DateTime date,
-            TimeSpan startTime,
-            TimeSpan endTime,
-            int? excludeId = null)
+    int movieId,
+    int currentRoomId,
+    DateTime date,
+    TimeSpan startTime,
+    TimeSpan endTime,
+    int? excludeId = null)
         {
             try
             {
@@ -608,6 +650,22 @@ namespace STP.Service.Services
                 if (startTime >= endTime)
                 {
                     _logger.LogWarning("Invalid time range: start time must be before end time");
+                    return false;
+                }
+
+                // THÊM MỚI: Kiểm tra thời gian chiếu không ở quá khứ
+                var showDateTime = date.Date.Add(startTime);
+                if (showDateTime < DateTime.Now)
+                {
+                    _logger.LogWarning($"Showtime {showDateTime} is in the past");
+                    return false;
+                }
+
+                // THÊM MỚI: Kiểm tra thời gian kết thúc không vượt quá giờ đóng cửa (00:00)
+                TimeSpan closingTime = new TimeSpan(23, 59, 59); // 23:59:59 - cuối ngày
+                if (endTime > closingTime)
+                {
+                    _logger.LogWarning($"End time {endTime} exceeds cinema closing time {closingTime}");
                     return false;
                 }
 
@@ -623,7 +681,7 @@ namespace STP.Service.Services
                 // Kiểm tra xem có bị trùng khung giờ không
                 foreach (var showtime in showtimes)
                 {
-                    // SỬA LẠI: Sử dụng công thức kiểm tra giao nhau đơn giản hơn
+                    // Sử dụng công thức kiểm tra giao nhau đơn giản hơn
                     if (startTime < showtime.End_Time && showtime.Start_Time < endTime)
                     {
                         _logger.LogWarning($"Movie has conflicting showtime ID: {showtime.Showtime_ID} in room ID: {showtime.Cinema_Room_ID}");
@@ -738,10 +796,21 @@ namespace STP.Service.Services
         /// <param name="endTime">Thời gian kết thúc</param>
         /// <param name="movieDuration">Thời lượng phim (phút)</param>
         /// <returns>True nếu hợp lệ, ngược lại trả về False</returns>
+        /// <summary>
+        /// Kiểm tra thời gian kết thúc lịch chiếu có hợp lệ không dựa trên thời lượng phim và thời gian nghỉ 15 phút
+        /// </summary>
         private bool IsEndTimeValid(TimeSpan startTime, TimeSpan endTime, int movieDuration)
         {
             // Tính thời gian kết thúc dựa trên thời gian bắt đầu và thời lượng phim + 15 phút
             TimeSpan expectedEndTime = startTime.Add(TimeSpan.FromMinutes(movieDuration + 15));
+
+            // Kiểm tra thời gian kết thúc không quá 23:59:59
+            TimeSpan closingTime = new TimeSpan(23, 59, 59);
+            if (expectedEndTime > closingTime)
+            {
+                _logger.LogWarning($"Expected end time {expectedEndTime} exceeds cinema closing time {closingTime}");
+                return false;
+            }
 
             // So sánh thời gian kết thúc thực tế với thời gian kết thúc mong đợi
             if (endTime < expectedEndTime)
@@ -1197,10 +1266,9 @@ namespace STP.Service.Services
             var random = new Random();
             allShowtimesToSchedule = allShowtimesToSchedule.OrderBy(x => random.Next()).ToList();
 
-            // Các phần còn lại của phương thức giữ nguyên như cũ
-            // Thiết lập khung giờ hoạt động của rạp (1:00 - 24:00)
-            TimeSpan openTime = new TimeSpan(1, 0, 0);
-            TimeSpan closeTime = new TimeSpan(24, 0, 0);
+            // THAY ĐỔI: Thiết lập khung giờ hoạt động của rạp (9:00 - 00:00)
+            TimeSpan openTime = new TimeSpan(9, 0, 0); // 9:00 sáng - giờ mở cửa
+            TimeSpan closeTime = new TimeSpan(23, 59, 59); // 23:59:59 - giờ đóng cửa
             TimeSpan cleanupTime = TimeSpan.FromMinutes(15); // Thời gian dọn dẹp giữa các suất chiếu
 
             // Tạo timeline các khung giờ đã bị chiếm
@@ -1284,14 +1352,12 @@ namespace STP.Service.Services
 
                 if (!foundSlot)
                 {
-                    _logger.LogWarning($"Không thể sắp xếp suất chiếu cho phim {movieName} (ID: {movieId})");
+                    _logger.LogWarning($"Không thể sắp xếp suất chiếu cho phim {movieName} (ID: {movieId}) do không đủ thời gian trước giờ đóng cửa");
                 }
             }
 
             // Sắp xếp lại theo thời gian bắt đầu
             generatedShowtimes = generatedShowtimes.OrderBy(s => s.StartTime).ToList();
-
-            // Nếu người dùng muốn lưu luôn các lịch chiếu này, chúng ta có thể thêm code lưu vào database ở đây
 
             return new AutoScheduleResult
             {
@@ -1316,6 +1382,13 @@ namespace STP.Service.Services
             {
                 _logger.LogWarning("Yêu cầu lập lịch tự động không hợp lệ");
                 throw new ArgumentException("Yêu cầu lập lịch tự động không hợp lệ");
+            }
+
+            // THÊM MỚI: Kiểm tra ngày không ở quá khứ
+            if (request.ShowDate.Date < DateTime.Today)
+            {
+                _logger.LogWarning($"Ngày chiếu không hợp lệ: {request.ShowDate.Date} là ngày đã qua");
+                throw new ArgumentException("Ngày chiếu phải từ hôm nay trở đi");
             }
 
             // Kiểm tra xem đã có lịch chiếu cho ngày này chưa
