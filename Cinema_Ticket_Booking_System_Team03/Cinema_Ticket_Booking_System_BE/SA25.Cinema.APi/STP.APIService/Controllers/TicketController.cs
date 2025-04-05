@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,11 +18,12 @@ namespace STP.Web.Controllers
     {
         private readonly TicketService _ticketService;
         private readonly CinemaDbContext _context; // Added missing context
-
-        public TicketController(TicketService ticketService, CinemaDbContext context) // Injected context
+        private readonly ILogger<TicketController> _logger;
+        public TicketController(TicketService ticketService, CinemaDbContext context, ILogger<TicketController> logger) // Injected context
         {
             _ticketService = ticketService;
             _context = context;
+            _logger = logger;
         }
 
         /// <summary>
@@ -527,7 +529,7 @@ namespace STP.Web.Controllers
             if (ticketId <= 0)
                 return BadRequest("ID vé không hợp lệ");
 
-            byte[] pdfContent = await _ticketService.GenerateTicketFromTemplateAsync(ticketId);
+            byte[] pdfContent = await _ticketService.GenerateTicketPdfAsync(ticketId);
             if (pdfContent == null)
                 return NotFound("Không tìm thấy vé hoặc không thể tạo file PDF");
 
@@ -549,8 +551,259 @@ namespace STP.Web.Controllers
 
             return Ok(new { Success = true, Message = "Gửi vé qua email thành công" });
         }
-    }
 
+        /// <summary>
+        /// Dọn dẹp vé không hợp lệ (chỉ Admin có quyền thực hiện)
+        /// </summary>
+        /// <remarks>
+        /// Endpoint này sẽ xóa tất cả các vé liên kết với đơn đặt chỗ chưa được xác nhận.
+        /// Chỉ sử dụng khi cần cập nhật hệ thống hoặc sửa lỗi dữ liệu.
+        /// </remarks>
+        /// <returns>Số lượng vé đã xóa</returns>
+        [HttpPost("cleanup-tickets")]
+        public async Task<IActionResult> CleanupTickets()
+        {
+            try
+            {
+                _logger.LogInformation("Bắt đầu quá trình dọn dẹp vé không hợp lệ");
+
+                int removedTickets = await _ticketService.CleanupExistingTicketsAsync();
+
+                return Ok(new
+                {
+                    Success = true,
+                    Message = $"Đã xóa thành công {removedTickets} vé không hợp lệ",
+                    RemovedTickets = removedTickets
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi dọn dẹp vé không hợp lệ");
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "Đã xảy ra lỗi khi dọn dẹp vé",
+                    Error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật trạng thái vé cho các đơn đặt chỗ đã xác nhận
+        /// </summary>
+        /// <remarks>
+        /// Endpoint này sẽ cập nhật tất cả các vé có trạng thái NULL mà liên kết với đơn đặt chỗ đã xác nhận.
+        /// Đặt trạng thái các vé này thành "Active".
+        /// </remarks>
+        /// <returns>Số lượng vé đã cập nhật</returns>
+        [HttpPost("update-ticket-status")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateTicketStatus()
+        {
+            try
+            {
+                _logger.LogInformation("Bắt đầu quá trình cập nhật trạng thái vé");
+
+                int updatedTickets = await _ticketService.UpdateTicketStatusForConfirmedBookingsAsync();
+
+                return Ok(new
+                {
+                    Success = true,
+                    Message = $"Đã cập nhật thành công trạng thái cho {updatedTickets} vé",
+                    UpdatedTickets = updatedTickets
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi cập nhật trạng thái vé");
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "Đã xảy ra lỗi khi cập nhật trạng thái vé",
+                    Error = ex.Message
+                });
+            }
+        }
+
+        [HttpGet("all")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllTickets(
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 20)
+        {
+            try
+            {
+                // Chỉ lấy danh sách tickets cơ bản, không include các bảng khác
+                var tickets = await _context.Tickets
+                    .OrderByDescending(t => t.Ticket_ID)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                var totalCount = await _context.Tickets.CountAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    page,
+                    page_size = pageSize,
+                    total_pages = (int)Math.Ceiling(totalCount / (double)pageSize),
+                    total_records = totalCount,
+                    tickets = tickets.Select(t => new
+                    {
+                        ticket_id = t.Ticket_ID,
+                        ticket_code = t.Ticket_Code,
+                        booking_id = t.Booking_ID,
+                        is_checked_in = t.Is_Checked_In,
+                        status = t.Status
+                    }).ToList()
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi chi tiết khi lấy tất cả vé: {Message}", ex.Message);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Lỗi server",
+                    error = ex.ToString() // Thêm để debug
+                });
+            }
+        }
+
+        [HttpGet("my-tickets")]
+        [Authorize]
+        public async Task<IActionResult> GetMyTickets()
+        {
+            try
+            {
+                // Ghi log danh sách claims để debug
+                _logger.LogInformation("Danh sách claims trong token:");
+                foreach (var claim in User.Claims)
+                {
+                    _logger.LogInformation($"Claim: {claim.Type} = {claim.Value}");
+                }
+
+                // Lấy ID user từ token sử dụng claim đúng (nameidentifier)
+                string userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (userIdClaim == null)
+                {
+                    userIdClaim = User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+                }
+
+                if (string.IsNullOrEmpty(userIdClaim))
+                {
+                    _logger.LogWarning("Không tìm thấy claim nameidentifier trong token");
+                    return Unauthorized(new { success = false, message = "Không tìm thấy thông tin người dùng trong token" });
+                }
+
+                int userId = int.Parse(userIdClaim);
+                _logger.LogInformation($"Lấy danh sách vé cho người dùng ID: {userId}");
+
+                if (userId == 0)
+                {
+                    return Unauthorized(new { success = false, message = "Người dùng chưa đăng nhập" });
+                }
+
+                // Truy vấn cơ bản với một số JOIN cần thiết nhưng tối giản
+                var tickets = await _context.Tickets
+                    .Join(
+                        _context.TicketBookings,
+                        ticket => ticket.Booking_ID,
+                        booking => booking.Booking_ID,
+                        (ticket, booking) => new { ticket, booking }
+                    )
+                    .Where(t => t.booking.User_ID == userId)
+                    .OrderByDescending(t => t.booking.Booking_Date)
+                    .Select(t => new
+                    {
+                        ticket_id = t.ticket.Ticket_ID,
+                        ticket_code = t.ticket.Ticket_Code,
+                        booking_id = t.ticket.Booking_ID,
+                        status = t.ticket.Status,
+                        is_checked_in = t.ticket.Is_Checked_In,
+                        final_price = t.ticket.Final_Price,
+                        booking_date = t.booking.Booking_Date
+                    })
+                    .ToListAsync();
+
+                // Thêm truy vấn để lấy thông tin showtime và phim cho các vé
+                var ticketsWithDetails = new List<object>();
+                foreach (var ticket in tickets)
+                {
+                    // Lấy thông tin showtime và phim
+                    var booking = await _context.TicketBookings
+                        .Include(b => b.Showtime)
+                            .ThenInclude(s => s.Movie)
+                        .Include(b => b.Showtime)
+                            .ThenInclude(s => s.CinemaRoom)
+                        .FirstOrDefaultAsync(b => b.Booking_ID == ticket.booking_id);
+
+                    if (booking != null)
+                    {
+                        // Lấy thông tin ghế
+                        var ticketEntity = await _context.Tickets
+                            .Include(t => t.Seat)
+                                .ThenInclude(s => s.SeatLayout)
+                            .FirstOrDefaultAsync(t => t.Ticket_ID == ticket.ticket_id);
+
+                        string seatInfo = ticketEntity?.Seat != null ?
+                            $"{ticketEntity.Seat.SeatLayout.Row_Label}{ticketEntity.Seat.SeatLayout.Column_Number}" : "N/A";
+
+                        ticketsWithDetails.Add(new
+                        {
+                            ticket.ticket_id,
+                            ticket.ticket_code,
+                            ticket.booking_id,
+                            ticket.status,
+                            ticket.is_checked_in,
+                            ticket.final_price,
+                            ticket.booking_date,
+                            movie_info = booking.Showtime.Movie != null ? new
+                            {
+                                movie_id = booking.Showtime.Movie.Movie_ID,
+                                movie_name = booking.Showtime.Movie.Movie_Name,
+                                poster_url = booking.Showtime.Movie.Poster_URL
+                            } : null,
+                            showtime_info = new
+                            {
+                                showtime_id = booking.Showtime.Showtime_ID,
+                                show_date = booking.Showtime.Show_Date.ToString("yyyy-MM-dd"),
+                                start_time = booking.Showtime.Start_Time.ToString(@"hh\:mm"),
+                                room_name = booking.Showtime.CinemaRoom.Room_Name
+                            },
+                            seat_info = seatInfo
+                        });
+                    }
+                    else
+                    {
+                        // Nếu không tìm thấy thông tin đầy đủ, vẫn trả về thông tin cơ bản
+                        ticketsWithDetails.Add(ticket);
+                    }
+                }
+
+                var ticketsToReturn = ticketsWithDetails.Count > 0 ? ticketsWithDetails : tickets.Cast<object>().ToList();
+
+                return Ok(new
+                {
+                    success = true,
+                    total = tickets.Count,
+                    tickets = ticketsToReturn
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy vé của người dùng: {Message}", ex.Message);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = $"Lỗi: {ex.Message}",
+                    error_details = ex.ToString() // Thêm chi tiết lỗi để debug
+                });
+            }
+        }
+
+    }
     public class SendTicketEmailRequest
     {
         public int BookingId { get; set; }

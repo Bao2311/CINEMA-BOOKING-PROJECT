@@ -10,6 +10,8 @@ namespace STP.Repository.Dtos
         public DateTime ShowDate { get; set; }
         public int CinemaRoomId { get; set; }
         public List<MovieScheduleInput> Movies { get; set; }
+
+        public bool OverwriteExisting { get; set; } = true;
     }
 
     public class MovieScheduleInput
@@ -72,6 +74,8 @@ namespace STP.Repository.Dtos
         public int TotalSeats { get; set; }
         public int AvailableSeats { get; set; }
         public MovieInfoDTO Movie { get; set; }
+
+        public string WarningMessage { get; set; }
 
     }
     public class ShowtimeInfoDto
@@ -249,5 +253,6 @@ namespace STP.Repository.Dtos
         public int ShowtimeCount { get; set; }
     }
 }
+
 
 

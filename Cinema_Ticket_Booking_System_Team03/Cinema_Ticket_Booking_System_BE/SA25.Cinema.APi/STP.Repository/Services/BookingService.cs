@@ -110,7 +110,7 @@ namespace STP.Repository.Services
             {
                 // Lấy thông tin người dùng để kiểm tra role
                 var currentUser = await _context.Users
-    .FirstOrDefaultAsync(u => u.User_ID == userId);
+                    .FirstOrDefaultAsync(u => u.User_ID == userId);
 
                 if (currentUser == null)
                 {
@@ -126,7 +126,7 @@ namespace STP.Repository.Services
                 // Nếu là đơn đặt vé online (khách hàng tự đặt), thực hiện các kiểm tra như trước
                 if (!isStaffBooking)
                 {
-                    // THÊM MỚI: Kiểm tra xem người dùng có booking đang Pending không
+                    // Kiểm tra xem người dùng có booking đang Pending không
                     var pendingBooking = await CheckPendingBooking(userId);
                     if (pendingBooking != null)
                     {
@@ -159,9 +159,12 @@ namespace STP.Repository.Services
                     throw new InvalidOperationException("Suất chiếu đã bắt đầu hoặc đã kết thúc");
                 }
 
+                // LƯU Ý: Cập nhật câu truy vấn để lọc theo Showtime_ID
                 // Kiểm tra xem ghế đã được đặt chưa
                 var bookedSeats = await _context.Seats
-                    .Where(s => request.Seat_IDs.Contains(s.Seat_ID) && s.Booking_ID != null)
+                    .Where(s => request.Seat_IDs.Contains(s.Seat_ID)
+                          && s.Booking_ID != null
+                          && s.Showtime_ID == request.Showtime_ID) // Lọc theo suất chiếu
                     .ToListAsync();
 
                 if (bookedSeats.Any())
@@ -170,16 +173,42 @@ namespace STP.Repository.Services
                     throw new InvalidOperationException($"Một số ghế đã được đặt: {string.Join(", ", bookedSeatIds)}");
                 }
 
-                // Lấy thông tin ghế - chỉ lấy các thuộc tính cần thiết để tránh lỗi SeatLayoutLayout_ID
+                // Lấy thông tin ghế cho suất chiếu cụ thể này
                 var seats = await _context.Seats
-                    .AsNoTracking() // Không theo dõi thay đổi để tránh các vấn đề về navigation properties
-                    .Where(s => request.Seat_IDs.Contains(s.Seat_ID))
+                    .AsNoTracking()
+                    .Where(s => request.Seat_IDs.Contains(s.Seat_ID) && s.Showtime_ID == request.Showtime_ID) // Lọc theo suất chiếu
                     .Select(s => new { s.Seat_ID, s.Layout_ID })
                     .ToListAsync();
 
                 if (seats.Count != request.Seat_IDs.Count)
                 {
-                    throw new ArgumentException("Một số ghế không tồn tại");
+                    // Kiểm tra xem có ghế nào chưa được tạo cho suất chiếu này không
+                    var missingSeats = request.Seat_IDs.Except(seats.Select(s => s.Seat_ID)).ToList();
+                    if (missingSeats.Any())
+                    {
+                        _logger.LogWarning($"Một số ghế chưa được tạo cho suất chiếu {request.Showtime_ID}: {string.Join(", ", missingSeats)}");
+
+                        // Kiểm tra xem ghế có tồn tại trong layout không
+                        var seatLayoutIds = await _context.Seats
+                            .AsNoTracking()
+                            .Where(s => missingSeats.Contains(s.Seat_ID))
+                            .Select(s => s.Layout_ID)
+                            .ToListAsync();
+
+                        if (seatLayoutIds.Any())
+                        {
+                            _logger.LogWarning("Ghế tồn tại nhưng chưa được tạo cho suất chiếu này");
+                            throw new InvalidOperationException("Ghế đã chọn tồn tại nhưng chưa được thiết lập cho suất chiếu này. Vui lòng liên hệ quản trị viên.");
+                        }
+                        else
+                        {
+                            throw new ArgumentException("Một số ghế không tồn tại");
+                        }
+                    }
+                    else
+                    {
+                        throw new ArgumentException("Một số ghế không tồn tại");
+                    }
                 }
 
                 // Lấy thông tin SeatLayout cho từng ghế
@@ -262,7 +291,7 @@ namespace STP.Repository.Services
 
                 // Cập nhật trạng thái ghế và liên kết với Booking_ID
                 var seatsToUpdate = await _context.Seats
-                    .Where(s => request.Seat_IDs.Contains(s.Seat_ID))
+                    .Where(s => request.Seat_IDs.Contains(s.Seat_ID) && s.Showtime_ID == request.Showtime_ID) // Lọc theo suất chiếu
                     .ToListAsync();
 
                 foreach (var seat in seatsToUpdate)
@@ -519,8 +548,12 @@ namespace STP.Repository.Services
                         }
 
                         // Kiểm tra xem có ghế nào đã được đặt bởi đơn hàng khác không
+                        // LƯU Ý: Cập nhật câu truy vấn để lọc theo Showtime_ID
                         var bookedSeats = await _context.Seats
-                            .Where(s => ticketSeats.Contains(s.Seat_ID) && s.Booking_ID != null && s.Booking_ID != bookingId)
+                            .Where(s => ticketSeats.Contains(s.Seat_ID) &&
+                                       s.Showtime_ID == booking.Showtime_ID && // Thêm điều kiện lọc này
+                                       s.Booking_ID != null &&
+                                       s.Booking_ID != bookingId)
                             .ToListAsync();
 
                         if (bookedSeats.Any())
@@ -533,7 +566,7 @@ namespace STP.Repository.Services
 
                         // Phục hồi trạng thái ghế và liên kết với booking
                         var seats = await _context.Seats
-                            .Where(s => ticketSeats.Contains(s.Seat_ID))
+                            .Where(s => ticketSeats.Contains(s.Seat_ID) && s.Showtime_ID == booking.Showtime_ID) // Thêm điều kiện lọc này
                             .ToListAsync();
 
                         foreach (var seat in seats)
@@ -559,8 +592,9 @@ namespace STP.Repository.Services
                     else // Trạng thái là Pending
                     {
                         // Cập nhật trạng thái ghế
+                        // LƯU Ý: Cập nhật câu truy vấn để lọc theo Showtime_ID
                         var seats = await _context.Seats
-                            .Where(s => s.Booking_ID == bookingId)
+                            .Where(s => s.Booking_ID == bookingId && s.Showtime_ID == booking.Showtime_ID)
                             .ToListAsync();
 
                         foreach (var seat in seats)
@@ -597,96 +631,74 @@ namespace STP.Repository.Services
                         Booking_ID = bookingId,
                         Status = "Confirmed",
                         Date = DateTime.Now,
-                        Notes = oldStatus == "Cancelled" ? "Đơn hàng được khôi phục sau khi thanh toán thành công" : null
+                        Notes = oldStatus == "Cancelled" ? "Đơn hàng được khôi phục sau khi thanh toán thành công" : "Thanh toán hoàn tất"
                     };
 
                     _context.BookingHistories.Add(bookingHistory);
                     await _context.SaveChangesAsync();
 
-                    // Thêm điểm thưởng khi thanh toán thành công (5% của số tiền thực tế thanh toán)
-                    int pointsEarned = 0;
-                    int currentPoints = 0;
+                    // THÊM MỚI: Tạo vé sau khi booking được xác nhận
                     try
                     {
-                        // Chỉ thêm điểm nếu trước đó đơn hàng là Pending và có User_ID
-                        if (oldStatus == "Pending" && booking.User_ID.HasValue && booking.User_ID > 0)
+                        _logger.LogInformation($"Bắt đầu tạo vé cho đơn đặt vé đã xác nhận {bookingId}");
+
+                        // Kiểm tra xem đã có vé chưa
+                        var existingTickets = await _context.Tickets
+                            .Where(t => t.Booking_ID == bookingId && t.Status == "Active")
+                            .ToListAsync();
+
+                        if (existingTickets.Any())
                         {
-                            pointsEarned = await _pointsService.AddPointsFromBookingAsync(
-                                booking.User_ID.Value, // Sử dụng User_ID từ booking thay vì staffId
-                                bookingId,
-                                booking.Total_Amount,
-                                0 // Không có pointsUsed
-                            );
-
-                            booking.Points_Earned = pointsEarned;
-                            await _context.SaveChangesAsync();
-
-                            _logger.LogInformation($"Đã thêm {pointsEarned} điểm cho booking {bookingId}, user {booking.User_ID}");
-
-                            // Cập nhật lịch sử đặt vé để ghi nhận việc thêm điểm
-                            var pointsHistory = new BookingHistory
-                            {
-                                Booking_ID = bookingId,
-                                Status = "Points Earned",
-                                Date = DateTime.Now,
-                                Notes = $"Đã thêm {pointsEarned} điểm thưởng"
-                            };
-
-                            _context.BookingHistories.Add(pointsHistory);
-                            await _context.SaveChangesAsync();
-
-                            // Lấy số điểm hiện tại của người dùng
-                            currentPoints = await _pointsService.GetUserPointsTotalAsync(booking.User_ID.Value);
+                            _logger.LogInformation($"Đã có {existingTickets.Count} vé cho đơn đặt vé {bookingId}, không cần tạo thêm");
                         }
                         else
                         {
-                            _logger.LogInformation($"Không thêm điểm cho booking {bookingId} - Status: {oldStatus}, User_ID: {booking.User_ID}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, $"Lỗi khi thêm điểm cho booking {bookingId}, nhưng vẫn tiếp tục xử lý");
-                        // Không throw exception ở đây để tránh ảnh hưởng đến quá trình thanh toán
-                    }
+                            // Tạo vé sử dụng TicketService
+                            var generatedTickets = await _ticketService.GenerateTicketsAsync(bookingId);
 
-                    // CRITICAL: Commit the transaction - the missing piece!
-                    await transaction.CommitAsync();
-                    _logger.LogInformation($"Transaction successfully committed for booking {bookingId}");
-
-                    // GỬI EMAIL SAU KHI TRANSACTION THÀNH CÔNG
-                    try
-                    {
-                        if (booking.User_ID.HasValue)
-                        {
-                            var user = await _context.Users.FindAsync(booking.User_ID.Value);
-                            if (user != null && !string.IsNullOrEmpty(user.Email))
+                            if (generatedTickets != null && generatedTickets.Any())
                             {
-                                // Gọi dịch vụ gửi email (ưu tiên dùng template nếu có)
-                                bool emailSent = await _ticketService.SendTicketFromTemplateByEmailAsync(bookingId);
-                                if (emailSent)
+                                _logger.LogInformation($"Đã tạo thành công {generatedTickets.Count} vé cho đơn đặt vé {bookingId}");
+
+                                // Thêm lịch sử về việc tạo vé
+                                var ticketHistory = new BookingHistory
                                 {
-                                    _logger.LogInformation($"Đã gửi email thành công đến {user.Email} cho booking {bookingId}");
-                                }
-                                else
-                                {
-                                    _logger.LogWarning($"Không thể gửi email cho booking {bookingId} đến {user.Email}");
-                                }
+                                    Booking_ID = bookingId,
+                                    Status = "Tickets Generated",
+                                    Date = DateTime.Now,
+                                    Notes = $"Đã tạo {generatedTickets.Count} vé cho đơn đặt vé"
+                                };
+
+                                _context.BookingHistories.Add(ticketHistory);
+                                await _context.SaveChangesAsync();
                             }
                             else
                             {
-                                _logger.LogWarning($"Không tìm thấy thông tin email của người dùng ID: {booking.User_ID}");
+                                _logger.LogWarning($"Không thể tạo vé cho đơn đặt vé {bookingId}");
                             }
-                        }
-                        else
-                        {
-                            _logger.LogInformation($"Booking {bookingId} không có User_ID, bỏ qua việc gửi email");
                         }
                     }
                     catch (Exception ex)
                     {
-                        // Bắt lỗi nhưng không ảnh hưởng đến kết quả thanh toán
-                        _logger.LogError(ex, $"Lỗi khi gửi email xác nhận đặt vé cho booking {bookingId}");
+                        // Ghi nhận lỗi nhưng không ảnh hưởng đến giao dịch chính
+                        _logger.LogError(ex, $"Lỗi khi tạo vé cho đơn đặt vé {bookingId}: {ex.Message}");
+
+                        // Thêm lịch sử lỗi
+                        var errorHistory = new BookingHistory
+                        {
+                            Booking_ID = bookingId,
+                            Status = "Ticket Generation Failed",
+                            Date = DateTime.Now,
+                            Notes = $"Lỗi khi tạo vé: {ex.Message}"
+                        };
+
+                        _context.BookingHistories.Add(errorHistory);
+                        await _context.SaveChangesAsync();
                     }
+
+                    // Commit the transaction
+                    await transaction.CommitAsync();
+                    _logger.LogInformation($"Transaction successfully committed for booking {bookingId}");
 
                     // Lấy thông tin ghế đã định dạng
                     string formattedSeats = await GetFormattedSeatPositions(bookingId);
@@ -695,7 +707,7 @@ namespace STP.Repository.Services
                     var response = new BookingResponseDTO
                     {
                         Booking_ID = booking.Booking_ID,
-                        User_ID = booking.User_ID, // Có thể là null cho booking tại quầy không liên kết member
+                        User_ID = booking.User_ID,
                         Booking_Date = booking.Booking_Date,
                         Total_Amount = booking.Total_Amount,
                         Status = booking.Status,
@@ -710,9 +722,7 @@ namespace STP.Repository.Services
                         Show_Date = booking.Showtime.Show_Date,
                         Start_Time = booking.Showtime.Start_Time,
 
-                        // Thêm thông tin về điểm
-                        PointsEarned = pointsEarned,
-                        CurrentPoints = currentPoints
+                        // [phần còn lại không thay đổi]
                     };
 
                     return response;
@@ -732,204 +742,224 @@ namespace STP.Repository.Services
             }
         }
 
-        /// <summary>
-        /// Cập nhật trạng thái đơn hàng thành "Cancelled" khi người dùng hủy thanh toán
-        /// </summary>
-        public async Task<bool> CancelBooking(int bookingId)
-        {
-            try
-            {
-                _logger.LogInformation($"===== BẮT ĐẦU HỦY ĐƠN ĐẶT VÉ {bookingId} =====");
+        ///// <summary>
+        ///// Cập nhật trạng thái đơn hàng thành "Cancelled" khi người dùng hủy thanh toán
+        ///// </summary>
+        ///// <summary>
+        ///// Cập nhật trạng thái đơn hàng thành "Cancelled" khi người dùng hủy thanh toán
+        ///// </summary>
+        //public async Task<bool> CancelBooking(int bookingId)
+        //{
+        //    try
+        //    {
+        //        _logger.LogInformation($"===== BẮT ĐẦU HỦY ĐƠN ĐẶT VÉ {bookingId} =====");
 
-                // Lấy thông tin đặt vé - KHÔNG kiểm tra trạng thái Pending
-                var booking = await _context.TicketBookings
-                    .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
+        //        // Lấy thông tin đặt vé và bao gồm thông tin về suất chiếu
+        //        var booking = await _context.TicketBookings
+        //            .Include(b => b.Showtime)
+        //            .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
 
-                if (booking == null)
-                {
-                    _logger.LogWarning($"[ERROR] Không tìm thấy đơn đặt vé {bookingId}");
-                    return false;
-                }
+        //        if (booking == null)
+        //        {
+        //            _logger.LogWarning($"[ERROR] Không tìm thấy đơn đặt vé {bookingId}");
+        //            return false;
+        //        }
 
-                // Log chi tiết về booking
-                _logger.LogInformation($"[INFO] Chi tiết booking {bookingId}: Status={booking.Status}, " +
-                                      $"PromotionID={booking.Promotion_ID}, UserID={booking.User_ID}, " +
-                                      $"PointsUsed={booking.Points_Used}");
+        //        // Log chi tiết về booking
+        //        _logger.LogInformation($"[INFO] Chi tiết booking {bookingId}: Status={booking.Status}, " +
+        //                              $"PromotionID={booking.Promotion_ID}, UserID={booking.User_ID}, " +
+        //                              $"PointsUsed={booking.Points_Used}, ShowtimeID={booking.Showtime_ID}");
 
-                // Log nếu có mã khuyến mãi
-                if (booking.Promotion_ID.HasValue)
-                {
-                    var promotion = await _context.Promotions.FindAsync(booking.Promotion_ID.Value);
-                    if (promotion != null)
-                    {
-                        _logger.LogInformation($"[PROMOTION] Tìm thấy mã KM: ID={promotion.Promotion_ID}, " +
-                                              $"Code={promotion.Promotion_Code}, CurrentUsage={promotion.Current_Usage}");
-                    }
-                    else
-                    {
-                        _logger.LogWarning($"[PROMOTION] [ERROR] Không tìm thấy mã KM với ID={booking.Promotion_ID}");
-                    }
-                }
-                else
-                {
-                    _logger.LogInformation($"[PROMOTION] Booking {bookingId} không có mã khuyến mãi");
-                }
+        //        // Log nếu có mã khuyến mãi
+        //        if (booking.Promotion_ID.HasValue)
+        //        {
+        //            var promotion = await _context.Promotions.FindAsync(booking.Promotion_ID.Value);
+        //            if (promotion != null)
+        //            {
+        //                _logger.LogInformation($"[PROMOTION] Tìm thấy mã KM: ID={promotion.Promotion_ID}, " +
+        //                                      $"Code={promotion.Promotion_Code}, CurrentUsage={promotion.Current_Usage}");
+        //            }
+        //            else
+        //            {
+        //                _logger.LogWarning($"[PROMOTION] [ERROR] Không tìm thấy mã KM với ID={booking.Promotion_ID}");
+        //            }
+        //        }
+        //        else
+        //        {
+        //            _logger.LogInformation($"[PROMOTION] Booking {bookingId} không có mã khuyến mãi");
+        //        }
 
-                // Sử dụng transaction để đảm bảo tính nhất quán dữ liệu
-                using (var transaction = await _context.Database.BeginTransactionAsync())
-                {
-                    try
-                    {
-                        // XỬ LÝ HOÀN TRẢ MÃ KHUYẾN MÃI - KHÔNG KIỂM TRA TRẠNG THÁI
-                        if (booking.Promotion_ID.HasValue)
-                        {
-                            try
-                            {
-                                _logger.LogInformation($"[PROMOTION] Bắt đầu xử lý hoàn trả KM ID={booking.Promotion_ID}");
+        //        // Sử dụng transaction để đảm bảo tính nhất quán dữ liệu
+        //        using (var transaction = await _context.Database.BeginTransactionAsync())
+        //        {
+        //            try
+        //            {
+        //                // XỬ LÝ HOÀN TRẢ MÃ KHUYẾN MÃI - KHÔNG KIỂM TRA TRẠNG THÁI
+        //                if (booking.Promotion_ID.HasValue)
+        //                {
+        //                    try
+        //                    {
+        //                        _logger.LogInformation($"[PROMOTION] Bắt đầu xử lý hoàn trả KM ID={booking.Promotion_ID}");
 
-                                // Lấy thông tin promotion một lần nữa trong transaction
-                                var promotion = await _context.Promotions
-                                    .FindAsync(booking.Promotion_ID.Value);
+        //                        // Lấy thông tin promotion một lần nữa trong transaction
+        //                        var promotion = await _context.Promotions
+        //                            .FindAsync(booking.Promotion_ID.Value);
 
-                                if (promotion == null)
-                                {
-                                    _logger.LogWarning($"[PROMOTION] [ERROR] Không tìm thấy mã KM trong transaction");
-                                }
-                                else
-                                {
-                                    _logger.LogInformation($"[PROMOTION] Thông tin KM trong transaction: " +
-                                                          $"ID={promotion.Promotion_ID}, Code={promotion.Promotion_Code}, " +
-                                                          $"CurrentUsage={promotion.Current_Usage}");
+        //                        if (promotion == null)
+        //                        {
+        //                            _logger.LogWarning($"[PROMOTION] [ERROR] Không tìm thấy mã KM trong transaction");
+        //                        }
+        //                        else
+        //                        {
+        //                            _logger.LogInformation($"[PROMOTION] Thông tin KM trong transaction: " +
+        //                                                  $"ID={promotion.Promotion_ID}, Code={promotion.Promotion_Code}, " +
+        //                                                  $"CurrentUsage={promotion.Current_Usage}");
 
-                                    // Tìm các bản ghi Promotion_Usage liên quan đến booking
-                                    var promotionUsages = await _context.PromotionUsages
-                                        .Where(pu => pu.Booking_ID == bookingId)
-                                        .ToListAsync();
+        //                            // Tìm các bản ghi Promotion_Usage liên quan đến booking
+        //                            var promotionUsages = await _context.PromotionUsages
+        //                                .Where(pu => pu.Booking_ID == bookingId)
+        //                                .ToListAsync();
 
-                                    _logger.LogInformation($"[PROMOTION] Tìm thấy {promotionUsages.Count} bản ghi PromotionUsages " +
-                                                          $"cho booking {bookingId}");
+        //                            _logger.LogInformation($"[PROMOTION] Tìm thấy {promotionUsages.Count} bản ghi PromotionUsages " +
+        //                                                  $"cho booking {bookingId}");
 
-                                    if (promotionUsages.Any())
-                                    {
-                                        foreach (var usage in promotionUsages)
-                                        {
-                                            _logger.LogInformation($"[PROMOTION] Chi tiết PromotionUsage: ID={usage.Usage_ID}, " +
-                                                                 $"PromotionID={usage.Promotion_ID}, HasUsed={usage.HasUsed}");
+        //                            if (promotionUsages.Any())
+        //                            {
+        //                                foreach (var usage in promotionUsages)
+        //                                {
+        //                                    _logger.LogInformation($"[PROMOTION] Chi tiết PromotionUsage: ID={usage.Usage_ID}, " +
+        //                                                         $"PromotionID={usage.Promotion_ID}, HasUsed={usage.HasUsed}");
 
-                                            usage.HasUsed = false;
-                                            _logger.LogInformation($"[PROMOTION] Đã cập nhật HasUsed=false cho Usage_ID={usage.Usage_ID}");
-                                        }
+        //                                    usage.HasUsed = false;
+        //                                    _logger.LogInformation($"[PROMOTION] Đã cập nhật HasUsed=false cho Usage_ID={usage.Usage_ID}");
+        //                                }
 
-                                        // Ghi log trước khi giảm lượt sử dụng
-                                        _logger.LogInformation($"[PROMOTION] Chuẩn bị giảm Current_Usage " +
-                                                             $"của promotion {promotion.Promotion_ID} " +
-                                                             $"từ {promotion.Current_Usage}");
+        //                                // Ghi log trước khi giảm lượt sử dụng
+        //                                _logger.LogInformation($"[PROMOTION] Chuẩn bị giảm Current_Usage " +
+        //                                                     $"của promotion {promotion.Promotion_ID} " +
+        //                                                     $"từ {promotion.Current_Usage}");
 
-                                        // Giảm lượt sử dụng của mã khuyến mãi
-                                        if (promotion.Current_Usage > 0)
-                                        {
-                                            int oldUsage = promotion.Current_Usage;
-                                            promotion.Current_Usage -= 1;
-                                            _logger.LogInformation($"[PROMOTION] Đã giảm Current_Usage từ {oldUsage} " +
-                                                                 $"xuống {promotion.Current_Usage}");
-                                        }
-                                        else
-                                        {
-                                            _logger.LogWarning($"[PROMOTION] [ERROR] Current_Usage đã là 0, không thể giảm thêm");
-                                        }
+        //                                // Giảm lượt sử dụng của mã khuyến mãi
+        //                                if (promotion.Current_Usage > 0)
+        //                                {
+        //                                    int oldUsage = promotion.Current_Usage;
+        //                                    promotion.Current_Usage -= 1;
+        //                                    _logger.LogInformation($"[PROMOTION] Đã giảm Current_Usage từ {oldUsage} " +
+        //                                                         $"xuống {promotion.Current_Usage}");
+        //                                }
+        //                                else
+        //                                {
+        //                                    _logger.LogWarning($"[PROMOTION] [ERROR] Current_Usage đã là 0, không thể giảm thêm");
+        //                                }
 
-                                        // Thêm BookingHistory cho việc hoàn trả khuyến mãi
-                                        var historyEntry = new BookingHistory
-                                        {
-                                            Booking_ID = bookingId,
-                                            Status = "Promotion Refunded",
-                                            Date = DateTime.Now,
-                                            Notes = $"Hoàn trả KM ID: {booking.Promotion_ID} (Code: {promotion.Promotion_Code})"
-                                        };
-                                        _context.BookingHistories.Add(historyEntry);
-                                        _logger.LogInformation($"[PROMOTION] Đã thêm lịch sử hoàn trả KM");
+        //                                // Thêm BookingHistory cho việc hoàn trả khuyến mãi
+        //                                var historyEntry = new BookingHistory
+        //                                {
+        //                                    Booking_ID = bookingId,
+        //                                    Status = "Promotion Refunded",
+        //                                    Date = DateTime.Now,
+        //                                    Notes = $"Hoàn trả KM ID: {booking.Promotion_ID} (Code: {promotion.Promotion_Code})"
+        //                                };
+        //                                _context.BookingHistories.Add(historyEntry);
+        //                                _logger.LogInformation($"[PROMOTION] Đã thêm lịch sử hoàn trả KM");
 
-                                        // Xóa liên kết promotion với booking
-                                        var oldPromotionId = booking.Promotion_ID;
-                                        booking.Promotion_ID = null;
-                                        _logger.LogInformation($"[PROMOTION] Đã xóa liên kết PromotionID={oldPromotionId} từ booking");
-                                    }
-                                    else
-                                    {
-                                        _logger.LogWarning($"[PROMOTION] [ERROR] Không tìm thấy PromotionUsage cho booking {bookingId} " +
-                                                          $"mặc dù có PromotionID={booking.Promotion_ID}");
-                                    }
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(ex, $"[PROMOTION] [ERROR] Lỗi khi xử lý hoàn trả KM: {ex.Message}");
-                                // Không ném lại ngoại lệ để tiếp tục xử lý
-                            }
-                        }
+        //                                // Xóa liên kết promotion với booking
+        //                                var oldPromotionId = booking.Promotion_ID;
+        //                                booking.Promotion_ID = null;
+        //                                _logger.LogInformation($"[PROMOTION] Đã xóa liên kết PromotionID={oldPromotionId} từ booking");
+        //                            }
+        //                            else
+        //                            {
+        //                                _logger.LogWarning($"[PROMOTION] [ERROR] Không tìm thấy PromotionUsage cho booking {bookingId} " +
+        //                                                  $"mặc dù có PromotionID={booking.Promotion_ID}");
+        //                            }
+        //                        }
+        //                    }
+        //                    catch (Exception ex)
+        //                    {
+        //                        _logger.LogError(ex, $"[PROMOTION] [ERROR] Lỗi khi xử lý hoàn trả KM: {ex.Message}");
+        //                        // Không ném lại ngoại lệ để tiếp tục xử lý
+        //                    }
+        //                }
 
-                        // Cập nhật trạng thái đơn đặt vé nếu chưa bị hủy
-                        if (booking.Status != "Cancelled")
-                        {
-                            booking.Status = "Cancelled";
-                            _logger.LogInformation($"Cập nhật trạng thái booking {bookingId} thành Cancelled");
+        //                // XÓA CÁC VÉ LIÊN QUAN ĐẾN BOOKING
+        //                var tickets = await _context.Tickets
+        //                    .Where(t => t.Booking_ID == bookingId)
+        //                    .ToListAsync();
 
-                            // Phần xử lý ghế và vé (giữ nguyên như code cũ)
-                            // ...
-                        }
-                        else
-                        {
-                            _logger.LogInformation($"Booking {bookingId} đã ở trạng thái Cancelled, không cần cập nhật trạng thái");
-                        }
+        //                if (tickets.Any())
+        //                {
+        //                    _logger.LogInformation($"Tìm thấy {tickets.Count} vé cần xóa cho booking {bookingId}");
+        //                    _context.Tickets.RemoveRange(tickets);
+        //                    _logger.LogInformation($"Đã xóa {tickets.Count} vé cho booking {bookingId}");
+        //                }
+        //                else
+        //                {
+        //                    _logger.LogInformation($"Không tìm thấy vé nào cho booking {bookingId}");
+        //                }
 
-                        // Lưu thay đổi và theo dõi số bản ghi bị ảnh hưởng
-                        int changedRecords = await _context.SaveChangesAsync();
-                        _logger.LogInformation($"Đã lưu thay đổi: {changedRecords} bản ghi bị ảnh hưởng");
+        //                // Cập nhật trạng thái đơn đặt vé nếu chưa bị hủy
+        //                if (booking.Status != "Cancelled")
+        //                {
+        //                    booking.Status = "Cancelled";
+        //                    _logger.LogInformation($"Cập nhật trạng thái booking {bookingId} thành Cancelled");
 
-                        // Commit transaction
-                        await transaction.CommitAsync();
-                        _logger.LogInformation($"===== HỦY ĐƠN ĐẶT VÉ {bookingId} THÀNH CÔNG =====");
+        //                    // Cập nhật trạng thái ghế và xóa liên kết với booking_id
+        //                    // LƯU Ý: Cập nhật câu truy vấn để lọc theo Showtime_ID
+        //                    var seats = await _context.Seats
+        //                        .Where(s => s.Booking_ID == bookingId && s.Showtime_ID == booking.Showtime_ID)
+        //                        .ToListAsync();
 
-                        // Kiểm tra lại trạng thái sau khi commit
-                        var updatedPromotion = booking.Promotion_ID.HasValue ?
-                            await _context.Promotions.FindAsync(booking.Promotion_ID.Value) : null;
+        //                    foreach (var seat in seats)
+        //                    {
+        //                        seat.Seat_Status = "Available";
+        //                        seat.Last_Updated = DateTime.Now;
+        //                        seat.Booking_ID = null; // Xóa liên kết với booking
+        //                        _logger.LogInformation($"Đặt lại ghế {seat.Seat_ID} thành Available và xóa liên kết với booking");
+        //                    }
 
-                        if (updatedPromotion != null)
-                        {
-                            _logger.LogInformation($"[PROMOTION] Trạng thái sau commit: PromotionID={updatedPromotion.Promotion_ID}, " +
-                                                 $"CurrentUsage={updatedPromotion.Current_Usage}");
-                        }
+        //                    // Thêm lịch sử hủy đơn
+        //                    var bookingHistory = new BookingHistory
+        //                    {
+        //                        Booking_ID = bookingId,
+        //                        Status = "Cancelled",
+        //                        Date = DateTime.Now,
+        //                        Notes = "Đơn đặt vé đã bị hủy và xóa vé"
+        //                    };
 
-                        // Kiểm tra lại promotionusage sau khi commit
-                        var updatedUsages = await _context.PromotionUsages
-                            .Where(pu => pu.Booking_ID == bookingId)
-                            .ToListAsync();
+        //                    _context.BookingHistories.Add(bookingHistory);
+        //                }
+        //                else
+        //                {
+        //                    _logger.LogInformation($"Booking {bookingId} đã ở trạng thái Cancelled, không cần cập nhật trạng thái");
+        //                }
 
-                        foreach (var usage in updatedUsages)
-                        {
-                            _logger.LogInformation($"[PROMOTION] Usage sau commit: ID={usage.Usage_ID}, " +
-                                                 $"HasUsed={usage.HasUsed}");
-                        }
+        //                // Lưu thay đổi và theo dõi số bản ghi bị ảnh hưởng
+        //                int changedRecords = await _context.SaveChangesAsync();
+        //                _logger.LogInformation($"Đã lưu thay đổi: {changedRecords} bản ghi bị ảnh hưởng");
 
-                        return true;
-                    }
-                    catch (Exception ex)
-                    {
-                        // Rollback nếu có lỗi
-                        await transaction.RollbackAsync();
-                        _logger.LogError(ex, $"[ERROR] Lỗi transaction khi hủy đơn {bookingId}: {ex.Message}");
-                        _logger.LogInformation($"Đã rollback transaction do lỗi");
-                        throw;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"[ERROR] Lỗi không xử lý được khi hủy đơn {bookingId}: {ex.Message}");
-                return false;
-            }
-        }
+        //                // Commit transaction
+        //                await transaction.CommitAsync();
+        //                _logger.LogInformation($"===== HỦY ĐƠN ĐẶT VÉ {bookingId} THÀNH CÔNG =====");
 
+        //                return true;
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                // Rollback nếu có lỗi
+        //                await transaction.RollbackAsync();
+        //                _logger.LogError(ex, $"[ERROR] Lỗi transaction khi hủy đơn {bookingId}: {ex.Message}");
+        //                _logger.LogInformation($"Đã rollback transaction do lỗi");
+        //                throw;
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, $"[ERROR] Lỗi không xử lý được khi hủy đơn {bookingId}: {ex.Message}");
+        //        return false;
+        //    }
+        //}
         public async Task<IEnumerable<BookingHistoryDTO>> GetUserBookings(int userId)
         {
             try
@@ -1105,63 +1135,39 @@ namespace STP.Repository.Services
         }
         private async Task<string> GetFormattedSeatPositions(int bookingId)
         {
-            var tickets = await _context.Tickets.Where(t => t.Booking_ID == bookingId).ToListAsync();
-            foreach (var ticket in tickets)
-            {
-                _logger.LogInformation($"Ticket ID: {ticket.Ticket_ID}, Seat ID: {ticket.Seat_ID}");
-
-                var seat = await _context.Seats.FindAsync(ticket.Seat_ID);
-                if (seat != null)
-                {
-                    _logger.LogInformation($"Seat ID: {seat.Seat_ID}, Layout ID: {seat.Layout_ID}");
-
-                    var layout = await _context.SeatLayouts.FindAsync(seat.Layout_ID);
-                    if (layout != null)
-                    {
-                        _logger.LogInformation($"Layout ID: {layout.Layout_ID}, Row: {layout.Row_Label}, Column: {layout.Column_Number}");
-                    }
-                    else
-                    {
-                        _logger.LogWarning($"Không tìm thấy layout cho Layout ID: {seat.Layout_ID}");
-                    }
-                }
-                else
-                {
-                    _logger.LogWarning($"Không tìm thấy ghế cho Seat ID: {ticket.Seat_ID}");
-                }
-            }
-            // Thêm log để debug
-            _logger.LogInformation($"Đang lấy thông tin ghế cho đặt vé {bookingId}");
-
-            string seatPositionsString = null;
-
             try
             {
-                // Kiểm tra xem có vé nào được tạo cho đặt vé này chưa
-                var ticketsExist = await _context.Tickets.AnyAsync(t => t.Booking_ID == bookingId);
-                if (!ticketsExist)
+                // Lấy thông tin booking để biết Showtime_ID
+                var booking = await _context.TicketBookings
+                    .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
+
+                if (booking == null)
                 {
-                    _logger.LogWarning($"Không tìm thấy vé nào cho đặt vé {bookingId}");
+                    _logger.LogWarning($"Không tìm thấy booking với ID {bookingId}");
                     return null;
                 }
 
-                // Lấy thông tin ghế trực tiếp từ EF Core thay vì sử dụng ADO.NET
+                int showtimeId = booking.Showtime_ID;
+                _logger.LogInformation($"Đang lấy thông tin ghế cho đặt vé {bookingId}, suất chiếu {showtimeId}");
+
+                // Lấy thông tin ghế dùng Entity Framework với các điều kiện phù hợp
                 var seatInfo = await (from t in _context.Tickets
                                       join s in _context.Seats on t.Seat_ID equals s.Seat_ID
                                       join sl in _context.SeatLayouts on s.Layout_ID equals sl.Layout_ID
-                                      where t.Booking_ID == bookingId
+                                      where t.Booking_ID == bookingId && s.Showtime_ID == showtimeId
                                       select new { sl.Row_Label, sl.Column_Number })
-                                    .ToListAsync();
+                                  .ToListAsync();
 
                 if (seatInfo.Any())
                 {
                     var seatCodes = seatInfo.Select(si => si.Row_Label + si.Column_Number.ToString()).ToList();
-                    seatPositionsString = string.Join(", ", seatCodes);
-                    _logger.LogInformation($"Đã tìm thấy ghế: {seatPositionsString}");
+                    string formattedSeats = string.Join(", ", seatCodes);
+                    _logger.LogInformation($"Đã tìm thấy ghế: {formattedSeats}");
+                    return formattedSeats;
                 }
                 else
                 {
-                    _logger.LogWarning($"Truy vấn không trả về bất kỳ dữ liệu nào cho đặt vé {bookingId}");
+                    _logger.LogWarning($"Không tìm thấy thông tin ghế cho đặt vé {bookingId}");
 
                     // Fallback: Thử cách khác nếu cách trên không có kết quả
                     string connectionString = _context.Database.GetDbConnection().ConnectionString;
@@ -1169,23 +1175,24 @@ namespace STP.Repository.Services
                     {
                         await connection.OpenAsync();
                         string query = @"
-                SELECT t.Ticket_ID, t.Seat_ID, s.Layout_ID, sl.Row_Label, sl.Column_Number
+                SELECT t.Ticket_ID, t.Seat_ID, s.Layout_ID, s.Showtime_ID, sl.Row_Label, sl.Column_Number
                 FROM Tickets t
                 JOIN Seats s ON t.Seat_ID = s.Seat_ID
                 JOIN Seat_Layout sl ON s.Layout_ID = sl.Layout_ID
-                WHERE t.Booking_ID = @BookingId";
+                WHERE t.Booking_ID = @BookingId AND s.Showtime_ID = @ShowtimeId";
 
                         using (SqlCommand command = new SqlCommand(query, connection))
                         {
                             command.Parameters.AddWithValue("@BookingId", bookingId);
+                            command.Parameters.AddWithValue("@ShowtimeId", showtimeId);
                             List<string> seatCodes = new List<string>();
 
                             using (SqlDataReader reader = await command.ExecuteReaderAsync())
                             {
                                 while (await reader.ReadAsync())
                                 {
-                                    string rowLabel = reader.GetString(3); // Row_Label
-                                    int columnNumber = reader.GetInt32(4); // Column_Number
+                                    string rowLabel = reader.GetString(4); // Row_Label
+                                    int columnNumber = reader.GetInt32(5); // Column_Number
                                     string seatCode = rowLabel + columnNumber.ToString();
                                     seatCodes.Add(seatCode);
                                     _logger.LogInformation($"Ghế tìm thấy: {seatCode}");
@@ -1194,23 +1201,21 @@ namespace STP.Repository.Services
 
                             if (seatCodes.Any())
                             {
-                                seatPositionsString = string.Join(", ", seatCodes);
-                                _logger.LogInformation($"Đã tìm thấy ghế (phương thức fallback): {seatPositionsString}");
-                            }
-                            else
-                            {
-                                _logger.LogWarning($"Cả hai phương thức đều không tìm thấy thông tin ghế cho đặt vé {bookingId}");
+                                string result = string.Join(", ", seatCodes);
+                                _logger.LogInformation($"Đã tìm thấy ghế (phương thức fallback): {result}");
+                                return result;
                             }
                         }
                     }
+
+                    return "Không có thông tin ghế";
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Lỗi khi lấy thông tin ghế cho đặt vé {bookingId}");
+                return "Lỗi khi lấy thông tin ghế";
             }
-
-            return seatPositionsString;
         }
 
         public async Task<BookingResponseDTO> AutoCancelExpiredBooking(int bookingId)
@@ -1278,13 +1283,77 @@ namespace STP.Repository.Services
                         }
                     }
 
+                    // Xử lý hoàn trả mã khuyến mãi (nếu có)
+                    if (booking.Promotion_ID.HasValue)
+                    {
+                        try
+                        {
+                            var promotion = await _context.Promotions.FindAsync(booking.Promotion_ID.Value);
+                            if (promotion != null)
+                            {
+                                _logger.LogInformation($"Hoàn trả mã khuyến mãi {promotion.Promotion_Code} (ID: {promotion.Promotion_ID})");
+
+                                // Tìm các bản ghi Promotion_Usage liên quan
+                                var promotionUsages = await _context.PromotionUsages
+                                    .Where(pu => pu.Booking_ID == bookingId)
+                                    .ToListAsync();
+
+                                foreach (var usage in promotionUsages)
+                                {
+                                    usage.HasUsed = false;
+                                }
+
+                                // Giảm lượt sử dụng của mã
+                                if (promotion.Current_Usage > 0)
+                                {
+                                    promotion.Current_Usage -= 1;
+                                }
+
+                                // Ghi lại lịch sử
+                                var promoHistory = new BookingHistory
+                                {
+                                    Booking_ID = booking.Booking_ID,
+                                    Status = "Promotion Refunded",
+                                    Date = DateTime.Now,
+                                    Notes = $"Hoàn trả mã KM: {promotion.Promotion_Code}"
+                                };
+                                _context.BookingHistories.Add(promoHistory);
+
+                                // Xóa liên kết khuyến mãi với booking
+                                booking.Promotion_ID = null;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, $"Lỗi khi hoàn trả mã KM cho booking {bookingId}");
+                            // Vẫn tiếp tục xử lý
+                        }
+                    }
+
+                    // XÓA CÁC VÉ LIÊN QUAN ĐẾN BOOKING
+                    var tickets = await _context.Tickets
+                        .Where(t => t.Booking_ID == bookingId)
+                        .ToListAsync();
+
+                    if (tickets.Any())
+                    {
+                        _logger.LogInformation($"Tìm thấy {tickets.Count} vé cần xóa cho booking {bookingId}");
+                        _context.Tickets.RemoveRange(tickets);
+                        _logger.LogInformation($"Đã xóa {tickets.Count} vé cho booking {bookingId}");
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"Không tìm thấy vé nào cho booking {bookingId}");
+                    }
+
                     // Cập nhật trạng thái đơn đặt vé
                     string oldStatus = booking.Status;
                     booking.Status = "Cancelled";
 
                     // Cập nhật trạng thái ghế và xóa liên kết với Booking_ID
+                    // LƯU Ý: Cập nhật câu truy vấn để lọc theo Showtime_ID
                     var seats = await _context.Seats
-                        .Where(s => s.Booking_ID == bookingId)
+                        .Where(s => s.Booking_ID == bookingId && s.Showtime_ID == booking.Showtime_ID)
                         .ToListAsync();
 
                     foreach (var seat in seats)
@@ -1293,41 +1362,6 @@ namespace STP.Repository.Services
                         seat.Seat_Status = "Available";
                         seat.Last_Updated = DateTime.Now;
                         seat.Booking_ID = null; // Xóa liên kết với Booking_ID
-                    }
-
-                    // THÊM MỚI: Cập nhật Promotion_Usage
-                    if (booking.Promotion_ID.HasValue)
-                    {
-                        // Tìm các bản ghi Promotion_Usage liên quan đến booking này
-                        var promotionUsages = await _context.PromotionUsages
-                            .Where(pu => pu.Booking_ID == bookingId)
-                            .ToListAsync();
-
-                        foreach (var usage in promotionUsages)
-                        {
-                            _logger.LogInformation($"Đặt lại HasUsed = false cho PromotionUsage ID: {usage.Usage_ID}");
-                            usage.HasUsed = false;
-                        }
-
-                        // Giảm lượt sử dụng của mã khuyến mãi
-                        var promotion = await _context.Promotions
-                            .FindAsync(booking.Promotion_ID.Value);
-
-                        if (promotion != null && promotion.Current_Usage > 0)
-                        {
-                            promotion.Current_Usage -= 1;
-                            _logger.LogInformation($"Giảm lượt sử dụng của mã khuyến mãi ID: {promotion.Promotion_ID}, Còn lại: {promotion.Current_Usage}");
-                        }
-                    }
-
-                    // Cập nhật trạng thái của các ticket liên quan
-                    var tickets = await _context.Tickets
-                        .Where(t => t.Booking_ID == bookingId)
-                        .ToListAsync();
-
-                    foreach (var ticket in tickets)
-                    {
-                        ticket.Status = "Cancelled";
                     }
 
                     // Thêm lịch sử hủy đơn
@@ -1664,3 +1698,5 @@ namespace STP.Repository.Services
         }
     }
 }
+
+

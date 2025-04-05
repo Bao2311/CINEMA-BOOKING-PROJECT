@@ -174,5 +174,58 @@ namespace STP.Repository.Services
 
             return result;
         }
+
+        /// <summary>
+        /// Tạo báo cáo doanh thu với tất cả dữ liệu để FE tự filter theo ngày
+        /// </summary>
+        public async Task<SalesReportDTO> GetAllSalesReportAsync(string period = "daily")
+        {
+            try
+            {
+                // Validate period
+                if (!new[] { "daily", "weekly", "monthly" }.Contains(period.ToLower()))
+                {
+                    throw new ArgumentException("Loại báo cáo phải là 'daily', 'weekly', hoặc 'monthly'");
+                }
+
+                var query = _context.TicketBookings
+                    .Include(b => b.Showtime)
+                    .ThenInclude(s => s.Movie)
+                    .Include(b => b.Tickets)
+                    .Include(b => b.Payments)
+                    .Where(b => b.Status == "Confirmed");
+
+                // Get all bookings data
+                var bookings = await query.ToListAsync();
+
+                // Use min and max dates from the data if available, otherwise use default values
+                var startDate = bookings.Any() ? bookings.Min(b => b.Booking_Date) : DateTime.MinValue;
+                var endDate = bookings.Any() ? bookings.Max(b => b.Booking_Date) : DateTime.MaxValue;
+
+                // Group data by the specified period
+                var groupedSales = GroupSalesByPeriod(bookings, period, startDate, endDate);
+
+                // Calculate totals
+                var totalTickets = bookings.Sum(b => b.Tickets != null ? b.Tickets.Count : 0);
+                var totalAmount = bookings.Sum(b => b.Total_Amount);
+                var totalBookings = bookings.Count;
+
+                return new SalesReportDTO
+                {
+                    StartDate = startDate,
+                    EndDate = endDate,
+                    Period = period,
+                    TotalTickets = totalTickets,
+                    TotalAmount = totalAmount,
+                    TotalBookings = totalBookings,
+                    PeriodSales = groupedSales
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tạo báo cáo doanh thu");
+                throw;
+            }
+        }
     }
 }

@@ -522,6 +522,7 @@ namespace STP.Repository.Services
         }
 
         // Phương thức đăng ký người dùng bởi admin
+        // Phương thức đăng ký người dùng bởi admin
         public async Task<UserRegistrationResponseDto> RegisterUserByAdminAsync(AdminRegisterUserDto model, int adminId)
         {
             try
@@ -577,12 +578,20 @@ namespace STP.Repository.Services
                     Sex = model.Sex,
                     Phone_Number = model.PhoneNumber,
                     Address = model.Address,
+                    Account_Status = "Active", // Đảm bảo tài khoản đã kích hoạt
                     Created_At = DateTime.UtcNow
                 };
 
                 // Thêm vào DB và lưu thay đổi
                 _context.Users.Add(newUser);
                 await _context.SaveChangesAsync();
+
+                // Thêm mới: Lưu mật khẩu vào cache để đánh dấu là mật khẩu tạm thời
+                var cacheEntryOptions = new MemoryCacheEntryOptions()
+                    .SetAbsoluteExpiration(TimeSpan.FromHours(24));
+
+                _cache.Set($"{TempPasswordCachePrefix}{model.Email}", passwordHash, cacheEntryOptions);
+                _logger.LogInformation($"Đã lưu mật khẩu tạm thời vào cache cho: {model.Email}");
 
                 // Gửi email thông báo mật khẩu cho người dùng mới
                 await _emailService.SendPasswordNotificationEmailAsync(newUser.Email, newUser.Full_Name, randomPassword);
@@ -594,7 +603,7 @@ namespace STP.Repository.Services
                 return new UserRegistrationResponseDto
                 {
                     Success = true,
-                    Message = $"Đã tạo tài khoản thành công cho {model.Email}. Mật khẩu đã được gửi qua email.",
+                    Message = $"Đã tạo tài khoản thành công cho {model.Email}. Mật khẩu tạm thời đã được gửi qua email và sẽ yêu cầu đổi khi đăng nhập.",
                     UserId = newUser.User_ID
                 };
             }
@@ -609,7 +618,6 @@ namespace STP.Repository.Services
                 };
             }
         }
-
         // Kiểm tra vai trò hợp lệ
         private bool IsValidRole(string role)
         {
@@ -680,6 +688,13 @@ namespace STP.Repository.Services
                 _context.Users.Add(newUser);
                 await _context.SaveChangesAsync();
 
+                // Thêm mới: Lưu mật khẩu vào cache để đánh dấu là mật khẩu tạm thời
+                var cacheEntryOptions = new MemoryCacheEntryOptions()
+                    .SetAbsoluteExpiration(TimeSpan.FromHours(24));
+
+                _cache.Set($"{TempPasswordCachePrefix}{model.Email}", passwordHash, cacheEntryOptions);
+                _logger.LogInformation($"Đã lưu mật khẩu tạm thời vào cache cho: {model.Email}");
+
                 // Gửi email thông báo mật khẩu cho người dùng mới
                 await _emailService.SendPasswordNotificationEmailAsync(newUser.Email, newUser.Full_Name, randomPassword);
 
@@ -690,7 +705,7 @@ namespace STP.Repository.Services
                 return new UserRegistrationResponseDto
                 {
                     Success = true,
-                    Message = $"Đã tạo tài khoản thành công cho {model.Email}. Mật khẩu đã được gửi qua email.",
+                    Message = $"Đã tạo tài khoản thành công cho {model.Email}. Mật khẩu tạm thời đã được gửi qua email và sẽ yêu cầu đổi khi đăng nhập.",
                     UserId = newUser.User_ID
                 };
             }

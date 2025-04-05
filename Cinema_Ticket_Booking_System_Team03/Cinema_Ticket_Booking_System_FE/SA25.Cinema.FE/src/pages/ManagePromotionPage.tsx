@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DatePicker from 'react-datepicker';
@@ -9,7 +10,8 @@ import {
   FaFilm, FaExclamationTriangle, FaClock, FaHistory, FaUndo, FaSearch,
   FaFilter, FaChevronDown, FaChevronUp, FaChevronLeft, FaChevronRight
 } from 'react-icons/fa';
-
+import { useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
 // Types
 interface Promotion {
   id: string;
@@ -699,7 +701,6 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
         }}
         className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
       >
-        <option value="0">Không giới hạn</option>
         <option value="50000">50.000đ</option>
         <option value="100000">100.000đ</option>
         <option value="200000">200.000đ</option>
@@ -724,7 +725,7 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
                       }}
                       className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
-                      <option value="0">Không giới hạn</option>
+                      
                       <option value="100000">100.000đ</option>
                       <option value="200000">200.000đ</option>
                       <option value="500000">500.000đ</option>

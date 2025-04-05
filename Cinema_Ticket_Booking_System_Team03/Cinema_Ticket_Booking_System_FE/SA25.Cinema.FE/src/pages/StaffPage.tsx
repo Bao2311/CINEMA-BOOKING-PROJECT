@@ -2684,4 +2684,3 @@ const EnhancedPromotionSection = () => {
 };
 
 export default ManageBookings;  
-

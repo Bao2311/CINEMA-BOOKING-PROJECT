@@ -24,7 +24,7 @@ import axios from "axios";
 import Modal from "../components/Admin/Modal"; // Assuming Modal component path is correct
 import styled from "styled-components";
 import { motion } from "framer-motion";
-
+import { useNavigate } from "react-router-dom";
 // Define types for seat layout based on API response
 interface Seat {
   layout_ID: number;
@@ -527,6 +527,21 @@ const ManageCinemaRoomPage: React.FC = () => {
   const [roomsPerPage, setRoomsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
 
+  const navigate = useNavigate();
+
+  // Lấy role từ localStorage
+  const getRole = () => {
+    return localStorage.getItem("role") || sessionStorage.getItem("role");
+  };
+
+  // Kiểm tra quyền truy cập
+  useEffect(() => {
+    const role = getRole();
+    if (role !== "Admin") {
+      toast.error("Bạn không có quyền truy cập trang này.");
+      navigate("/"); // Điều hướng sang trang unauthorized
+    }
+  }, [navigate]);
   // Helper function to check for prime numbers
   const isPrime = (num: number) => {
     if (num <= 1) return false;
@@ -1070,15 +1085,30 @@ const ManageCinemaRoomPage: React.FC = () => {
     } else {
       // --- Logic for Create Manually ---
       // Validate input
+
       if (!newRoom.room_Name.trim()) {
         toast.error("Room name is required.");
         return;
       }
-      if (newRoom.seat_Quantity <= 0) {
-        toast.error("Seat quantity must be greater than 0.");
+      if (
+        newRoom.seat_Quantity === undefined ||
+        newRoom.seat_Quantity === null
+      ) {
+        toast.error("Seat quantity is required and cannot be empty.");
         return;
       }
-
+      if (!Number.isInteger(newRoom.seat_Quantity)) {
+        toast.error("Seat quantity must be an integer.");
+        return;
+      }
+      if (newRoom.seat_Quantity < 50) {
+        toast.error("Seat quantity must be greater than 50.");
+        return;
+      }
+      if (newRoom.seat_Quantity > 150) {
+        toast.error("Seat quantity must be lower than 150.");
+        return;
+      }
       try {
         const response = await axios.post(
           "https://localhost:7168/api/CinemaRoom",
@@ -1127,12 +1157,25 @@ const ManageCinemaRoomPage: React.FC = () => {
     }
 
     // Validate input
+
     if (!newRoom.room_Name.trim()) {
       toast.error("Room name is required.");
       return;
     }
-    if (newRoom.seat_Quantity <= 0) {
-      toast.error("Seat quantity must be greater than 0.");
+    if (newRoom.seat_Quantity === undefined || newRoom.seat_Quantity === null) {
+      toast.error("Seat quantity is required and cannot be empty.");
+      return;
+    }
+    if (!Number.isInteger(newRoom.seat_Quantity)) {
+      toast.error("Seat quantity must be an integer.");
+      return;
+    }
+    if (newRoom.seat_Quantity <= 50) {
+      toast.error("Seat quantity must be greater than 50.");
+      return;
+    }
+    if (newRoom.seat_Quantity > 150) {
+      toast.error("Seat quantity must be lower than 150.");
       return;
     }
 
@@ -1291,7 +1334,7 @@ const ManageCinemaRoomPage: React.FC = () => {
       await fetchRooms(); // Cập nhật danh sách phòng
       await fetchSeatLayout(currentRoomId); // Hiển thị layout map mới nhất
       setIsCreatingSeatLayout(false); // Đóng modal tạo layout
-   //   window.location.reload();
+      //   window.location.reload();
       // Fetch the newly created layout
       fetchSeatLayout(currentRoomId);
     } catch (error: any) {
