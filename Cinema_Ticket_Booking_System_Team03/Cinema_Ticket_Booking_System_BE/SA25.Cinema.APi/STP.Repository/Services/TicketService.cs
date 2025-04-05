@@ -149,6 +149,13 @@ namespace STP.Repository.Services
         /// </summary>
         public async Task<List<Ticket>> GetTicketsByBookingIdAsync(int bookingId)
         {
+            // Kiểm tra trạng thái đơn đặt chỗ
+            var booking = await _context.TicketBookings
+                .FirstOrDefaultAsync(b => b.Booking_ID == bookingId);
+
+            if (booking == null || booking.Status != "Confirmed")
+                return new List<Ticket>(); // Trả về danh sách rỗng
+
             return await _context.Tickets
                 .Include(t => t.Seat)
                     .ThenInclude(s => s.SeatLayout)
@@ -158,7 +165,7 @@ namespace STP.Repository.Services
                 .Include(t => t.TicketBooking)
                     .ThenInclude(tb => tb.Showtime)
                         .ThenInclude(s => s.CinemaRoom)
-                .Where(t => t.Booking_ID == bookingId && t.Status != "Cancelled") // Thêm điều kiện lọc
+                .Where(t => t.Booking_ID == bookingId)
                 .ToListAsync();
         }
 
@@ -451,14 +458,14 @@ namespace STP.Repository.Services
 
                 // Chuẩn bị thông tin để gửi email
                 Dictionary<string, string> bookingInfo = new Dictionary<string, string>()
-                {
-                    { "BookingId", booking.Booking_ID.ToString() },
-                    { "MovieName", booking.Showtime.Movie.Movie_Name },
-                    { "CinemaRoom", booking.Showtime.CinemaRoom.Room_Name },
-                    { "ShowDate", booking.Showtime.Show_Date.ToString("dd/MM/yyyy") },
-                    { "ShowTime", (DateTime.Today + booking.Showtime.Start_Time).ToString("HH:mm") },
-                    { "Seats", string.Join(", ", tickets.Select(t => $"{t.Seat.SeatLayout.Row_Label}{t.Seat.SeatLayout.Column_Number}")) }
-                };
+                    {
+                        { "BookingId", booking.Booking_ID.ToString() },
+                        { "MovieName", booking.Showtime.Movie.Movie_Name },
+                        { "CinemaRoom", booking.Showtime.CinemaRoom.Room_Name },
+                        { "ShowDate", booking.Showtime.Show_Date.ToString("dd/MM/yyyy") },
+                        { "ShowTime", (DateTime.Today + booking.Showtime.Start_Time).ToString("HH:mm") },
+                        { "Seats", string.Join(", ", tickets.Select(t => $"{t.Seat.SeatLayout.Row_Label}{t.Seat.SeatLayout.Column_Number}")) }
+                    };
 
                 // Tạo các file PDF cho vé sử dụng template
                 List<(string ticketCode, byte[] pdfContent)> pdfTickets = new List<(string, byte[])>();
@@ -895,14 +902,14 @@ namespace STP.Repository.Services
 
                 // Chuẩn bị thông tin để gửi email
                 Dictionary<string, string> bookingInfo = new Dictionary<string, string>()
-        {
-            { "BookingId", booking.Booking_ID.ToString() },
-            { "MovieName", booking.Showtime.Movie.Movie_Name },
-            { "CinemaRoom", booking.Showtime.CinemaRoom.Room_Name },
-            { "ShowDate", booking.Showtime.Show_Date.ToString("dd/MM/yyyy") },
-            { "ShowTime", (DateTime.Today + booking.Showtime.Start_Time).ToString("HH:mm") }, // Định dạng 24 giờ
-            { "Seats", string.Join(", ", tickets.Select(t => $"{t.Seat.SeatLayout.Row_Label}{t.Seat.SeatLayout.Column_Number}")) }
-        };
+            {
+                { "BookingId", booking.Booking_ID.ToString() },
+                { "MovieName", booking.Showtime.Movie.Movie_Name },
+                { "CinemaRoom", booking.Showtime.CinemaRoom.Room_Name },
+                { "ShowDate", booking.Showtime.Show_Date.ToString("dd/MM/yyyy") },
+                { "ShowTime", (DateTime.Today + booking.Showtime.Start_Time).ToString("HH:mm") }, // Định dạng 24 giờ
+                { "Seats", string.Join(", ", tickets.Select(t => $"{t.Seat.SeatLayout.Row_Label}{t.Seat.SeatLayout.Column_Number}")) }
+            };
 
                 // Tạo các file PDF cho vé
                 List<(string ticketCode, byte[] pdfContent)> pdfTickets = new List<(string, byte[])>();
@@ -962,6 +969,230 @@ namespace STP.Repository.Services
             }
         }
 
+        /// <summary>
+        /// Xử lý thay đổi trạng thái đơn đặt chỗ
+        /// </summary>
+        public async Task HandleBookingStatusChangeAsync(int bookingId, string newStatus)
+        {
+            _logger.LogInformation($"Xử lý thay đổi trạng thái đơn đặt chỗ {bookingId} thành {newStatus}");
+
+            // Nếu trạng thái mới là "Confirmed", tạo vé
+            if (newStatus == "Confirmed")
+            {
+                var tickets = await GenerateTicketsAsync(bookingId);
+                if (tickets != null && tickets.Any())
+                {
+                    _logger.LogInformation($"Đã tạo {tickets.Count} vé cho đơn đặt chỗ {bookingId}");
+                }
+                else
+                {
+                    _logger.LogWarning($"Không thể tạo vé cho đơn đặt chỗ {bookingId}");
+                }
+            }
+            // Nếu trạng thái thay đổi từ "Confirmed" sang trạng thái khác, xóa vé
+            else
+            {
+                // Kiểm tra xem đơn có vé hay không trước khi xóa
+                var existingTickets = await _context.Tickets
+                    .Where(t => t.Booking_ID == bookingId)
+                    .ToListAsync();
+
+                if (existingTickets.Any())
+                {
+                    _context.Tickets.RemoveRange(existingTickets);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"Đã xóa {existingTickets.Count} vé cho đơn đặt chỗ {bookingId} do trạng thái chuyển thành {newStatus}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Dọn dẹp vé không hợp lệ - xóa tất cả vé liên kết với đơn đặt chỗ chưa xác nhận
+        /// </summary>
+        /// <returns>Số lượng vé đã xóa</returns>
+        public async Task<int> CleanupExistingTicketsAsync()
+        {
+            // Lấy tất cả vé của đơn đặt chỗ chưa được xác nhận
+            var ticketsToRemove = await _context.Tickets
+                .Include(t => t.TicketBooking)
+                .Where(t => t.TicketBooking.Status != "Confirmed")
+                .ToListAsync();
+
+            int removedCount = 0;
+
+            if (ticketsToRemove.Any())
+            {
+                removedCount = ticketsToRemove.Count;
+                _context.Tickets.RemoveRange(ticketsToRemove);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Đã xóa {removedCount} vé cho các đơn đặt chỗ chưa xác nhận");
+            }
+
+            return removedCount;
+        }
+
+        /// <summary>
+        /// Cập nhật trạng thái vé cho các đơn đặt chỗ đã xác nhận
+        /// </summary>
+        /// <returns>Số lượng vé đã cập nhật</returns>
+        public async Task<int> UpdateTicketStatusForConfirmedBookingsAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Bắt đầu cập nhật trạng thái vé cho các đơn đặt chỗ đã xác nhận");
+
+                // Lấy tất cả vé có trạng thái NULL hoặc rỗng nhưng thuộc đơn đặt chỗ đã xác nhận
+                var ticketsToUpdate = await _context.Tickets
+                    .Include(t => t.TicketBooking)
+                    .Where(t => (t.Status == null || t.Status == string.Empty) &&
+                           t.TicketBooking.Status == "Confirmed")
+                    .ToListAsync();
+
+                if (!ticketsToUpdate.Any())
+                {
+                    _logger.LogInformation("Không tìm thấy vé nào cần cập nhật");
+                    return 0;
+                }
+
+                int updatedCount = ticketsToUpdate.Count;
+                _logger.LogInformation($"Tìm thấy {updatedCount} vé cần cập nhật trạng thái");
+
+                // Cập nhật trạng thái vé thành "Active"
+                foreach (var ticket in ticketsToUpdate)
+                {
+                    ticket.Status = "Active";
+                    _logger.LogInformation($"Cập nhật vé ID: {ticket.Ticket_ID}, Code: {ticket.Ticket_Code} thành Active");
+                }
+
+                // Lưu thay đổi vào database
+                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Đã cập nhật thành công {updatedCount} vé");
+
+                return updatedCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi cập nhật trạng thái vé cho đơn đặt chỗ đã xác nhận");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Lấy tất cả vé của một user
+        /// </summary>
+        public async Task<List<Ticket>> GetUserTicketsAsync(int userId, string status = null)
+        {
+            try
+            {
+                _logger.LogInformation($"Lấy danh sách vé của user ID: {userId}");
+
+                var query = _context.Tickets
+                    .Include(t => t.TicketBooking)
+                        .ThenInclude(tb => tb.User)
+                    .Include(t => t.TicketBooking)
+                        .ThenInclude(tb => tb.Showtime)
+                            .ThenInclude(s => s.Movie)
+                    .Include(t => t.TicketBooking)
+                        .ThenInclude(tb => tb.Showtime)
+                            .ThenInclude(s => s.CinemaRoom)
+                    .Include(t => t.Seat)
+                        .ThenInclude(s => s.SeatLayout)
+                    .Where(t => t.TicketBooking.User_ID == userId);
+
+                // Lọc theo trạng thái nếu có
+                if (!string.IsNullOrEmpty(status))
+                {
+                    query = query.Where(t => t.Status == status);
+                }
+
+                // Sắp xếp theo thứ tự thời gian suất chiếu gần nhất
+                return await query.OrderByDescending(t => t.TicketBooking.Showtime.Show_Date)
+                                 .ThenByDescending(t => t.TicketBooking.Showtime.Start_Time)
+                                 .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi lấy danh sách vé của user ID: {userId}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Lấy tất cả vé trong hệ thống (dành cho admin)
+        /// </summary>
+        public async Task<(List<Ticket> Tickets, int TotalCount)> GetAllTicketsAsync(
+            DateTime? fromDate = null,
+            DateTime? toDate = null,
+            string searchTerm = null,
+            string status = null,
+            int page = 1,
+            int pageSize = 20)
+        {
+            try
+            {
+                _logger.LogInformation("Lấy tất cả vé trong hệ thống theo điều kiện lọc");
+
+                var query = _context.Tickets
+                    .Include(t => t.TicketBooking)
+                        .ThenInclude(tb => tb.User)
+                    .Include(t => t.TicketBooking)
+                        .ThenInclude(tb => tb.Showtime)
+                            .ThenInclude(s => s.Movie)
+                    .Include(t => t.TicketBooking)
+                        .ThenInclude(tb => tb.Showtime)
+                            .ThenInclude(s => s.CinemaRoom)
+                    .Include(t => t.Seat)
+                        .ThenInclude(s => s.SeatLayout)
+                    .AsQueryable();
+
+                // Lọc theo ngày từ
+                if (fromDate.HasValue)
+                {
+                    query = query.Where(t => t.TicketBooking.Showtime.Show_Date >= fromDate.Value.Date);
+                }
+
+                // Lọc theo ngày đến
+                if (toDate.HasValue)
+                {
+                    query = query.Where(t => t.TicketBooking.Showtime.Show_Date <= toDate.Value.Date);
+                }
+
+                // Lọc theo từ khóa tìm kiếm (mã vé, tên phim, tên người dùng)
+                if (!string.IsNullOrEmpty(searchTerm))
+                {
+                    searchTerm = searchTerm.ToLower();
+                    query = query.Where(t =>
+                        t.Ticket_Code.ToLower().Contains(searchTerm) ||
+                        t.TicketBooking.Showtime.Movie.Movie_Name.ToLower().Contains(searchTerm) ||
+                        t.TicketBooking.User.Full_Name.ToLower().Contains(searchTerm) ||
+                        t.TicketBooking.User.Email.ToLower().Contains(searchTerm));
+                }
+
+                // Lọc theo trạng thái vé
+                if (!string.IsNullOrEmpty(status))
+                {
+                    query = query.Where(t => t.Status == status);
+                }
+
+                // Đếm tổng số lượng vé thỏa điều kiện
+                int totalCount = await query.CountAsync();
+
+                // Phân trang kết quả
+                var tickets = await query
+                    .OrderByDescending(t => t.TicketBooking.Showtime.Show_Date)
+                    .ThenByDescending(t => t.TicketBooking.Showtime.Start_Time)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                return (tickets, totalCount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy tất cả vé trong hệ thống");
+                throw;
+            }
+        }
         #region Helper Methods
 
         /// <summary>
@@ -976,4 +1207,3 @@ namespace STP.Repository.Services
         #endregion
     }
 }
-
