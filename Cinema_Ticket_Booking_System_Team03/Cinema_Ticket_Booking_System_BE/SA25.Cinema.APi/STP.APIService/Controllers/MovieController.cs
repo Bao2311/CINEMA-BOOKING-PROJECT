@@ -241,10 +241,10 @@ namespace STP.APIService.Controllers
             }
         }
         /// <summary>
-        /// API xóa phim theo ID
+        /// API xóa mềm phim theo ID
         /// - Kiểm tra phim có tồn tại không
-        /// - Kiểm tra phim có liên kết với suất chiếu hoặc đánh giá không
-        /// - Xóa phim nếu không có ràng buộc
+        /// - Cập nhật trạng thái phim thành "Deleted" thay vì xóa khỏi database
+        /// - Cập nhật thời gian sửa đổi
         /// </summary>
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteMovie(int id)
@@ -273,8 +273,12 @@ namespace STP.APIService.Controllers
                     return BadRequest(new { message = "Cannot delete a movie that has user ratings" });
                 }
 
-                // Thực hiện xóa phim - truyền entity thay vì chỉ truyền ID
-                await _unitOfWork.MovieRepository.DeleteAsync(movie);
+                // Thực hiện xóa mềm bằng cách cập nhật trạng thái
+                movie.Status = "Deleted"; // Hoặc cập nhật trường IsDeleted = true nếu có
+                movie.Updated_At = DateTime.Now;
+
+                // Lưu thay đổi vào database
+                await _unitOfWork.MovieRepository.UpdateAsync(movie);
 
                 return Ok(new { message = $"Movie with ID {id} was successfully deleted" });
             }
