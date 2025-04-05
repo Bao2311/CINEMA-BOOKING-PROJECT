@@ -188,7 +188,7 @@ namespace STP.APIService.Controllers
 
                 // *** THAY ĐỔI QUAN TRỌNG: Gọi service mới ***
                 // Lưu ý: Phương thức CancelBooking mới trong PayOSNugetService chỉ cần bookingId
-                bool success = await _payosService.CancelBooking(id);
+                bool success = await _payosService.CancelBookingPayment(id);
 
                 if (!success)
                 {

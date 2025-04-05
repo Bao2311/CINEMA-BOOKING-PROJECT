@@ -735,7 +735,7 @@ namespace STP.APIService.Controllers
             }
 
             // Gọi phương thức hủy đặt vé
-            bool canceled = await _payosService.CancelBooking(bookingId);
+            bool canceled = await _payosService.CancelBookingPayment(bookingId);
 
             if (!canceled)
             {

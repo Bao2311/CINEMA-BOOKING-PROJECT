@@ -59,7 +59,7 @@ const promotionService = {
         id: item.promotion_ID.toString(),
         name: item.title,
         code: item.promotion_Code,
-        discountType: item.discount_Type.toLowerCase() === 'percentage' ? 'percentage' : 'fixed',
+        discountType: item.discount_Type.toLowerCase() === 'percentage' ? 'Percentage' : 'Fixed',
         discountValue: item.discount_Value,
         maxDiscount: item.maximum_Discount || undefined,
         minPurchase: item.minimum_Purchase || undefined,
@@ -153,7 +153,7 @@ const validatePromotionData = (data: any): { isValid: boolean; errors: Record<st
   // Validate discount value
   if (!data.discountValue || data.discountValue <= 0) {
     errors.discountValue = "Giá trị giảm giá phải lớn hơn 0";
-  } else if (data.discountType === 'percentage' && data.discountValue > 100) {
+  } else if (data.discountType === 'Percentage' && data.discountValue > 100) {
     errors.discountValue = "Phần trăm không vượt quá 100%";
   }
   
@@ -233,7 +233,14 @@ const DiscountValueSelector: React.FC<{ selectedValue: number; onChange: (value:
   );
 };
 
-const EnhancedDatePicker: React.FC<{ selected: Date | null; onChange: (date: Date) => void; placeholder: string; minDate?: Date; required?: boolean; error?: string }> = ({ selected, onChange, placeholder, minDate, required, error }) => (
+const EnhancedDatePicker: React.FC<{ 
+  selected: Date | null; 
+  onChange: (date: Date | null, event?: React.SyntheticEvent<any> | undefined) => void; 
+  placeholder: string; 
+  minDate?: Date; 
+  required?: boolean; 
+  error?: string 
+}> = ({ selected, onChange, placeholder, minDate, required, error }) => (
   <div className="relative">
     <DatePicker
       selected={selected}
@@ -242,13 +249,7 @@ const EnhancedDatePicker: React.FC<{ selected: Date | null; onChange: (date: Dat
       placeholderText={placeholder}
       minDate={minDate}
       required={required}
-      showTimeSelect
-      timeFormat="HH:mm"
-      timeIntervals={15}
       className={`w-full border ${error ? 'border-red-500' : 'border-gray-300'} rounded-lg py-2 pl-10 pr-3 focus:outline-none focus:ring-2 ${error ? 'focus:ring-red-500' : 'focus:ring-indigo-500'}`}
-      showMonthDropdown
-      showYearDropdown
-      dropdownMode="select"
     />
     <div className="absolute left-0 top-0 bottom-0 w-10 flex items-center justify-center pointer-events-none">
       <FaCalendarDay className={error ? "text-red-400" : "text-gray-400"} />
@@ -306,7 +307,7 @@ const PromotionRow: React.FC<{ promotion: Promotion; onEdit: () => void; onDelet
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
   <div className="flex items-center">
-    {promotion.discountType === 'percentage' ? (
+    {promotion.discountType === 'Percentage' ? (
       <div className="flex items-center text-sm text-gray-900">
         <span className="font-medium">{promotion.discountValue}%</span>
         {promotion.maxDiscount ? <span className="text-gray-500 ml-1.5">(tối đa {formatNumberWithDots(promotion.maxDiscount)}đ)</span> : null}
@@ -400,8 +401,8 @@ const PromotionsFilter: React.FC<{ filters: FilterOptions; setFilters: React.Dis
     { value: 'Inactive', label: 'Đã vô hiệu' }
   ];
   const promotionTypes = [
-    { id: 'percentage', label: 'Giảm theo %', icon: <FaPercent /> },
-    { id: 'fixed', label: 'Giảm số tiền cố định', icon: <FaTag /> }
+    { id: 'Percentage', label: 'Giảm theo %', icon: <FaPercent /> },
+    { id: 'Fixed', label: 'Giảm số tiền cố định', icon: <FaTag /> }
   ];
 
   const handlePromotionTypeToggle = (type: string) => {
@@ -477,7 +478,7 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
     id: '',
     name: '',
     code: '',
-    discountType: 'percentage',
+    discountType: 'Percentage',
     discountValue: 0,
     maxDiscount: 0,
     minPurchase: 0,
@@ -504,7 +505,7 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
         id: initialData.id || '',
         name: initialData.name || '',
         code: initialData.code || '',
-        discountType: initialData.discountType || 'percentage',
+        discountType: initialData.discountType || 'Percentage',
         discountValue: initialData.discountValue || 0,
         maxDiscount: initialData.maxDiscount || 0,
         minPurchase: initialData.minPurchase || 0,
@@ -557,7 +558,7 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
       // Validate discount value
       if (!formData.discountValue || formData.discountValue <= 0) {
         newErrors.discountValue = 'Giá trị giảm giá phải lớn hơn 0';
-      } else if (formData.discountType === 'percentage' && formData.discountValue > 100) {
+      } else if (formData.discountType === 'Percentage' && formData.discountValue > 100) {
         newErrors.discountValue = 'Phần trăm không vượt quá 100%';
       }
       
@@ -631,13 +632,13 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
                 <div>
                   <label htmlFor="discountType" className="block text-sm font-medium text-gray-700 mb-1">Loại giảm giá <span className="text-red-500">*</span></label>
                   <select id="discountType" name="discountType" value={formData.discountType} onChange={handleChange} className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="percentage">Giảm theo phần trăm (%)</option>
-                    <option value="fixed">Giảm số tiền cố định</option>
+                    <option value="Percentage">Giảm theo phần trăm (%)</option>
+                    <option value="Fixed">Giảm số tiền cố định</option>
                   </select>
                 </div>
                 <div>
                   <label htmlFor="discountValue" className="block text-sm font-medium text-gray-700 mb-1">Giá trị giảm giá <span className="text-red-500">*</span></label>
-                  {formData.discountType === 'fixed' ? (
+                  {formData.discountType === 'Fixed' ? (
                     <>
                       <DiscountValueSelector selectedValue={formData.discountValue} onChange={handleDiscountValueSelect} />
                       <div className="flex items-center mt-2">
@@ -685,7 +686,7 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
                   {errors.discountValue && <p className="mt-1 text-sm text-red-600">{errors.discountValue}</p>}
                 </div>
                 
-{formData.discountType === 'percentage' && (
+{formData.discountType === 'Percentage' && (
   <div>
     <label htmlFor="maxDiscount" className="block text-sm font-medium text-gray-700 mb-1">Giảm tối đa</label>
     <div className="flex items-center">
@@ -745,11 +746,34 @@ const PromotionFormModal: React.FC<{ title: string; initialData?: Promotion; onC
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="startDate" className="block text-sm text-gray-500 mb-1">Ngày bắt đầu</label>
-                      <EnhancedDatePicker selected={formData.startDate ? new Date(formData.startDate) : null} onChange={(date: Date) => { setFormData(prev => ({ ...prev, startDate: date.toISOString() })); if (errors.startDate) setErrors(prev => ({ ...prev, startDate: '' })); }} placeholder="Chọn ngày bắt đầu" required error={errors.startDate} />
+                      <EnhancedDatePicker 
+                        selected={formData.startDate ? new Date(formData.startDate) : null} 
+                        onChange={(date: Date | null) => { 
+                          if (date) {
+                            setFormData(prev => ({ ...prev, startDate: date.toISOString() }));
+                          }
+                          if (errors.startDate) setErrors(prev => ({ ...prev, startDate: '' }));
+                        }} 
+                        placeholder="Chọn ngày bắt đầu" 
+                        required 
+                        error={errors.startDate} 
+                      />
                     </div>
                     <div>
                       <label htmlFor="endDate" className="block text-sm text-gray-500 mb-1">Ngày kết thúc</label>
-                      <EnhancedDatePicker selected={formData.endDate ? new Date(formData.endDate) : null} onChange={(date: Date) => { setFormData(prev => ({ ...prev, endDate: date.toISOString() })); if (errors.endDate) setErrors(prev => ({ ...prev, endDate: '' })); }} placeholder="Chọn ngày kết thúc" minDate={formData.startDate ? new Date(formData.startDate) : undefined} required error={errors.endDate} />
+                      <EnhancedDatePicker 
+                        selected={formData.endDate ? new Date(formData.endDate) : null} 
+                        onChange={(date: Date | null) => { 
+                          if (date) {
+                            setFormData(prev => ({ ...prev, endDate: date.toISOString() }));
+                          }
+                          if (errors.endDate) setErrors(prev => ({ ...prev, endDate: '' }));
+                        }} 
+                        placeholder="Chọn ngày kết thúc" 
+                        minDate={formData.startDate ? new Date(formData.startDate) : undefined} 
+                        required 
+                        error={errors.endDate} 
+                      />
                     </div>
                   </div>
                 </div>
@@ -831,7 +855,7 @@ const PromotionDetailsModal: React.FC<{ promotion: Promotion; onClose: () => voi
             <div>
   <h4 className="text-sm font-medium text-gray-500">Giảm giá</h4>
   <p className="text-base font-medium text-gray-900 mt-1">
-    {promotion.discountType === 'percentage' ? (
+    {promotion.discountType === 'Percentage' ? (
       <>
         {promotion.discountValue}% 
         {promotion.maxDiscount ? <span className="text-sm text-gray-500 ml-1">(tối đa {formatNumberWithDots(promotion.maxDiscount)}đ)</span> : null}
@@ -956,7 +980,7 @@ const ExtendPromotionModal: React.FC<{ promotion: Promotion; onClose: () => void
               <label className="block text-sm font-medium text-gray-700 mb-1">Ngày kết thúc mới <span className="text-red-500">*</span></label>
               <EnhancedDatePicker
                 selected={endDate}
-                onChange={(date: Date) => { setEndDate(date); if (errors.endDate) setErrors(prev => ({ ...prev, endDate: '' })); }}
+                onChange={(date: Date | null, event?: React.SyntheticEvent<any> | undefined) => { setEndDate(date); if (errors.endDate) setErrors(prev => ({ ...prev, endDate: '' })); }}
                 placeholder="Chọn ngày kết thúc mới"
                 minDate={new Date()}
                 required
