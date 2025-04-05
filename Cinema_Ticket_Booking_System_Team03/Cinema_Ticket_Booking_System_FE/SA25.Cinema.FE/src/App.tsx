@@ -214,6 +214,7 @@ import BookingSuccessPage from "./pages/BookingSuccessPage";
 import ManageBookingPage from "./pages/ManageBookingPage";
 import PasswordChangeRequiredGuard from "./components/PasswordChangeRequiredGuard";
 import Statistics from "./pages/StatisticsPage";
+import ManageTicketPage from "./pages/ManageTicketPage";
 function App() {
   return (
     <AuthProvider>
@@ -294,6 +295,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <QRCodeScanner />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/manage-ticket"
+            element={
+              <ProtectedRoute>
+                <ManageTicketPage />
               </ProtectedRoute>
             }
           />
