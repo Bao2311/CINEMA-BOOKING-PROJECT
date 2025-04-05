@@ -27,7 +27,7 @@ namespace STP.Repository.Services
         /// <summary>
         /// Lấy danh sách thông báo của người dùng (chỉ lấy các loại thông báo được phép)
         /// </summary>
-        public async Task<NotificationListResponseDto> GetUserNotificationsAsync(int userId, int skip = 0, int take = 10)
+        public async Task<NotificationListResponseDto> GetUserNotificationsAsync(int userId)
         {
             try
             {
@@ -39,8 +39,6 @@ namespace STP.Repository.Services
                     .Where(bh => bh.TicketBooking.User_ID == userId &&
                                 _allowedStatuses.Contains(bh.Status)) // Chỉ lấy các status được phép
                     .OrderByDescending(bh => bh.Date)
-                    .Skip(skip)
-                    .Take(take)
                     .ToListAsync();
 
                 // Chuyển đổi sang đối tượng thông báo
