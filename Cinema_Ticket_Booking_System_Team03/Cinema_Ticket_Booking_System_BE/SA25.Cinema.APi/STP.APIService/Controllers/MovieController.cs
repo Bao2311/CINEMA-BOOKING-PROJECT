@@ -35,6 +35,7 @@ namespace STP.APIService.Controllers
         /// API thêm phim mới vào hệ thống
         /// - Xác thực người dùng qua token JWT
         /// - Kiểm tra ngày phát hành phải trong tương lai
+        /// - Kiểm tra thời lượng phim phải từ 60 phút trở lên
         /// - Upload poster nếu có
         /// - Lưu thông tin phim và trả về kết quả
         /// </summary>
@@ -56,6 +57,12 @@ namespace STP.APIService.Controllers
                 if (createMovieDTO.Release_Date <= DateTime.Now)
                 {
                     return BadRequest(new { message = "Release date must be in the future" });
+                }
+
+                // Kiểm tra thời lượng phim phải từ 60 phút trở lên
+                if (createMovieDTO.Duration < 60)
+                {
+                    return BadRequest(new { message = "Thời lượng phim phải từ 60 phút trở lên" });
                 }
 
                 // Khởi tạo posterUrl là null hoặc chuỗi rỗng
@@ -139,6 +146,7 @@ namespace STP.APIService.Controllers
         /// <summary>
         /// API cập nhật thông tin phim
         /// - Nhận thông tin cập nhật từ client
+        /// - Kiểm tra thời lượng phim phải từ 60 phút trở lên
         /// - Cập nhật thời gian sửa đổi
         /// - Lưu vào database và trả về số dòng bị ảnh hưởng
         /// </summary>
@@ -152,6 +160,12 @@ namespace STP.APIService.Controllers
                 if (existingMovie == null)
                 {
                     return NotFound(new { message = $"Movie with ID {updateMovieDTO.Movie_ID} not found" });
+                }
+
+                // Kiểm tra thời lượng phim phải từ 60 phút trở lên
+                if (updateMovieDTO.Duration < 60)
+                {
+                    return BadRequest(new { message = "Thời lượng phim phải từ 60 phút trở lên" });
                 }
 
                 // Giữ nguyên Poster_URL cũ nếu không có file mới
@@ -226,12 +240,11 @@ namespace STP.APIService.Controllers
                 return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
             }
         }
-
         /// <summary>
-        /// API xóa phim theo ID
+        /// API xóa mềm phim theo ID
         /// - Kiểm tra phim có tồn tại không
-        /// - Kiểm tra phim có liên kết với suất chiếu hoặc đánh giá không
-        /// - Xóa phim nếu không có ràng buộc
+        /// - Cập nhật trạng thái phim thành "Deleted" thay vì xóa khỏi database
+        /// - Cập nhật thời gian sửa đổi
         /// </summary>
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteMovie(int id)
@@ -260,8 +273,12 @@ namespace STP.APIService.Controllers
                     return BadRequest(new { message = "Cannot delete a movie that has user ratings" });
                 }
 
-                // Thực hiện xóa phim - truyền entity thay vì chỉ truyền ID
-                await _unitOfWork.MovieRepository.DeleteAsync(movie);
+                // Thực hiện xóa mềm bằng cách cập nhật trạng thái
+                movie.Status = "Deleted";
+                movie.Updated_At = DateTime.Now;
+
+                // Lưu thay đổi vào database
+                await _unitOfWork.MovieRepository.UpdateAsync(movie);
 
                 return Ok(new { message = $"Movie with ID {id} was successfully deleted" });
             }

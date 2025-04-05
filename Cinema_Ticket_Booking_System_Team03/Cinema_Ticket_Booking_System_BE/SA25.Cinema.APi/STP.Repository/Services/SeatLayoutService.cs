@@ -92,6 +92,24 @@ namespace STP.Repository.Services
             if (cinemaRoom == null)
                 throw new KeyNotFoundException($"Không tìm thấy phòng chiếu có ID {roomId}");
 
+            // THÊM MỚI: Kiểm tra số lượng ghế hợp lệ
+            int totalSeats = 0;
+            foreach (var row in model.Rows)
+            {
+                totalSeats += model.ColumnsPerRow - (row.EmptyColumns?.Count ?? 0);
+            }
+
+            if (totalSeats < 20 || totalSeats > 150)
+            {
+                throw new InvalidOperationException($"Số lượng ghế phải từ 20 đến 150 (hiện tại: {totalSeats})");
+            }
+
+            // THÊM MỚI: Kiểm tra có booking pending không
+            if (await HasPendingBookingsForRoomAsync(roomId))
+            {
+                throw new InvalidOperationException("Không thể cập nhật layout ghế vì có đơn đặt vé đang chờ thanh toán. Vui lòng đợi các đơn này được hoàn tất hoặc hủy trước.");
+            }
+
             // Kiểm tra xem phòng có showtime không
             var hasShowtimes = await _context.Showtimes
                 .AnyAsync(s => s.Cinema_Room_ID == roomId && s.Show_Date >= DateTime.Today && s.Status != "Hidden");
@@ -140,8 +158,8 @@ namespace STP.Repository.Services
                 await _context.SeatLayouts.AddRangeAsync(newLayouts);
 
                 // Cập nhật tổng số ghế trong phòng
-                var totalSeats = newLayouts.Count;
-                cinemaRoom.Seat_Quantity = totalSeats;
+                var totalSeatsCount = newLayouts.Count;
+                cinemaRoom.Seat_Quantity = totalSeatsCount;
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -157,7 +175,7 @@ namespace STP.Repository.Services
                         .Select(sl => sl.Row_Label)
                         .Distinct()
                         .CountAsync(),
-                    total_seats = totalSeats,
+                    total_seats = totalSeatsCount,
                     seat_types = await _context.SeatLayouts
                         .Where(sl => sl.Cinema_Room_ID == roomId)
                         .GroupBy(l => l.Seat_Type)
@@ -190,6 +208,20 @@ namespace STP.Repository.Services
                         success = false,
                         message = errorMsg,
                         error_code = "ROOM_NOT_FOUND"
+                    };
+                }
+
+                // THÊM MỚI: Kiểm tra có booking pending không
+                if (await HasPendingBookingsForRoomAsync(roomId))
+                {
+                    var errorMsg = "Không thể cập nhật layout ghế vì có đơn đặt vé đang chờ thanh toán";
+                    _logger.LogWarning(errorMsg);
+                    return new
+                    {
+                        success = false,
+                        message = errorMsg,
+                        error_code = "PENDING_BOOKINGS",
+                        suggestion = "Vui lòng đợi các đơn đặt vé được hoàn tất hoặc hủy trước"
                     };
                 }
 
@@ -300,11 +332,39 @@ namespace STP.Repository.Services
 
                 _logger.LogInformation($"Đã xử lý input thành {rowLabels.Count} hàng: {string.Join(", ", rowLabels)}");
 
+                // Tính toán tổng số ghế dự kiến
+                int totalColumns = model.ColumnsPerRow;
+                int emptyColumnsPerRow = model.EmptyColumns?.Count ?? 0;
+                int seatsPerRow = totalColumns - emptyColumnsPerRow;
+                int totalSeats = rowLabels.Count * seatsPerRow;
+
+                // THÊM MỚI: Kiểm tra số lượng ghế hợp lệ
+                if (totalSeats < 20 || totalSeats > 150)
+                {
+                    var errorMsg = $"Số lượng ghế phải từ 20 đến 150 (hiện tại: {totalSeats})";
+                    _logger.LogWarning($"Lỗi cấu hình ghế: {errorMsg}");
+                    return new
+                    {
+                        success = false,
+                        message = errorMsg,
+                        error_code = "INVALID_SEAT_COUNT",
+                        details = new
+                        {
+                            total_seats = totalSeats,
+                            rows = rowLabels.Count,
+                            columns_per_row = model.ColumnsPerRow,
+                            empty_columns = model.EmptyColumns?.Count ?? 0,
+                            seats_per_row = seatsPerRow
+                        },
+                        suggestion = "Vui lòng điều chỉnh số lượng hàng hoặc cột để có số lượng ghế từ 20 đến 150"
+                    };
+                }
+
                 var existingRows = await _context.SeatLayouts
-            .Where(sl => sl.Cinema_Room_ID == roomId && rowLabels.Contains(sl.Row_Label))
-            .Select(sl => sl.Row_Label)
-            .Distinct()
-            .ToListAsync();
+                .Where(sl => sl.Cinema_Room_ID == roomId && rowLabels.Contains(sl.Row_Label))
+                .Select(sl => sl.Row_Label)
+                .Distinct()
+                .ToListAsync();
 
                 if (existingRows.Any())
                 {
@@ -432,6 +492,12 @@ namespace STP.Repository.Services
                 throw new KeyNotFoundException($"Không tìm thấy ghế có ID {layoutId}");
             }
 
+            // THÊM MỚI: Kiểm tra có booking pending không
+            if (await HasPendingBookingsForLayoutsAsync(new List<int> { layoutId }))
+            {
+                throw new InvalidOperationException("Không thể cập nhật loại ghế vì có đơn đặt vé đang chờ thanh toán. Vui lòng đợi các đơn này được hoàn tất hoặc hủy trước.");
+            }
+
             var isUsed = await _context.Seats
                 .AnyAsync(s => s.Layout_ID == layoutId && s.Booking_ID != null);
 
@@ -476,6 +542,12 @@ namespace STP.Repository.Services
         {
             if (model.LayoutIds == null || !model.LayoutIds.Any())
                 throw new ArgumentException("Danh sách ghế cần cập nhật không được trống");
+
+            // THÊM MỚI: Kiểm tra có booking pending không
+            if (await HasPendingBookingsForLayoutsAsync(model.LayoutIds))
+            {
+                throw new InvalidOperationException("Không thể cập nhật loại ghế vì có đơn đặt vé đang chờ thanh toán. Vui lòng đợi các đơn này được hoàn tất hoặc hủy trước.");
+            }
 
             var usedLayoutIds = await _context.Seats
                 .Where(s => model.LayoutIds.Contains(s.Layout_ID) && s.Booking_ID != null)
@@ -543,6 +615,17 @@ namespace STP.Repository.Services
         {
             if (model.LayoutIds == null || !model.LayoutIds.Any())
                 throw new ArgumentException("Danh sách ghế cần xóa không được trống");
+
+            // THÊM MỚI: Kiểm tra có booking pending không
+            if (await HasPendingBookingsForLayoutsAsync(model.LayoutIds))
+            {
+                return new
+                {
+                    success = false,
+                    message = "Không thể xóa ghế vì có đơn đặt vé đang chờ thanh toán. Vui lòng đợi các đơn này được hoàn tất hoặc hủy trước.",
+                    error_code = "PENDING_BOOKINGS"
+                };
+            }
 
             // Kiểm tra xem có SeatLayout nào đang được sử dụng trong Showtime không
             var usedLayoutIds = await _context.Seats
@@ -627,10 +710,17 @@ namespace STP.Repository.Services
 
             // Kiểm tra xem phòng chiếu mẫu có layout ghế không
             var templateLayouts = await _context.SeatLayouts
-                .Where(sl => sl.Cinema_Room_ID == model.TemplateRoomId)
+                .Where(sl => sl.Cinema_Room_ID == model.TemplateRoomId && sl.Is_Active)
                 .ToListAsync();
             if (!templateLayouts.Any())
-                throw new InvalidOperationException("Phòng chiếu mẫu không có layout ghế để sao chép");
+                throw new InvalidOperationException("Phòng chiếu mẫu không có layout ghế active để sao chép");
+
+            // THÊM MỚI: Kiểm tra số lượng ghế hợp lệ
+            int activeSeatsCount = templateLayouts.Count;
+            if (activeSeatsCount < 20 || activeSeatsCount > 150)
+            {
+                throw new InvalidOperationException($"Số lượng ghế trong phòng mẫu phải từ 20 đến 150 (hiện tại: {activeSeatsCount})");
+            }
 
             // Bắt đầu giao dịch để đảm bảo toàn vẹn dữ liệu
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -641,7 +731,7 @@ namespace STP.Repository.Services
                 {
                     Room_Name = model.RoomName,
                     Room_Type = model.RoomType,
-                    Seat_Quantity = templateLayouts.Count, // Số lượng ghế bằng số lượng layout
+                    Seat_Quantity = activeSeatsCount, // Chỉ tính số lượng ghế active
                     Status = "Active"
                 };
                 _context.CinemaRooms.Add(newRoom);
@@ -663,8 +753,6 @@ namespace STP.Repository.Services
                 }
                 await _context.SeatLayouts.AddRangeAsync(newLayouts);
                 await _context.SaveChangesAsync();
-
-                // LƯU Ý: Không tạo Seat ở đây nữa
 
                 // Xác nhận giao dịch
                 await transaction.CommitAsync();
@@ -689,6 +777,52 @@ namespace STP.Repository.Services
                 _logger.LogError(ex, "Lỗi khi tạo phòng chiếu mới với layout có sẵn: {Message}", ex.Message);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Kiểm tra xem có booking nào đang ở trạng thái Pending liên quan đến ghế trong phòng
+        /// </summary>
+        private async Task<bool> HasPendingBookingsForRoomAsync(int roomId)
+        {
+            // Lấy danh sách tất cả các showtime của phòng
+            var showtimes = await _context.Showtimes
+                .Where(s => s.Cinema_Room_ID == roomId && s.Status != "Hidden" && s.Status != "Cancelled")
+                .Select(s => s.Showtime_ID)
+                .ToListAsync();
+
+            if (!showtimes.Any())
+            {
+                return false;
+            }
+
+            // Kiểm tra xem có booking nào đang ở trạng thái Pending cho các showtime này không
+            var hasPendingBookings = await _context.TicketBookings
+                .AnyAsync(b => showtimes.Contains(b.Showtime_ID) && b.Status == "Pending");
+
+            return hasPendingBookings;
+        }
+
+        /// <summary>
+        /// Kiểm tra xem có booking nào đang ở trạng thái Pending liên quan đến ghế cụ thể
+        /// </summary>
+        private async Task<bool> HasPendingBookingsForLayoutsAsync(List<int> layoutIds)
+        {
+            // Lấy thông tin phòng từ các layoutIds
+            var roomIds = await _context.SeatLayouts
+                .Where(sl => layoutIds.Contains(sl.Layout_ID))
+                .Select(sl => sl.Cinema_Room_ID)
+                .Distinct()
+                .ToListAsync();
+
+            foreach (var roomId in roomIds)
+            {
+                if (await HasPendingBookingsForRoomAsync(roomId))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }
