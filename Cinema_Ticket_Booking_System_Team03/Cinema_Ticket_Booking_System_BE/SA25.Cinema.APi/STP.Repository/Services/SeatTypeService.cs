@@ -79,6 +79,17 @@ namespace STP.Repository.Services
 
         public async Task<SeatTypeResponseDto> CreateSeatTypeAsync(SeatTypeCreateDto model)
         {
+            // Kiểm tra các trường input
+            if (string.IsNullOrWhiteSpace(model.Room_Type))
+                throw new ArgumentException("Loại phòng không được để trống");
+
+            if (string.IsNullOrWhiteSpace(model.Seat_Type))
+                throw new ArgumentException("Loại ghế không được để trống");
+
+            if (model.Base_Price <= 0)
+                throw new ArgumentException("Giá vé phải lớn hơn 0");
+
+            // Kiểm tra trùng lặp
             if (await _context.TicketPricings.AnyAsync(tp =>
                 tp.Room_Type == model.Room_Type && tp.Seat_Type == model.Seat_Type))
             {
@@ -114,6 +125,7 @@ namespace STP.Repository.Services
             if (pricing == null)
                 throw new KeyNotFoundException($"Không tìm thấy loại ghế có ID {id}");
 
+            // Kiểm tra tên đã tồn tại
             if ((model.Room_Type != pricing.Room_Type || model.Seat_Type != pricing.Seat_Type) &&
                 await _context.TicketPricings.AnyAsync(tp =>
                     tp.Price_ID != id &&
@@ -121,6 +133,13 @@ namespace STP.Repository.Services
                     tp.Seat_Type == model.Seat_Type))
             {
                 throw new ArgumentException($"Loại ghế '{model.Seat_Type}' cho loại phòng '{model.Room_Type}' đã tồn tại");
+            }
+
+            // THÊM MỚI: Kiểm tra có booking pending không trước khi cho phép cập nhật
+            bool hasPendingBookings = await HasPendingBookingsForSeatTypeAsync(pricing.Seat_Type);
+            if (hasPendingBookings)
+            {
+                throw new InvalidOperationException("Không thể cập nhật thông tin loại ghế vì có đơn đặt vé đang chờ thanh toán. Vui lòng đợi các đơn này được hoàn tất hoặc hủy trước.");
             }
 
             bool isInUse = false;
@@ -170,6 +189,13 @@ namespace STP.Repository.Services
             if (pricing == null)
                 throw new KeyNotFoundException($"Không tìm thấy loại ghế có ID {id}");
 
+            // THÊM MỚI: Kiểm tra có booking pending không trước khi cho phép xóa
+            bool hasPendingBookings = await HasPendingBookingsForSeatTypeAsync(pricing.Seat_Type);
+            if (hasPendingBookings)
+            {
+                throw new InvalidOperationException("Không thể xóa loại ghế vì có đơn đặt vé đang chờ thanh toán. Vui lòng đợi các đơn này được hoàn tất hoặc hủy trước.");
+            }
+
             bool isInUse = await _context.SeatLayouts.AnyAsync(sl => sl.Seat_Type == pricing.Seat_Type);
 
             // Chuyển đổi sang xóa mềm cho tất cả các trường hợp
@@ -195,6 +221,16 @@ namespace STP.Repository.Services
 
             if (pricings.Count != priceIds.Count)
                 throw new ArgumentException("Một số ID không tồn tại");
+
+            // THÊM MỚI: Kiểm tra có booking pending không cho bất kỳ loại ghế nào được cập nhật
+            foreach (var pricing in pricings)
+            {
+                bool hasPendingBookings = await HasPendingBookingsForSeatTypeAsync(pricing.Seat_Type);
+                if (hasPendingBookings)
+                {
+                    throw new InvalidOperationException($"Không thể cập nhật giá vé cho loại ghế '{pricing.Seat_Type}' vì có đơn đặt vé đang chờ thanh toán. Vui lòng đợi các đơn này được hoàn tất hoặc hủy trước.");
+                }
+            }
 
             foreach (var pricing in pricings)
             {
@@ -251,6 +287,31 @@ namespace STP.Repository.Services
                     average_price = avgPrice?.avg_price ?? 0
                 };
             }).ToList();
+        }
+
+        /// <summary>
+        /// Kiểm tra xem có booking nào đang ở trạng thái Pending liên quan đến ghế cụ thể
+        /// </summary>
+        private async Task<bool> HasPendingBookingsForSeatTypeAsync(string seatType)
+        {
+            // Tìm tất cả các ghế có loại ghế này
+            var seatLayoutIds = await _context.SeatLayouts
+                .Where(sl => sl.Seat_Type == seatType && sl.Is_Active)
+                .Select(sl => sl.Layout_ID)
+                .ToListAsync();
+
+            if (!seatLayoutIds.Any())
+                return false;
+
+            // Kiểm tra xem có ghế nào đang nằm trong booking pending
+            var pendingBookings = await _context.Seats
+                .Include(s => s.TicketBooking)
+                .Where(s => s.TicketBooking != null &&
+                          s.TicketBooking.Status == "Pending" &&
+                          seatLayoutIds.Contains(s.Layout_ID))
+                .AnyAsync();
+
+            return pendingBookings;
         }
     }
 }

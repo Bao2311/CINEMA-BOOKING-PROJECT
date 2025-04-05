@@ -274,7 +274,7 @@ namespace STP.APIService.Controllers
                 }
 
                 // Thực hiện xóa mềm bằng cách cập nhật trạng thái
-                movie.Status = "Deleted"; // Hoặc cập nhật trường IsDeleted = true nếu có
+                movie.Status = "Deleted";
                 movie.Updated_At = DateTime.Now;
 
                 // Lưu thay đổi vào database
