@@ -48,100 +48,170 @@ namespace STP.Repository.Services
         /// <summary>
         /// Tạo vé cho đơn đặt vé đã được xác nhận
         /// </summary>
+        /// <summary>
+        /// Tạo vé cho đơn đặt vé đã được xác nhận
+        /// </summary>
         public async Task<List<Ticket>> GenerateTicketsAsync(int bookingId)
         {
-            var booking = await _context.TicketBookings
-                .Include(tb => tb.Showtime)
-                .Include(tb => tb.Seats)
-                .FirstOrDefaultAsync(tb => tb.Booking_ID == bookingId && tb.Status == "Confirmed");
-
-            if (booking == null)
-                return null;
-
-            var tickets = new List<Ticket>();
-
-            foreach (var seat in booking.Seats)
+            try
             {
-                // Kiểm tra xem vé đã được tạo cho ghế này chưa
-                var existingTicket = await _context.Tickets
-                    .FirstOrDefaultAsync(t => t.Booking_ID == bookingId && t.Seat_ID == seat.Seat_ID);
+                _logger.LogInformation($"Bắt đầu tạo vé cho booking ID {bookingId}");
 
-                if (existingTicket != null)
-                    continue;
+                var booking = await _context.TicketBookings
+                    .Include(tb => tb.Showtime)
+                    .FirstOrDefaultAsync(tb => tb.Booking_ID == bookingId && tb.Status == "Confirmed");
 
-                // Tạo mã vé duy nhất
-                string ticketCode = GenerateUniqueTicketCode();
-
-                // Trả về giá tiền của ghế này dựa vào loại ghế
-                var seatLayout = await _context.SeatLayouts.FindAsync(seat.Layout_ID);
-                var cinemaRoom = await _context.CinemaRooms
-                    .FirstOrDefaultAsync(cr => cr.Cinema_Room_ID == booking.Showtime.Cinema_Room_ID);
-
-                // Lấy giá vé dựa trên loại phòng và loại ghế
-                var ticketPricing = await _context.TicketPricings
-                    .FirstOrDefaultAsync(tp =>
-                        tp.Room_Type == cinemaRoom.Room_Type &&
-                        tp.Seat_Type == seatLayout.Seat_Type &&
-                        tp.Status == "Active");
-
-                decimal basePrice = ticketPricing?.Base_Price ?? booking.Showtime.Base_Price;
-
-                // Tính giảm giá cho vé
-                decimal discountAmount = 0;
-                if (booking.Promotion_ID.HasValue)
+                if (booking == null)
                 {
-                    var promotionUsage = await _context.PromotionUsages
-                        .FirstOrDefaultAsync(pu => pu.Booking_ID == bookingId);
-
-                    if (promotionUsage != null)
-                    {
-                        // Phân bổ số tiền giảm giá cho từng vé
-                        decimal totalDiscount = promotionUsage.Discount_Amount;
-                        int totalSeats = booking.Seats.Count;
-                        discountAmount = totalDiscount / totalSeats;
-                    }
+                    _logger.LogWarning($"Không tìm thấy booking ID {bookingId} với trạng thái Confirmed");
+                    return null;
                 }
 
-                // Tính giá cuối cùng
-                decimal finalPrice = basePrice - discountAmount;
-                if (finalPrice < 0)
-                    finalPrice = 0;
+                // Lấy danh sách ghế theo booking ID và showtime ID
+                var seats = await _context.Seats
+                    .Where(s => s.Booking_ID == bookingId && s.Showtime_ID == booking.Showtime_ID)
+                    .ToListAsync();
 
-                var ticket = new Ticket
+                if (!seats.Any())
                 {
-                    Booking_ID = bookingId,
-                    Seat_ID = seat.Seat_ID,
-                    Base_Price = basePrice,
-                    Discount_Amount = discountAmount,
-                    Final_Price = finalPrice,
-                    Ticket_Code = ticketCode,
-                    Is_Checked_In = false,
-                    Status = "Active" // Thêm trường Status mặc định là Active
-                };
+                    _logger.LogWarning($"Không tìm thấy ghế nào cho booking ID {bookingId}");
+                    return null;
+                }
 
-                tickets.Add(ticket);
+                _logger.LogInformation($"Tìm thấy {seats.Count} ghế cho booking ID {bookingId}");
+
+                var tickets = new List<Ticket>();
+
+                foreach (var seat in seats)
+                {
+                    // Kiểm tra xem vé đã được tạo cho ghế này chưa
+                    var existingTicket = await _context.Tickets
+                        .FirstOrDefaultAsync(t => t.Booking_ID == bookingId && t.Seat_ID == seat.Seat_ID);
+
+                    if (existingTicket != null)
+                    {
+                        _logger.LogInformation($"Vé đã tồn tại cho ghế {seat.Seat_ID}, cập nhật trạng thái");
+
+                        // Cập nhật trạng thái nếu vé đã tồn tại
+                        if (existingTicket.Status != "Active")
+                        {
+                            existingTicket.Status = "Active";
+                            _context.Tickets.Update(existingTicket);
+                        }
+
+                        tickets.Add(existingTicket);
+                        continue;
+                    }
+
+                    // Tạo mã vé duy nhất
+                    string ticketCode = GenerateUniqueTicketCode();
+
+                    // Lấy thông tin về layout ghế
+                    var seatLayout = await _context.SeatLayouts.FindAsync(seat.Layout_ID);
+
+                    if (seatLayout == null)
+                    {
+                        _logger.LogWarning($"Không tìm thấy layout cho ghế {seat.Seat_ID}");
+                        continue;
+                    }
+
+                    var cinemaRoom = await _context.CinemaRooms
+                        .FirstOrDefaultAsync(cr => cr.Cinema_Room_ID == booking.Showtime.Cinema_Room_ID);
+
+                    if (cinemaRoom == null)
+                    {
+                        _logger.LogWarning($"Không tìm thấy thông tin phòng chiếu cho showtime {booking.Showtime_ID}");
+                        continue;
+                    }
+
+                    // Lấy giá vé dựa trên loại phòng và loại ghế
+                    var ticketPricing = await _context.TicketPricings
+                        .FirstOrDefaultAsync(tp =>
+                            tp.Room_Type == cinemaRoom.Room_Type &&
+                            tp.Seat_Type == seatLayout.Seat_Type &&
+                            tp.Status == "Active");
+
+                    decimal basePrice = ticketPricing?.Base_Price ?? booking.Showtime.Base_Price;
+                    _logger.LogInformation($"Giá vé cho ghế {seat.Seat_ID}: {basePrice}");
+
+                    // Tính giảm giá cho vé
+                    decimal discountAmount = 0;
+                    if (booking.Promotion_ID.HasValue)
+                    {
+                        var promotionUsage = await _context.PromotionUsages
+                            .FirstOrDefaultAsync(pu => pu.Booking_ID == bookingId);
+
+                        if (promotionUsage != null)
+                        {
+                            // Phân bổ số tiền giảm giá cho từng vé
+                            decimal totalDiscount = promotionUsage.Discount_Amount;
+                            int totalSeats = seats.Count;
+                            discountAmount = totalDiscount / totalSeats;
+                            _logger.LogInformation($"Giảm giá: {discountAmount} cho mỗi vé từ KM {booking.Promotion_ID}");
+                        }
+                    }
+
+                    // Tính giá cuối cùng
+                    decimal finalPrice = basePrice - discountAmount;
+                    if (finalPrice < 0)
+                        finalPrice = 0;
+
+                    var ticket = new Ticket
+                    {
+                        Booking_ID = bookingId,
+                        Seat_ID = seat.Seat_ID,
+                        Base_Price = basePrice,
+                        Discount_Amount = discountAmount,
+                        Final_Price = finalPrice,
+                        Ticket_Code = ticketCode,
+                        Is_Checked_In = false,
+                        Status = "Active"
+                    };
+
+                    tickets.Add(ticket);
+                    _logger.LogInformation($"Đã tạo vé mã {ticketCode} cho ghế {seat.Seat_ID}");
+                }
+
+                if (tickets.Any())
+                {
+                    // Lọc ra chỉ những vé mới chưa có trong DB
+                    var existingTicketSeats = await _context.Tickets
+                        .Where(t => t.Booking_ID == bookingId)
+                        .Select(t => t.Seat_ID)
+                        .ToListAsync();
+
+                    var newTickets = tickets.Where(t => !existingTicketSeats.Contains(t.Seat_ID)).ToList();
+
+                    if (newTickets.Any())
+                    {
+                        await _context.Tickets.AddRangeAsync(newTickets);
+                        _logger.LogInformation($"Thêm {newTickets.Count} vé mới vào database");
+                    }
+
+                    // Cập nhật trạng thái đặt vé
+                    booking.Status = "Completed";
+
+                    // Tạo lịch sử đặt vé
+                    var bookingHistory = new BookingHistory
+                    {
+                        Booking_ID = bookingId,
+                        Date = DateTime.Now,
+                        Status = "Completed",
+                        Notes = $"Đã tạo {tickets.Count} vé"
+                    };
+
+                    await _context.BookingHistories.AddAsync(bookingHistory);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"Đã tạo thành công {tickets.Count} vé cho booking {bookingId}");
+                }
+
+                return tickets;
             }
-
-            if (tickets.Any())
+            catch (Exception ex)
             {
-                await _context.Tickets.AddRangeAsync(tickets);
-
-                // Cập nhật trạng thái đặt vé
-                booking.Status = "Completed";
-
-                // Tạo lịch sử đặt vé
-                var bookingHistory = new BookingHistory
-                {
-                    Booking_ID = bookingId,
-                    Date = DateTime.Now,
-                    Status = "Completed"
-                };
-
-                await _context.BookingHistories.AddAsync(bookingHistory);
-                await _context.SaveChangesAsync();
+                _logger.LogError(ex, $"Lỗi khi tạo vé cho booking {bookingId}: {ex.Message}");
+                throw;
             }
-
-            return tickets;
         }
 
         /// <summary>

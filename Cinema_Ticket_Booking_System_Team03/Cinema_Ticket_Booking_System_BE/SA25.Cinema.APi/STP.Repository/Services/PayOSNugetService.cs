@@ -273,7 +273,7 @@ namespace STP.Repository.Services
         /// <summary>
         /// Cập nhật trạng thái đơn hàng thành "Cancelled" khi người dùng hủy thanh toán
         /// </summary>
-        public async Task<bool> CancelBooking(int bookingId)
+        public async Task<bool> CancelBookingPayment(int bookingId)
         {
             try
             {
@@ -457,14 +457,19 @@ namespace STP.Repository.Services
                             seat.Booking_ID = null;
                         }
 
-                        // 5. CẬP NHẬT VÉ 
+                        // 5. XÓA VÉ thay vì cập nhật trạng thái
                         var tickets = await _context.Tickets
                             .Where(t => t.Booking_ID == bookingId)
                             .ToListAsync();
 
-                        foreach (var ticket in tickets)
+                        if (tickets.Any())
                         {
-                            ticket.Status = "Cancelled";
+                            _logger.LogInformation($"Xóa {tickets.Count} vé cho booking {bookingId}");
+                            _context.Tickets.RemoveRange(tickets);
+                        }
+                        else
+                        {
+                            _logger.LogInformation($"Không tìm thấy vé nào cho booking {bookingId}");
                         }
 
                         // 6. THÊM LỊCH SỬ HỦY ĐƠN
@@ -473,7 +478,7 @@ namespace STP.Repository.Services
                             Booking_ID = bookingId,
                             Status = "Cancelled",
                             Date = DateTime.Now,
-                            Notes = "Hủy đơn bởi người dùng thông qua PayOS"
+                            Notes = "Hủy đơn bởi người dùng thông qua PayOS, đã xóa vé"
                         };
                         _context.BookingHistories.Add(bookingHistory);
 
@@ -724,87 +729,87 @@ namespace STP.Repository.Services
         /// <summary>
         /// Tạo HTML cho trang trạng thái thanh toán
         /// </summary>
-        public string CreatePaymentStatusHtml(string orderCode, string status, BookingDetailInfo booking, decimal amount, string paymentMethod = null, DateTime? transactionTime = null)
-        {
-            string statusClass = status == "PAID" ? "success" : (status == "CANCELLED" ? "failed" : "pending");
-            string statusTitle = status == "PAID" ? "Thanh toán thành công!" :
-                               (status == "CANCELLED" ? "Thanh toán đã bị hủy" : "Thanh toán chưa hoàn tất");
-            string statusMessage = status == "CANCELLED" ?
-                "Bạn đã hủy quá trình thanh toán. Đơn đặt vé của bạn đã được hủy." : "";
+        //        public string CreatePaymentStatusHtml(string orderCode, string status, BookingDetailInfo booking, decimal amount, string paymentMethod = null, DateTime? transactionTime = null)
+        //        {
+        //            string statusClass = status == "PAID" ? "success" : (status == "CANCELLED" ? "failed" : "pending");
+        //            string statusTitle = status == "PAID" ? "Thanh toán thành công!" :
+        //                               (status == "CANCELLED" ? "Thanh toán đã bị hủy" : "Thanh toán chưa hoàn tất");
+        //            string statusMessage = status == "CANCELLED" ?
+        //                "Bạn đã hủy quá trình thanh toán. Đơn đặt vé của bạn đã được hủy." : "";
 
-            string htmlContent = $@"
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Kết quả thanh toán</title>
-    <meta charset=""UTF-8"">
-    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; text-align: center; }}
-        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }}
-        .success {{ color: #28a745; }}
-        .pending {{ color: #ffc107; }}
-        .failed {{ color: #dc3545; }}
-        h1 {{ font-size: 24px; margin-bottom: 20px; }}
-        .info {{ margin-bottom: 10px; text-align: left; }}
-        .btn {{ display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; 
-               text-decoration: none; border-radius: 4px; margin-top: 20px; }}
-    </style>
-</head>
-<body>
-    <div class=""container"">
-        <h1 class=""{statusClass}"">{statusTitle}</h1>
-        {(string.IsNullOrEmpty(statusMessage) ? "" : $"<p>{statusMessage}</p>")}
-        
-        <div class=""info"">
-            <p><strong>Mã đơn hàng:</strong> {orderCode}</p>
-            <p><strong>Trạng thái:</strong> {status}</p>
-            <p><strong>Số tiền:</strong> {amount.ToString("N0")} VNĐ</p>
-            {(!string.IsNullOrEmpty(paymentMethod) ? $"<p><strong>Phương thức:</strong> {paymentMethod}</p>" : "")}
-            {(booking != null ? $"<p><strong>Tên phim:</strong> {booking.MovieName}</p>" : "")}
-            {(booking != null ? $"<p><strong>Phòng:</strong> {booking.RoomName}</p>" : "")}
-            <p><strong>Ghế:</strong> {(booking != null ? booking.Seats : "Không có thông tin ghế")}</p>
-        </div>
-        
-        <a href=""http://localhost:5173/"" class=""btn"">Quay lại trang chủ</a>
-    </div>
-</body>
-</html>";
+        //            string htmlContent = $@"
+        //<!DOCTYPE html>
+        //<html>
+        //<head>
+        //    <title>Kết quả thanh toán</title>
+        //    <meta charset=""UTF-8"">
+        //    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+        //    <style>
+        //        body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; text-align: center; }}
+        //        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }}
+        //        .success {{ color: #28a745; }}
+        //        .pending {{ color: #ffc107; }}
+        //        .failed {{ color: #dc3545; }}
+        //        h1 {{ font-size: 24px; margin-bottom: 20px; }}
+        //        .info {{ margin-bottom: 10px; text-align: left; }}
+        //        .btn {{ display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; 
+        //               text-decoration: none; border-radius: 4px; margin-top: 20px; }}
+        //    </style>
+        //</head>
+        //<body>
+        //    <div class=""container"">
+        //        <h1 class=""{statusClass}"">{statusTitle}</h1>
+        //        {(string.IsNullOrEmpty(statusMessage) ? "" : $"<p>{statusMessage}</p>")}
 
-            return htmlContent;
-        }
+        //        <div class=""info"">
+        //            <p><strong>Mã đơn hàng:</strong> {orderCode}</p>
+        //            <p><strong>Trạng thái:</strong> {status}</p>
+        //            <p><strong>Số tiền:</strong> {amount.ToString("N0")} VNĐ</p>
+        //            {(!string.IsNullOrEmpty(paymentMethod) ? $"<p><strong>Phương thức:</strong> {paymentMethod}</p>" : "")}
+        //            {(booking != null ? $"<p><strong>Tên phim:</strong> {booking.MovieName}</p>" : "")}
+        //            {(booking != null ? $"<p><strong>Phòng:</strong> {booking.RoomName}</p>" : "")}
+        //            <p><strong>Ghế:</strong> {(booking != null ? booking.Seats : "Không có thông tin ghế")}</p>
+        //        </div>
 
-        /// <summary>
-        /// Tạo HTML cho trang lỗi
-        /// </summary>
-        public string CreateErrorHtml()
-        {
-            return @"
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Lỗi xử lý thanh toán</title>
-    <meta charset=""UTF-8"">
-    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; text-align: center; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
-        h1 { font-size: 24px; margin-bottom: 20px; color: #dc3545; }
-        .btn { display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; 
-              text-decoration: none; border-radius: 4px; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <div class=""container"">
-        <h1>Đã xảy ra lỗi</h1>
-        <p>Không thể xử lý thanh toán. Vui lòng thử lại sau.</p>
-        <a href=""http://localhost:5173/"" class=""btn"">Quay lại trang chủ</a>
-    </div>
-</body>
-</html>";
-        }
+        //        <a href=""http://localhost:5173/"" class=""btn"">Quay lại trang chủ</a>
+        //    </div>
+        //</body>
+        //</html>";
+
+        //            return htmlContent;
+        //        }
+
+        //        /// <summary>
+        //        /// Tạo HTML cho trang lỗi
+        //        /// </summary>
+        //        public string CreateErrorHtml()
+        //        {
+        //            return @"
+        //<!DOCTYPE html>
+        //<html>
+        //<head>
+        //    <title>Lỗi xử lý thanh toán</title>
+        //    <meta charset=""UTF-8"">
+        //    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+        //    <style>
+        //        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; text-align: center; }
+        //        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        //        h1 { font-size: 24px; margin-bottom: 20px; color: #dc3545; }
+        //        .btn { display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; 
+        //              text-decoration: none; border-radius: 4px; margin-top: 20px; }
+        //    </style>
+        //</head>
+        //<body>
+        //    <div class=""container"">
+        //        <h1>Đã xảy ra lỗi</h1>
+        //        <p>Không thể xử lý thanh toán. Vui lòng thử lại sau.</p>
+        //        <a href=""http://localhost:5173/"" class=""btn"">Quay lại trang chủ</a>
+        //    </div>
+        //</body>
+        //</html>";
+        //        }
+        //    }
     }
-
     // DTO cho response
     public class PaymentResponse
     {
