@@ -176,6 +176,7 @@ namespace STP.Repository.Services
                             <p>Dưới đây là thông tin đăng nhập của bạn:</p>
                             <ul>
                                 <li><strong>Email:</strong> {email}</li>
+                                </br>
                                 <li><strong>Mật khẩu:</strong> <span class='password'>{password}</span></li>
                             </ul>
                             <p>Vui lòng đăng nhập và đổi mật khẩu ngay sau khi nhận được email này để đảm bảo an toàn cho tài khoản của bạn.</p>
