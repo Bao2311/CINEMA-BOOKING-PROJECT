@@ -589,7 +589,7 @@ useEffect(() => {
                             <button
                               onClick={() => setEditingUser(user)}
                               className="text-amber-600 hover:text-amber-900 p-1 rounded-md hover:bg-amber-50"
-                              title="Chỉnh sửa"
+                              title={`Chỉnh sửa - Role hiện tại: ${user.role}`}
                             >
                               <Edit className="h-4 w-4" />
                             </button>
