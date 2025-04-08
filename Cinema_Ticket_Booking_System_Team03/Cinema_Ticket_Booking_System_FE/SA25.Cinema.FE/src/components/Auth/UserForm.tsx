@@ -249,7 +249,7 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel, disableRo
                 <option value="">Select Status</option>
                 <option value="Active">Active</option>
                 <option value="Pending">Pending</option>
-                <option value="Locked">Locked</option>
+                <option value="Locked">Locked</option>ơ                                                                 
               </select>
             </div>
           </div>
