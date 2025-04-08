@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 namespace STP.Repository.Dtos
 {
 
+
     public class AutoScheduleRequest
     {
         public DateTime ShowDate { get; set; }
@@ -180,8 +181,8 @@ namespace STP.Repository.Dtos
         public TimeSpan Start_Time { get; set; }
 
         // Thời gian kết thúc chiếu phim - bắt buộc
-        [Required]
-        public TimeSpan End_Time { get; set; }
+        //[Required]
+        //public TimeSpan End_Time { get; set; }
 
         // Cấp độ giá vé - bắt buộc, chỉ chấp nhận "Regular" hoặc "VIP"
         [Required]
@@ -218,8 +219,8 @@ namespace STP.Repository.Dtos
         public TimeSpan Start_Time { get; set; }
 
         // Thời gian kết thúc chiếu phim - bắt buộc
-        [Required]
-        public TimeSpan End_Time { get; set; }
+        //[Required]
+        //public TimeSpan End_Time { get; set; }
 
         // Cấp độ giá vé - bắt buộc, chỉ chấp nhận "Regular" hoặc "VIP"
         [Required]
