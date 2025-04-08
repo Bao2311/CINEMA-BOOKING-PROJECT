@@ -1170,7 +1170,7 @@ const ManageCinemaRoomPage: React.FC = () => {
       toast.error("Seat quantity must be an integer.");
       return;
     }
-    if (newRoom.seat_Quantity <= 50) {
+    if (newRoom.seat_Quantity < 50) {
       toast.error("Seat quantity must be greater than 50.");
       return;
     }
