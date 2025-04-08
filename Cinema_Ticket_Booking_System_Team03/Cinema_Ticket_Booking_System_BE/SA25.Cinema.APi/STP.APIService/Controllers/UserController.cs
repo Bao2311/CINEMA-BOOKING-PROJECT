@@ -55,6 +55,11 @@ namespace STP.APIService.Controllers
                 // Chuyển đổi sang DTO để trả về dữ liệu an toàn
                 var userDtos = await activeUsers.Select(u => new
                 {
+                    u.Sex,
+                    u.Last_Login,
+                    u.Phone_Number,
+                    u.Address,
+                    u.Date_Of_Birth,
                     u.User_ID,
                     u.Full_Name,
                     u.Email,
