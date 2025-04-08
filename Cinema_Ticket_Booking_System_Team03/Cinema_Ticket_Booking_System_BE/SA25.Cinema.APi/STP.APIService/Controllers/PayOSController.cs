@@ -336,6 +336,9 @@ namespace STP.APIService.Controllers
         /// <summary>
         /// Xử lý khi người dùng quay lại từ trang thanh toán
         /// </summary>
+        /// <summary>
+        /// Xử lý khi người dùng quay lại từ trang thanh toán
+        /// </summary>
         [HttpGet("return")]
         public async Task<IActionResult> PaymentReturn([FromQuery] string orderCode, [FromQuery] string status)
         {
@@ -433,6 +436,14 @@ namespace STP.APIService.Controllers
                                     seat.Last_Updated = DateTime.Now;
                                 }
 
+                                // THÊM MỚI: Xóa các ticket liên quan đến booking
+                                var tickets = await _context.Tickets.Where(t => t.Booking_ID == bookingId).ToListAsync();
+                                if (tickets.Any())
+                                {
+                                    _logger.LogInformation($"Xóa {tickets.Count} vé cho booking {bookingId}");
+                                    _context.Tickets.RemoveRange(tickets);
+                                }
+
                                 if (booking.Promotion_ID.HasValue)
                                 {
                                     // Tìm các bản ghi Promotion_Usage liên quan đến booking này
@@ -448,7 +459,7 @@ namespace STP.APIService.Controllers
 
                                     // Giảm lượt sử dụng của mã khuyến mãi
                                     var promotion = await _context.Promotions
-       .FindAsync(booking.Promotion_ID.Value);
+                                        .FindAsync(booking.Promotion_ID.Value);
 
                                     if (promotion != null && promotion.Current_Usage > 0)
                                     {
@@ -635,6 +646,14 @@ namespace STP.APIService.Controllers
                                     seat.Seat_Status = "Available";
                                     seat.Booking_ID = null;
                                     seat.Last_Updated = DateTime.Now;
+                                }
+
+                                // THÊM MỚI: Xóa các ticket liên quan đến booking
+                                var tickets = await _context.Tickets.Where(t => t.Booking_ID == bookingId).ToListAsync();
+                                if (tickets.Any())
+                                {
+                                    _logger.LogInformation($"Xóa {tickets.Count} vé cho booking {bookingId}");
+                                    _context.Tickets.RemoveRange(tickets);
                                 }
                             }
                             else
