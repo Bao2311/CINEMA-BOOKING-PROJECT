@@ -162,9 +162,74 @@ const ShowtimesPage = () => {
     setSelectedDate(newDate);
   };
 
+  const calculateAge = (dateOfBirth: string): number => {
+    const birthDate = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
+  };
+
+  const checkAgeRestriction = (rating: string, age: number): boolean => {
+    switch (rating) {
+      case 'P18':
+        return age >= 18;
+      case 'P16':
+        return age >= 16;
+      case 'P13':
+        return age >= 13;
+      case 'P':
+        return true;
+      default:
+        return true;
+    }
+  };
+
   const handleShowtimeClick = async (showtimeId: number, movieId: number) => {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      
+      // Get user profile to check age
+      const profileResponse = await axios.get('https://localhost:7168/api/Auth/profile', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const userProfile = profileResponse.data;
+      const userAge = calculateAge(userProfile.date_Of_Birth);
+
+      // Get movie details to check rating
+      const movieResponse = await axios.get(`https://localhost:7168/api/Movie/${movieId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const movieDetails = movieResponse.data;
+      const movieRating = movieDetails.rating;
+
+      // Check if user meets age requirement
+      if (!checkAgeRestriction(movieRating, userAge)) {
+        toast.error(`Bạn chưa đủ tuổi để xem phim này. Phim yêu cầu độ tuổi: ${movieRating}`, {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        return;
+      }
+
+      // Continue with existing booking check logic
       const response = await axios.get('https://localhost:7168/api/Booking/check-pending', {
         headers: {
           'Content-Type': 'application/json',
@@ -175,17 +240,15 @@ const ShowtimesPage = () => {
       const data = await response.data;
       
       if (data.canCreateNewBooking) {
-        // If user can create new booking, navigate to cinema room page
         navigate(`/cinema-room/${showtimeId}?movieId=${movieId}`);
       } else {
-        // If user has pending booking, show modal to cancel it
         setPendingBookingId(data.pendingBooking.booking_ID);
         setSelectedShowtimeInfo({ showtimeId, movieId });
         setIsModalVisible(true);
       }
     } catch (error) {
-      console.error('Error checking booking status:', error);
-      toast.error("Có lỗi xảy ra khi kiểm tra trạng thái đặt vé. Vui lòng thử lại sau.", {
+      console.error('Error checking booking eligibility:', error);
+      toast.error("Có lỗi xảy ra khi kiểm tra thông tin. Vui lòng thử lại sau.", {
         position: "top-right",
         autoClose: 5000,
         hideProgressBar: false,
