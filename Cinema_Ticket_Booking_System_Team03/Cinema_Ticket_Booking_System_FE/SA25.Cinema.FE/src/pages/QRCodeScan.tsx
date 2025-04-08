@@ -273,7 +273,6 @@ const ScanOverlay = styled.div`
       border-bottom: none;
       border-radius: 12px 0 0 0;
     }
-
     .corner-top-right {
       top: 0;
       right: 0;
@@ -281,7 +280,6 @@ const ScanOverlay = styled.div`
       border-bottom: none;
       border-radius: 0 12px 0 0;
     }
-
     .corner-bottom-left {
       bottom: 0;
       left: 0;
@@ -289,7 +287,6 @@ const ScanOverlay = styled.div`
       border-top: none;
       border-radius: 0 0 0 12px;
     }
-
     .corner-bottom-right {
       bottom: 0;
       right: 0;
@@ -354,7 +351,6 @@ const Button = styled.button`
     margin-right: 0.7rem;
     font-size: 1.1rem;
   }
-
   &:focus {
     outline: none;
   }
@@ -388,7 +384,6 @@ const PrimaryButton = styled(Button)`
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-
     &::before {
       opacity: 1;
     }
@@ -402,7 +397,6 @@ const PrimaryButton = styled(Button)`
     background-color: rgba(10, 17, 40, 0.5);
     cursor: not-allowed;
     transform: none;
-
     &::before {
       opacity: 0;
     }
@@ -510,7 +504,6 @@ const TicketPlaceholder = styled.div`
     color: ${theme.dark};
     margin-bottom: 0.8rem;
   }
-
   p {
     color: rgba(0, 0, 0, 0.5);
     max-width: 280px;
@@ -604,7 +597,6 @@ const TicketHeader = styled.div`
     line-height: 1.3;
     max-width: 80%;
   }
-
   .check-in-time {
     font-size: 0.95rem;
     color: ${(props) => (props.$success ? theme.success : theme.error)};
@@ -656,7 +648,6 @@ const TicketProperty = styled.div`
     color: rgba(0, 0, 0, 0.5);
     font-weight: 500;
   }
-
   .value {
     flex: 1;
     font-size: 1rem;
@@ -712,24 +703,21 @@ const QRCodeScanner = () => {
   const { token } = useAuth();
   const apiBaseUrl = "https://localhost:7168/api";
 
-  // Âm thanh thành công
   const successSound = new Audio("/sounds/success.mp3");
   const errorSound = new Audio("/sounds/error.mp3");
 
-  // Lấy role từ localStorage
   const getRole = () => {
     return localStorage.getItem("role") || sessionStorage.getItem("role");
   };
 
-  // Kiểm tra quyền truy cập
   useEffect(() => {
     const role = getRole();
     if (role !== "Staff") {
       toast.error("Bạn không có quyền truy cập trang này.");
-      navigate("/"); // Điều hướng sang trang unauthorized
+      navigate("/");
     }
   }, [navigate]);
-  // Lấy danh sách camera
+
   useEffect(() => {
     const getCameras = async () => {
       try {
@@ -746,9 +734,7 @@ const QRCodeScanner = () => {
         console.error("Error getting cameras:", error);
         toast.error(
           "Không thể truy cập camera. Vui lòng cấp quyền và thử lại.",
-          {
-            icon: "🎬",
-          }
+          { icon: "🎬" }
         );
       }
     };
@@ -756,12 +742,10 @@ const QRCodeScanner = () => {
     getCameras();
 
     return () => {
-      // Dọn dẹp khi component unmount
       if (streamRef.current) {
         const tracks = streamRef.current.getTracks();
         tracks.forEach((track) => track.stop());
       }
-
       if (scannerIntervalRef.current) {
         clearInterval(scannerIntervalRef.current);
       }
@@ -831,7 +815,6 @@ const QRCodeScanner = () => {
         const canvas = canvasRef.current;
         const context = canvas.getContext("2d");
 
-        // Đảm bảo video đã sẵn sàng
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
           canvas.height = video.videoHeight;
           canvas.width = video.videoWidth;
@@ -846,28 +829,23 @@ const QRCodeScanner = () => {
           const code = jsQR(imageData.data, imageData.width, imageData.height);
 
           if (code) {
-            // Tìm thấy mã QR
             processQRCode(code.data);
           }
         }
       }
-    }, 100); // Quét mỗi 100ms
+    }, 100);
   };
 
   const processQRCode = async (qrData) => {
-    // Dừng quét khi tìm thấy mã QR
     stopCamera();
 
     try {
       setLoading(true);
 
-      // Parse dữ liệu QR
       console.log("QR Data:", qrData);
 
-      // Trích xuất mã vé từ dữ liệu QR
       let ticketCode = qrData;
 
-      // Nếu dữ liệu QR ở dạng JSON, thử trích xuất mã
       try {
         const parsedData = JSON.parse(qrData);
         if (parsedData.code) {
@@ -876,77 +854,91 @@ const QRCodeScanner = () => {
           ticketCode = parsedData.ticketCode;
         }
       } catch (e) {
-        // Dữ liệu QR không phải JSON, sử dụng nguyên dạng
+        // Dữ liệu QR không phải JSON, giữ nguyên
       }
 
-      // Gọi API để quét và check-in vé
       await scanTicket(ticketCode);
     } catch (error) {
       console.error("Error processing QR code:", error);
-      toast.error("Không thể xác thực vé. Vui lòng thử lại.", {
-        icon: "❌",
-      });
+      toast.error("Không thể xác thực vé. Vui lòng thử lại.", { icon: "❌" });
       setLoading(false);
     }
   };
 
-  const scanTicket = async (ticketCode) => {
+  const scanTicket = async (ticketCode, suppressToast = false) => {
     try {
-      // Thêm header xác thực vào request
       const config = {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       };
 
-      // Gọi API với phương thức POST
       const response = await axios.post(
         `${apiBaseUrl}/Ticket/scan/${ticketCode}`,
         {},
         config
       );
-      console.log("Ticket scan response:", response.data);
 
+      // Nếu success: false, ném lỗi với thông điệp từ API
+      if (!response.data.success) {
+        throw new Error(response.data.message || "Vé không hợp lệ");
+      }
+
+      // Xử lý khi vé hợp lệ
       setTicketResponse(response.data);
 
-      // Phát âm thanh thành công hoặc thất bại
       try {
-        if (response.data.success) {
-          successSound.play();
-        } else {
-          errorSound.play();
+        successSound.play();
+        if (!suppressToast) {
+          toast.success("Check-in vé thành công!", { icon: "✅" });
         }
       } catch (e) {
         console.log("Audio play error:", e);
-      }
-
-      if (response.data.success) {
-        toast.success("Check-in vé thành công!", {
-          icon: "✅",
-        });
-      } else {
-        toast.error(response.data.message || "Vé không hợp lệ!", {
-          icon: "❌",
-        });
       }
 
       setLoading(false);
     } catch (error) {
       console.error("Error scanning ticket:", error);
 
-      // Xử lý lỗi cụ thể
-      if (error.response && error.response.status === 401) {
-        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", {
-          icon: "🔒",
-        });
-        navigate("/login");
-      } else {
-        toast.error("Không thể tìm thấy thông tin vé. Vui lòng thử lại.", {
-          icon: "❌",
-        });
-      }
-
+      // Đặt loading thành false trước khi xử lý lỗi để tránh trạng thái loading vô hạn
       setLoading(false);
+
+      // Xử lý lỗi 401 (hết hạn phiên đăng nhập)
+      if (error.response && error.response.status === 401) {
+        if (!suppressToast) {
+          toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", {
+            icon: "🔒",
+          });
+        }
+        navigate("/login");
+        return; // Thêm return để ngăn thực hiện code phía dưới
+      }
+      // Xử lý lỗi 404 (Not Found)
+      else if (error.response && error.response.status === 404) {
+        const errorMessage =
+          error.response.data?.message || "Không tìm thấy vé với mã này";
+        if (!suppressToast) {
+          toast.error(errorMessage, { icon: "❌" });
+        }
+        throw new Error(errorMessage);
+      }
+      // Xử lý lỗi 400 (Bad Request)
+      else if (error.response && error.response.status === 400) {
+        const errorMessage = error.response.data?.message || "Vé không hợp lệ";
+        if (!suppressToast) {
+          toast.error(errorMessage, { icon: "❌" });
+        }
+        throw new Error(errorMessage);
+      }
+      // Các lỗi khác
+      else {
+        const errorMessage =
+          error.message || "Không thể xác thực vé. Vui lòng thử lại.";
+        if (!suppressToast) {
+          toast.error(errorMessage, { icon: "❌" });
+        }
+        throw error;
+      }
     }
   };
 
@@ -959,35 +951,27 @@ const QRCodeScanner = () => {
     e.preventDefault();
 
     if (!manualTicketCode.trim()) {
-      toast.warning("Vui lòng nhập mã vé", {
-        icon: "⚠️",
-      });
+      toast.warning("Vui lòng nhập mã vé", { icon: "⚠️" });
       return;
     }
 
     try {
       setLoading(true);
-
-      // Gọi API để quét vé với mã nhập thủ công
-      await scanTicket(manualTicketCode.trim());
-
-      // Reset trường nhập liệu
+      await scanTicket(manualTicketCode.trim(), true);
       setManualTicketCode("");
     } catch (error) {
       console.error("Error fetching ticket:", error);
-      toast.error(
-        "Không thể tìm thấy thông tin vé. Vui lòng kiểm tra lại mã vé.",
-        {
-          icon: "❌",
-        }
-      );
+      // Sửa ở đây: hiển thị message từ error thay vì message cứng
+      toast.error(error.message || "Không thể xác thực vé. Vui lòng thử lại.", {
+        icon: "❌",
+      });
       setLoading(false);
+      setTicketResponse(null);
     }
   };
 
   const formatDateTime = (dateTimeStr) => {
     if (!dateTimeStr) return "";
-
     const date = new Date(dateTimeStr);
     return new Intl.DateTimeFormat("vi-VN", {
       day: "2-digit",
@@ -999,6 +983,70 @@ const QRCodeScanner = () => {
     }).format(date);
   };
 
+  // Hàm mới để tải file PDF
+  const downloadTicketPDF = async () => {
+    if (
+      !ticketResponse ||
+      !ticketResponse.ticket_info ||
+      !ticketResponse.ticket_info.ticket_id
+    ) {
+      toast.error("Không có thông tin vé để tải PDF.", { icon: "❌" });
+      return;
+    }
+
+    try {
+      const ticketId = ticketResponse.ticket_info.ticket_id;
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        responseType: "blob", // Quan trọng: để nhận dữ liệu dưới dạng blob
+      };
+
+      const response = await axios.get(
+        `${apiBaseUrl}/Ticket/pdf/${ticketId}`,
+        config
+      );
+
+      // Tạo URL từ blob và tải file
+      const url = window.URL.createObjectURL(
+        new Blob([response.data], { type: "application/pdf" })
+      );
+      const link = document.createElement("a");
+      link.href = url;
+
+      // Lấy tên file từ header content-disposition nếu có, hoặc đặt mặc định
+      const contentDisposition = response.headers["content-disposition"];
+      let fileName = `Ticket_${ticketId}.pdf`;
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (fileNameMatch && fileNameMatch[1]) {
+          fileName = fileNameMatch[1];
+        }
+      }
+
+      link.setAttribute("download", fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Tải file PDF thành công!", { icon: "✅" });
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      if (error.response && error.response.status === 401) {
+        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", {
+          icon: "🔒",
+        });
+        navigate("/login");
+      } else {
+        toast.error("Không thể tải file PDF. Vui lòng thử lại.", {
+          icon: "❌",
+        });
+      }
+    }
+  };
+
   return (
     <PageWrapper>
       <ScannerContainer>
@@ -1007,7 +1055,7 @@ const QRCodeScanner = () => {
             <i className="fas fa-qrcode"></i>
           </HeaderIcon>
           <HeaderTitle>
-            <h1>Kiểm tra vé </h1>
+            <h1>Kiểm tra vé</h1>
             <p>Quét mã QR hoặc nhập mã vé để xác thực và check-in</p>
           </HeaderTitle>
         </PageHeader>
@@ -1032,7 +1080,6 @@ const QRCodeScanner = () => {
                   onCanPlay={() => videoRef.current.play()}
                 />
                 <canvas ref={canvasRef} />
-
                 {scanning && (
                   <ScanOverlay>
                     <div className="scanner-frame">
@@ -1067,7 +1114,6 @@ const QRCodeScanner = () => {
                       );
                       const nextIndex = (currentIndex + 1) % cameras.length;
                       setCurrentCamera(cameras[nextIndex].deviceId);
-
                       if (scanning) {
                         stopCamera();
                         setTimeout(startCamera, 300);
@@ -1149,7 +1195,6 @@ const QRCodeScanner = () => {
                           )}`
                         : "Vé không hợp lệ hoặc đã được sử dụng"}
                     </div>
-
                     <StatusIcon $success={ticketResponse.success}>
                       <i
                         className={
@@ -1207,8 +1252,7 @@ const QRCodeScanner = () => {
                       <i className="fas fa-redo"></i>
                       Quét vé mới
                     </SecondaryButton>
-
-                    <PrimaryButton onClick={() => window.print()}>
+                    <PrimaryButton onClick={downloadTicketPDF}>
                       <i className="fas fa-print"></i>
                       In thông tin
                     </PrimaryButton>

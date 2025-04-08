@@ -411,7 +411,7 @@ namespace STP.Repository.Services
             {
                 _logger.LogError(ex, $"Error generating PDF from template for ticket {ticketId}: {ex.Message}");
                 // Sử dụng phương thức tạo PDF từ đầu nếu gặp lỗi
-                return await GenerateTicketPdfAsync(ticketId);
+                return await GenerateTicketFromTemplateAsync(ticketId);
             }
         }
 
