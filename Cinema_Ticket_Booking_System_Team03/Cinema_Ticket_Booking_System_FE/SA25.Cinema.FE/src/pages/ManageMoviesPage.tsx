@@ -1039,15 +1039,28 @@ const ManageMoviesPage: React.FC = () => {
               >
                 Thể loại *
               </label>
-              <input
-                type="text"
+              <select
                 id="genre"
                 value={newMovie.genre}
                 onChange={handleInputChange}
-                placeholder="Nhập thể loại phim"
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
-              />
+              >
+                <option value="">{newMovie.genre || "Chọn thể loại"}</option>
+                <option value="Hành động">Hành động</option>
+                <option value="Hài hước">Hài hước</option>
+                <option value="Tình cảm">Tình cảm</option>
+                <option value="Tâm lý – Kịch tính">Tâm lý – Kịch tính</option>
+                <option value="Kinh dị">Kinh dị</option>
+                <option value="Phiêu lưu">Phiêu lưu</option>
+                <option value="Khoa học viễn tưởng">Khoa học viễn tưởng</option>
+                <option value="Hoạt hình">Hoạt hình</option>
+                <option value="Tội phạm – Hình sự">Tội phạm – Hình sự</option>
+                <option value="Chiến tranh">Chiến tranh</option>
+                <option value="Âm nhạc">Âm nhạc</option>
+                <option value="Tài liệu">Tài liệu</option>
+                <option value="Kỳ ảo">Kỳ ảo</option>
+              </select>
             </div>
 
             <div className="mb-4">
@@ -1079,15 +1092,25 @@ const ManageMoviesPage: React.FC = () => {
               >
                 Ngôn ngữ *
               </label>
-              <input
-                type="text"
+              <select
                 id="language"
                 value={newMovie.language}
                 onChange={handleInputChange}
-                placeholder="Nhập ngôn ngữ phim"
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
-              />
+              >
+                <option value="">{newMovie.language || "Chọn ngôn ngữ"}</option>
+                <option value="Tiếng Anh">Tiếng Anh</option>
+                <option value="Tiếng Hàn">Tiếng Hàn</option>
+                <option value="Tiếng Trung">Tiếng Trung</option>
+                <option value="Tiếng Nhật">Tiếng Nhật</option>
+                <option value="Tiếng Việt">Tiếng Việt</option>
+                <option value="Tiếng Pháp">Tiếng Pháp</option>
+                <option value="Tiếng Tây Ban Nha">Tiếng Tây Ban Nha</option>
+                <option value="Tiếng Hindi (Ấn Độ)">Tiếng Hindi (Ấn Độ)</option>
+                <option value="Tiếng Đức">Tiếng Đức</option>
+                <option value="Tiếng Thái">Tiếng Thái</option>
+              </select>
             </div>
 
             <div className="mb-4">
@@ -1097,15 +1120,26 @@ const ManageMoviesPage: React.FC = () => {
               >
                 Quốc gia *
               </label>
-              <input
-                type="text"
+              <select
                 id="country"
                 value={newMovie.country}
                 onChange={handleInputChange}
-                placeholder="Nhập quốc gia sản xuất"
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
-              />
+              >
+                <option value="">{newMovie.country || "Chọn quốc gia"}</option>
+                <option value="Mỹ">Mỹ</option>
+                <option value="Hàn Quốc">Hàn Quốc</option>
+                <option value="Trung Quốc">Trung Quốc</option>
+                <option value="Nhật Bản">Nhật Bản</option>
+                <option value="Việt Nam">Việt Nam</option>
+                <option value="Pháp">Pháp</option>
+                <option value="Ấn Độ">Ấn Độ</option>
+                <option value="Thái Lan">Thái Lan</option>
+                <option value="Anh Quốc">Anh Quốc</option>
+                <option value="Mexico">Mexico</option>
+                <option value="Tây Ban Nha">Tây Ban Nha</option>
+              </select>
             </div>
 
             <div className="mb-4 md:col-span-2">
@@ -1362,14 +1396,28 @@ const ManageMoviesPage: React.FC = () => {
               >
                 Thể loại *
               </label>
-              <input
-                type="text"
+              <select
                 id="genre"
                 value={newMovie.genre}
                 onChange={handleInputChange}
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
-              />
+              >
+                <option value="">{newMovie.genre || "Chọn thể loại"}</option>
+                <option value="Hành động">Hành động</option>
+                <option value="Hài hước">Hài hước</option>
+                <option value="Tình cảm">Tình cảm</option>
+                <option value="Tâm lý – Kịch tính">Tâm lý – Kịch tính</option>
+                <option value="Kinh dị">Kinh dị</option>
+                <option value="Phiêu lưu">Phiêu lưu</option>
+                <option value="Khoa học viễn tưởng">Khoa học viễn tưởng</option>
+                <option value="Hoạt hình">Hoạt hình</option>
+                <option value="Tội phạm – Hình sự">Tội phạm – Hình sự</option>
+                <option value="Chiến tranh">Chiến tranh</option>
+                <option value="Âm nhạc">Âm nhạc</option>
+                <option value="Tài liệu">Tài liệu</option>
+                <option value="Kỳ ảo">Kỳ ảo</option>
+              </select>
             </div>
 
             <div className="mb-4">
@@ -1401,14 +1449,25 @@ const ManageMoviesPage: React.FC = () => {
               >
                 Ngôn ngữ *
               </label>
-              <input
-                type="text"
+              <select
                 id="language"
                 value={newMovie.language}
                 onChange={handleInputChange}
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
-              />
+              >
+                <option value="">{newMovie.language || "Chọn ngôn ngữ"}</option>
+                <option value="Tiếng Anh">Tiếng Anh</option>
+                <option value="Tiếng Hàn">Tiếng Hàn</option>
+                <option value="Tiếng Trung">Tiếng Trung</option>
+                <option value="Tiếng Nhật">Tiếng Nhật</option>
+                <option value="Tiếng Việt">Tiếng Việt</option>
+                <option value="Tiếng Pháp">Tiếng Pháp</option>
+                <option value="Tiếng Tây Ban Nha">Tiếng Tây Ban Nha</option>
+                <option value="Tiếng Hindi (Ấn Độ)">Tiếng Hindi (Ấn Độ)</option>
+                <option value="Tiếng Đức">Tiếng Đức</option>
+                <option value="Tiếng Thái">Tiếng Thái</option>
+              </select>
             </div>
 
             <div className="mb-4">
@@ -1418,14 +1477,26 @@ const ManageMoviesPage: React.FC = () => {
               >
                 Quốc gia *
               </label>
-              <input
-                type="text"
+              <select
                 id="country"
                 value={newMovie.country}
                 onChange={handleInputChange}
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
-              />
+              >
+                <option value="">{newMovie.country || "Chọn quốc gia"}</option>
+                <option value="Mỹ">Mỹ</option>
+                <option value="Hàn Quốc">Hàn Quốc</option>
+                <option value="Trung Quốc">Trung Quốc</option>
+                <option value="Nhật Bản">Nhật Bản</option>
+                <option value="Việt Nam">Việt Nam</option>
+                <option value="Pháp">Pháp</option>
+                <option value="Ấn Độ">Ấn Độ</option>
+                <option value="Thái Lan">Thái Lan</option>
+                <option value="Anh Quốc">Anh Quốc</option>
+                <option value="Mexico">Mexico</option>
+                <option value="Tây Ban Nha">Tây Ban Nha</option>
+              </select>
             </div>
 
             <div className="mb-4 md:col-span-2">

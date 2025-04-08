@@ -14,9 +14,10 @@ interface UserFormProps {
   };
   onSubmit: (data: any) => void;
   onCancel: () => void;
+  disableRoleSelect?: boolean;
 }
 
-const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel }) => {
+const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel, disableRoleSelect }) => {
   const [formData, setFormData] = useState({
     full_Name: user?.full_Name || '',
     date_Of_Birth: user?.date_Of_Birth
@@ -221,14 +222,18 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel }) => {
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-indigo-300 bg-white"
+                title={user ? `Current role: ${user.role}` : "Select a role"}
+                className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-indigo-300 bg-white cursor-help"
               >
-                <option value="">Select Role</option>
-                <option value="Customer">Customer</option>
-                <option value="Staff">Staff</option>
-                <option value="Manager">Manager</option>
-
+                {user?.role && <option value={user.role}>{user.role}</option>}
+                {(!user?.role || user.role !== "Staff") && <option value="Staff">Staff</option>}
+                {(!user?.role || user.role !== "Customer") && <option value="Customer">Customer</option>}
               </select>
+              {user && (
+                <p className="mt-1 text-xs text-gray-500 italic">
+                  Current role: {user.role}
+                </p>
+              )}
             </div>
             
             <div className="group">
