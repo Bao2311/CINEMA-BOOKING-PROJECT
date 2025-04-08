@@ -94,19 +94,19 @@ const ManageUsersPage: React.FC = () => {
   const token =
     localStorage.getItem("token") || sessionStorage.getItem("token");
 
-// Lấy role từ localStorage
-const getRole = () => {
-  return localStorage.getItem("role") || sessionStorage.getItem("role");
-};
+  // Lấy role từ localStorage
+  const getRole = () => {
+    return localStorage.getItem("role") || sessionStorage.getItem("role");
+  };
 
-// Kiểm tra quyền truy cập
-useEffect(() => {
-  const role = getRole();
-  if (role !== "Admin") {
-    toast.error("Bạn không có quyền truy cập trang này.");
-    navigate("/"); // Điều hướng sang trang unauthorized
-  }
-}, [navigate]);
+  // Kiểm tra quyền truy cập
+  useEffect(() => {
+    const role = getRole();
+    if (role !== "Admin") {
+      toast.error("Bạn không có quyền truy cập trang này.");
+      navigate("/"); // Điều hướng sang trang unauthorized
+    }
+  }, [navigate]);
   // API calls with better error handling
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -306,8 +306,12 @@ useEffect(() => {
         user.email.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus =
-        statusFilter === "all" || user.account_Status === statusFilter;
-      const matchesRole = roleFilter === "all" || user.role === roleFilter;
+        statusFilter === "all" ||
+        user.account_Status.toLowerCase() === statusFilter.toLowerCase();
+
+      const matchesRole =
+        roleFilter === "all" ||
+        user.role.toLowerCase() === roleFilter.toLowerCase();
 
       return matchesSearch && matchesStatus && matchesRole;
     });
@@ -328,9 +332,15 @@ useEffect(() => {
     return result;
   }, [users, searchTerm, statusFilter, roleFilter, sortConfig]);
 
-  // Get unique roles for filter dropdown
+  // Get unique roles for filter dropdown with normalization
   const uniqueRoles = useMemo(() => {
-    const roles = new Set(users.map((user) => user.role));
+    const roles = new Set(
+      users
+        .map((user) => user.role)
+        .map(
+          (role) => role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()
+        )
+    );
     return Array.from(roles);
   }, [users]);
 
@@ -434,7 +444,6 @@ useEffect(() => {
                     </option>
                   ))}
                 </select>
-
                 <button
                   onClick={resetFilters}
                   className="flex items-center px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
