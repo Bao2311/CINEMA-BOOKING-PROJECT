@@ -66,10 +66,22 @@ const ShowtimesPage = () => {
         // Kiểm tra dữ liệu trước khi lọc
         console.log('Tất cả suất chiếu trước khi lọc:', showtimes);
         
-        // Lọc ra các suất chiếu không bị ẩn nhưng kiểm tra kỹ trạng thái
+        // Lọc ra các suất chiếu không bị ẩn và chưa kết thúc
         showtimes = showtimes.filter((showtime: Showtime) => {
           console.log(`Suất chiếu ${showtime.showtime_ID}, status: '${showtime.status}'`);
-          return showtime.status !== 'Hidden' && showtime.status.trim() !== 'Hidden';
+          
+          // Check if showtime is hidden
+          if (showtime.status === 'Hidden' || showtime.status.trim() === 'Hidden') {
+            return false;
+          }
+
+          // Check if showtime has passed
+          const now = new Date();
+          const showDate = new Date(showtime.show_Date);
+          const [hours, minutes] = showtime.start_Time.split(':').map(Number);
+          showDate.setHours(hours, minutes, 0, 0);
+
+          return showDate > now;
         });
         
         // Kiểm tra dữ liệu sau khi lọc
