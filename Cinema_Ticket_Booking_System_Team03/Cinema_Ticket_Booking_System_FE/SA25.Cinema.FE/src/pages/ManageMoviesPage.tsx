@@ -303,14 +303,25 @@ const ManageMoviesPage: React.FC = () => {
 
       // Thêm các trường dữ liệu vào FormData
       Object.entries(newMovie).forEach(([key, value]) => {
-        if (key !== "poster_URL" && value !== null && value !== undefined) {
+        if (value !== null && value !== undefined) {
           formData.append(key, value.toString());
         }
       });
 
-      // Thêm file poster nếu có
+      // Xử lý poster
       if (posterFile) {
         formData.append("posterFile", posterFile);
+      } else if (!posterFile && newMovie.poster_URL) {
+        // Nếu không có file mới và có poster_URL, tạo một file rỗng
+        const emptyBlob = new Blob([], { type: 'application/octet-stream' });
+        const emptyFile = new File([emptyBlob], 'empty.jpg', { type: 'image/jpeg' });
+        formData.append("posterFile", emptyFile);
+        // Thêm flag để backend biết là giữ poster cũ
+        formData.append("keepExistingPoster", "true");
+      } else {
+        toast.error("Vui lòng chọn poster cho phim");
+        setIsSubmitting(false);
+        return;
       }
 
       const response = await axios.put(`${API_URL}/Movie`, formData, {
@@ -1055,9 +1066,9 @@ const ManageMoviesPage: React.FC = () => {
               >
                 <option value="">Chọn xếp hạng</option>
                 <option value="P">P - Phổ thông</option>
-                <option value="C13">C13 - Cấm trẻ em dưới 13 tuổi</option>
-                <option value="C16">C16 - Cấm trẻ em dưới 16 tuổi</option>
-                <option value="C18">C18 - Cấm trẻ em dưới 18 tuổi</option>
+                <option value="P13">P13 - Cấm trẻ em dưới 13 tuổi</option>
+                <option value="P16">P16 - Cấm trẻ em dưới 16 tuổi</option>
+                <option value="P18">P18 - Cấm trẻ em dưới 18 tuổi</option>
               </select>
             </div>
 
@@ -1377,9 +1388,9 @@ const ManageMoviesPage: React.FC = () => {
               >
                 <option value="">Chọn xếp hạng</option>
                 <option value="P">P - Phổ thông</option>
-                <option value="C13">C13 - Cấm trẻ em dưới 13 tuổi</option>
-                <option value="C16">C16 - Cấm trẻ em dưới 16 tuổi</option>
-                <option value="C18">C18 - Cấm trẻ em dưới 18 tuổi</option>
+                <option value="P13">P13 - Cấm trẻ em dưới 13 tuổi</option>
+                <option value="P16">P16 - Cấm trẻ em dưới 16 tuổi</option>
+                <option value="P18">P18 - Cấm trẻ em dưới 18 tuổi</option>
               </select>
             </div>
 
