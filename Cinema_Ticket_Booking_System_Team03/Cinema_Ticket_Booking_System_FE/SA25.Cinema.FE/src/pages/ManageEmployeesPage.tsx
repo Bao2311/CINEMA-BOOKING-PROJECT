@@ -35,6 +35,7 @@ interface User {
   account_Status: string;
   created_At: string;
   last_Login: string | null;
+  points?: number;
 }
 
 interface SortConfig {
@@ -107,7 +108,21 @@ const ManageUsersPage: React.FC = () => {
       navigate("/"); // Điều hướng sang trang unauthorized
     }
   }, [navigate]);
-  // API calls with better error handling
+
+  const fetchUserPoints = async (userId: number) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/Points/users/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data.total_Points || 0;
+    } catch (error) {
+      console.error(`Error fetching points for user ${userId}:`, error);
+      return 0;
+    }
+  };
+
   const fetchUsers = async () => {
     setIsLoading(true);
     setError(null);
@@ -124,7 +139,14 @@ const ManageUsersPage: React.FC = () => {
         response.data.$values &&
         Array.isArray(response.data.$values)
       ) {
-        setUsers(response.data.$values);
+        // Fetch points for each user
+        const usersWithPoints = await Promise.all(
+          response.data.$values.map(async (user: User) => {
+            const points = await fetchUserPoints(user.user_ID);
+            return { ...user, points };
+          })
+        );
+        setUsers(usersWithPoints);
       } else {
         console.error("API response is not an array:", response.data);
         setUsers([]);
@@ -555,6 +577,23 @@ const ManageUsersPage: React.FC = () => {
                         )}
                       </div>
                     </th>
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleSort("points")}
+                    >
+                      <div className="flex items-center">
+                        Điểm tích lũy
+                        {sortConfig.key === "points" && (
+                          <ArrowUpDown
+                            className={`ml-1 h-4 w-4 ${
+                              sortConfig.direction === "asc"
+                                ? "transform rotate-180"
+                                : ""
+                            }`}
+                          />
+                        )}
+                      </div>
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Thao tác
                     </th>
@@ -589,6 +628,11 @@ const ManageUsersPage: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           {renderStatusBadge(user.account_Status)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          <Badge className="bg-purple-100 text-purple-800 border border-purple-200">
+                            {user.points?.toLocaleString() || '0'} điểm
+                          </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
