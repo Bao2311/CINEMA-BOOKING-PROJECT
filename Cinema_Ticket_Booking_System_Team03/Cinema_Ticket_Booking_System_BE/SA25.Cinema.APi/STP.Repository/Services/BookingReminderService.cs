@@ -128,7 +128,8 @@ namespace STP.Repository.Services
                     return;
                 }
 
-                string startTimeStr = booking.Showtime.Start_Time.ToString(@"HH\:mm");
+                string showDateStr = booking.Showtime.Show_Date.ToString("dd/MM/yyyy");
+                string showTimeStr = booking.Showtime.Start_Time.ToString(@"hh\:mm");
                 string movieName = booking.Showtime.Movie.Movie_Name;
                 string cinemaRoom = booking.Showtime.CinemaRoom.Room_Name;
                 string seats = string.Join(", ", tickets.Select(t =>
@@ -159,8 +160,8 @@ namespace STP.Repository.Services
             { "BookingId", booking.Booking_ID.ToString() },
             { "MovieName", movieName },
             { "CinemaRoom", cinemaRoom },
-            { "ShowDate", booking.Showtime.Show_Date.ToString("dd/MM/yyyy") },
-            { "ShowTime", startTimeStr },
+            { "ShowDate", showDateStr },
+            { "ShowTime", showTimeStr },
             { "Seats", seats }
         };
 

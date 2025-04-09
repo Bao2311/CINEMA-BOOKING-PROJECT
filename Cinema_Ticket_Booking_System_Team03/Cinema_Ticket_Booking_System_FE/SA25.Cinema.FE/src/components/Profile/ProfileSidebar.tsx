@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Settings, Ticket, LogOut, Home, Bell, Phone, Mail, QrCode } from 'lucide-react'; // Added QrCode import
 import { UserProfile } from '../../interfaces/ProfileInterfaces';
+import axios from 'axios';
 
 interface ProfileSidebarProps {
   profile: UserProfile | null;
@@ -19,6 +20,30 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
   notificationCount
 }) => {
   const navigate = useNavigate();
+  const [points, setPoints] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    const fetchPoints = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await axios.get('https://localhost:7168/api/Points/my-points', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (response.data && typeof response.data.total_Points === 'number') {
+          setPoints(response.data.total_Points);
+        }
+      } catch (error) {
+        console.error('Error fetching points:', error);
+      }
+    };
+
+    fetchPoints();
+  }, []);
 
   return (
     <>
@@ -42,21 +67,21 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
               </div>
             )}
           </div>
-          {profile?.loyaltyPoints !== undefined && (
+          {(points !== undefined || profile?.loyaltyPoints !== undefined) && (
             <div className="mt-4 bg-white/10 rounded-lg p-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm">Điểm tích lũy</span>
-                <span className="font-bold">{profile.loyaltyPoints} điểm</span>
+                <span className="font-bold">{(points ?? profile?.loyaltyPoints ?? 0).toLocaleString('vi-VN')} điểm</span>
               </div>
               <div className="mt-2 h-2 bg-white/20 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-yellow-400"
-                  style={{ width: `${Math.min((profile.loyaltyPoints / 1000) * 100, 100)}%` }}
+                  style={{ width: `${Math.min(((points ?? profile?.loyaltyPoints ?? 0) / 1000) * 100, 100)}%` }}
                 ></div>
               </div>
-              <div className="mt-1 text-xs text-right text-indigo-200">
-                {profile.loyaltyPoints}/1000 điểm
-              </div>
+              {/* <div className="mt-1 text-xs text-right text-indigo-200">
+                {points ?? profile?.loyaltyPoints ?? 0}/1000 điểm
+              </div> */}
             </div>
           )}
         </div>

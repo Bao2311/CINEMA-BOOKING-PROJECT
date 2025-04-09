@@ -42,6 +42,8 @@ interface Movie {
   title: string;
   poster_URL: string;
   duration: number;
+  genre: string;
+  status: string;
 }
 
 interface CinemaRoom {
@@ -60,6 +62,8 @@ interface CinemaRoom {
       movie_Name: string;
     }[]
   };
+  seat_Quantity: number;
+  hasUpcomingShowtimes?: boolean;
 }
 
 interface Showtime {
@@ -751,34 +755,36 @@ useEffect(() => {
   };
 
   const handleSaveEdit = async () => {
-    if (!token || !editingShowtime) {
-      setError('Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn.');
-      return;
-    }
-  
     try {
       setLoading(true);
       setError('');
-  
-      // Chuyển đổi ngày sang định dạng ISO (UTC)
-      const utcDate = new Date(`${editingShowtime.show_Date}T00:00:00Z`).toISOString();
-  
-      // Chuẩn bị dữ liệu để gửi đến API
+
+      // Validate required fields
+      if (!editingShowtime.movie_ID || !editingShowtime.cinema_Room_ID || !editingShowtime.show_Date || !editingShowtime.start_Time) {
+        setError('Vui lòng điền đầy đủ thông tin bắt buộc');
+        return;
+      }
+
+      // Convert show_Date to ISO format (UTC)
+      const isoShowDate = new Date(editingShowtime.show_Date).toISOString();
+
       const showtimeToUpdate = {
-        ...editingShowtime,
-        show_Date: utcDate, // Lưu ngày dưới dạng UTC
+        showtime_ID: editingShowtime.showtime_ID,
+        movie_ID: editingShowtime.movie_ID,
+        cinema_Room_ID: editingShowtime.cinema_Room_ID,
+        show_Date: isoShowDate,
+        start_Time: editingShowtime.start_Time,
+        status: editingShowtime.status,
+        price_Tier: 'VIP'  // Add this line to include price_Tier
       };
-  
-      console.log('Payload gửi đến API:', showtimeToUpdate);
-  
+
       const response = await fetch(`https://localhost:7168/api/Showtimes/${editingShowtime.showtime_ID}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'accept': '*/*',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(showtimeToUpdate),
+        body: JSON.stringify(showtimeToUpdate)
       });
   
       if (!response.ok) {
@@ -1197,32 +1203,135 @@ useEffect(() => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <div className="flex items-center">
                       <FaFilm className="mr-2 text-blue-500" />
-                      ID Phim
+                      Chọn phim
                     </div>
                   </label>
-                  <input 
-                    type="number" 
-                    placeholder="Nhập ID phim" 
-                    value={editingShowtime.movie_ID || ''} 
-                    onChange={(e) => setEditingShowtime({ ...editingShowtime, movie_ID: parseInt(e.target.value) || 0 })} 
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors" 
-                  />
+                  <div className="relative">
+                    <select 
+                      value={editingShowtime.movie_ID || ''} 
+                      onChange={(e) => setEditingShowtime({ ...editingShowtime, movie_ID: parseInt(e.target.value) })} 
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+                    >
+                      <option value="">Chọn phim</option>
+                      {movies.map((movie) => (
+                        <option key={movie.movie_ID} value={movie.movie_ID}>
+                          {movie.movie_Name} ({movie.duration} phút)
+                        </option>
+                      ))}
+                    </select>
+                    
+                    {/* Movie Preview Grid */}
+                    <div className="mt-2 grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+                      {movies.map((movie) => (
+                        <div 
+                          key={movie.movie_ID}
+                          onClick={() => setEditingShowtime({ ...editingShowtime, movie_ID: movie.movie_ID })}
+                          className={`p-2 border rounded-lg cursor-pointer transition-all ${
+                            editingShowtime.movie_ID === movie.movie_ID 
+                              ? 'border-blue-500 bg-blue-50' 
+                              : 'border-gray-200 hover:border-blue-300'
+                          }`}
+                        >
+                          <div className="flex space-x-2">
+                            <img 
+                              src={movie.poster_URL} 
+                              alt={movie.movie_Name}
+                              className="w-16 h-24 object-cover rounded"
+                            />
+                            <div className="flex-1">
+                              <h4 className="font-medium text-sm text-gray-800 line-clamp-2">{movie.movie_Name}</h4>
+                              <p className="text-xs text-gray-500 mt-1">{movie.duration} phút</p>
+                              <p className="text-xs text-gray-500">{movie.genre}</p>
+                              <div className={`mt-1 inline-block px-1.5 py-0.5 text-xs rounded ${
+                                movie.status === 'Now Showing' 
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-yellow-100 text-yellow-700'
+                              }`}>
+                                {movie.status}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <div className="flex items-center">
                       <FaDoorOpen className="mr-2 text-blue-500" />
-                      ID Phòng chiếu
+                      Chọn phòng chiếu
                     </div>
                   </label>
-                  <input 
-                    type="number" 
-                    placeholder="Nhập ID phòng chiếu" 
-                    value={editingShowtime.cinema_Room_ID || ''} 
-                    onChange={(e) => setEditingShowtime({ ...editingShowtime, cinema_Room_ID: parseInt(e.target.value) || 0 })} 
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors" 
-                  />
+                  <div className="relative">
+                    <select 
+                      value={editingShowtime.cinema_Room_ID || ''} 
+                      onChange={(e) => setEditingShowtime({ ...editingShowtime, cinema_Room_ID: parseInt(e.target.value) })} 
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+                    >
+                      <option value="">Chọn phòng</option>
+                      {cinemaRooms.map((room) => (
+                        <option 
+                          key={room.cinema_Room_ID} 
+                          value={room.cinema_Room_ID}
+                          disabled={room.status === 'Inactive'}
+                        >
+                          {room.room_Name} - {room.room_Type} ({room.seat_Quantity} ghế)
+                          {room.status === 'Inactive' ? ' - Không hoạt động' : ''}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Room Preview Grid */}
+                    <div className="mt-2 grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                      {cinemaRooms.map((room) => (
+                        <div 
+                          key={room.cinema_Room_ID}
+                          onClick={() => {
+                            if (room.status !== 'Inactive') {
+                              setEditingShowtime({ ...editingShowtime, cinema_Room_ID: room.cinema_Room_ID })
+                            }
+                          }}
+                          className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                            room.status === 'Inactive' 
+                              ? 'opacity-50 cursor-not-allowed bg-gray-50' 
+                              : editingShowtime.cinema_Room_ID === room.cinema_Room_ID 
+                                ? 'border-blue-500 bg-blue-50' 
+                                : 'border-gray-200 hover:border-blue-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-medium text-sm text-gray-800">{room.room_Name}</h4>
+                            <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${
+                              room.status === 'Active' 
+                                ? 'bg-green-100 text-green-700' 
+                                : 'bg-red-100 text-red-700'
+                            }`}>
+                              {room.status}
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-xs text-gray-600">
+                              <span className={`inline-block px-1.5 py-0.5 rounded ${
+                                room.room_Type === '3D' 
+                                  ? 'bg-purple-100 text-purple-700' 
+                                  : room.room_Type === 'IMAX' 
+                                    ? 'bg-yellow-100 text-yellow-700'
+                                    : 'bg-blue-100 text-blue-700'
+                              }`}>
+                                {room.room_Type}
+                              </span>
+                            </p>
+                            <p className="text-xs text-gray-500">{room.seat_Quantity} ghế</p>
+                            {room.hasUpcomingShowtimes && (
+                              <p className="text-xs text-orange-500">Có lịch chiếu sắp tới</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 
                 <div>
@@ -1254,21 +1363,6 @@ useEffect(() => {
                     type="time" 
                     value={editingShowtime.start_Time} 
                     onChange={(e) => setEditingShowtime({ ...editingShowtime, start_Time: e.target.value })} 
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors" 
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    <div className="flex items-center">
-                      <FaClock className="mr-2 text-blue-500" />
-                      Giờ kết thúc
-                    </div>
-                  </label>
-                  <input 
-                    type="time" 
-                    value={editingShowtime.end_Time} 
-                    onChange={(e) => setEditingShowtime({ ...editingShowtime, end_Time: e.target.value })} 
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors" 
                   />
                 </div>

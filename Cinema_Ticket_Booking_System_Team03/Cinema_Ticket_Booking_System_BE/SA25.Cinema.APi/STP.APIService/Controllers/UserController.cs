@@ -24,26 +24,28 @@ namespace STP.APIService.Controllers
     {
         private readonly UserRepository _userRepository;
         private readonly AuthService _authService;
-        private readonly IUserProfileService _userProfileService;
+        private readonly UserProfileService _userProfileService;
         private readonly EmailService _emailService;
+        private readonly ILogger<UserController> _logger;
 
         /// <summary>
         /// Khởi tạo controller với các dependency cần thiết
         /// </summary>
-        public UserController(UserRepository userRepository, AuthService authService, EmailService emailService, IUserProfileService userProfileService)
+        public UserController(UserRepository userRepository, AuthService authService, EmailService emailService, UserProfileService userProfileService, ILogger<UserController> logger)
         {
             _userRepository = userRepository;
             _authService = authService;
             _emailService = emailService;
             _userProfileService = userProfileService;
+            _logger = logger;
         }
 
         /// <summary>
         /// API lấy danh sách tất cả người dùng (Task 2.4: Implement View Member List)
         /// Trả về danh sách người dùng với thông tin cơ bản, không bao gồm mật khẩu
         /// </summary>
-        [HttpGet] 
-        [Authorize(Roles = "Admin,Staff,Customer, Manager")]
+        [HttpGet]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> GetAllUsers()
         {
             try
@@ -79,32 +81,33 @@ namespace STP.APIService.Controllers
         /// API lấy thông tin người dùng theo ID (Task 2.4: Get User By ID)
         /// Trả về thông tin chi tiết của một người dùng cụ thể
         /// </summary>
-        [HttpGet("{id}")]
+        [HttpGet("{userId}")]
         [Authorize(Roles = "Admin,Staff")]
-        public async Task<IActionResult> GetUserById(int id)
+        public async Task<IActionResult> GetUserById(int userId)
         {
             try
             {
-                // Lấy thông tin người dùng theo ID
-                var user = await _userRepository.GetByIdAsync(id);
-                if (user == null || user.Account_Status == "Deleted")
-                    return NotFound(new { message = "Không tìm thấy người dùng" });
+                // Kiểm tra quyền truy cập
+                int currentUserId = GetCurrentUserId();
+                string currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
-                // Chuyển đổi sang DTO
-                var userDto = new
+                // Chỉ cho phép người dùng xem hồ sơ của chính mình hoặc Admin/staff có thể xem hồ sơ người khác
+                if (currentUserId != userId && currentUserRole != "Admin" && currentUserRole != "Staff")
                 {
-                    user.User_ID,
-                    user.Full_Name,
-                    user.Email,
-                    user.Role,
-                    user.Account_Status
-                };
+                    return Forbid();
+                }
 
-                return Ok(userDto);
+                var profile = await _authService.GetUserProfileAsync(userId);
+                return Ok(profile);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                _logger.LogError(ex, $"Error getting user profile: {ex.Message}");
+                return StatusCode(500, "Đã xảy ra lỗi khi lấy thông tin hồ sơ");
             }
         }
 
@@ -180,102 +183,58 @@ namespace STP.APIService.Controllers
         /// API cập nhật thông tin người dùng (Task 2.5: Implement Admin User Management - Edit)
         /// Admin có thể cập nhật thông tin và vai trò của người dùng
         /// </summary>
-        [HttpPut("{id}")]
+        [HttpPut("{userId}")]
         [Authorize(Roles = "Admin,Staff")]
-        public async Task<IActionResult> UpdateUser(int id, AdminUpdateUserDto updateDto)
+        public async Task<IActionResult> UpdateUser(int userId, [FromBody] BaseUpdateProfileDTO updateDto)
         {
             try
             {
-                // Kiểm tra người dùng tồn tại
-                var user = await _userRepository.GetByIdAsync(id);
-                if (user == null)
-                    return NotFound(new { message = "Không tìm thấy người dùng" });
+                // Xác định admin đang thực hiện thao tác
+                int adminId = GetCurrentUserId();
 
-                // Kiểm tra số điện thoại đã tồn tại (nếu có thay đổi)
-                if (!string.IsNullOrEmpty(updateDto.PhoneNumber) &&
-                    updateDto.PhoneNumber != user.Phone_Number)
+                // Kiểm tra nếu người dùng tự cập nhật thông tin của chính mình
+                if (adminId == userId)
                 {
-                    bool phoneExists = await _userRepository.IsPhoneNumberExistAsync(updateDto.PhoneNumber, id);
-                    if (phoneExists)
+                    // Nếu là thông tin của chính admin, không cần xác nhận qua email
+                    var updatedProfile = await _authService.UpdateProfileAsync(userId, new UpdateProfileDto
                     {
-                        return BadRequest(new { message = "Số điện thoại đã được sử dụng bởi tài khoản khác" });
-                    }
+                        FullName = updateDto.Full_Name,
+                        PhoneNumber = updateDto.Phone_Number,
+                        Address = updateDto.Address,
+                        DateOfBirth = updateDto.Date_Of_Birth,
+                        Sex = updateDto.Sex
+                    });
+                    return Ok(updatedProfile);
                 }
-
-                // Cập nhật thông tin người dùng
-                if (!string.IsNullOrEmpty(updateDto.FullName))
-                    user.Full_Name = updateDto.FullName;
-
-                if (updateDto.DateOfBirth.HasValue)
-                    user.Date_Of_Birth = updateDto.DateOfBirth.Value;
-
-                if (!string.IsNullOrEmpty(updateDto.Sex))
-                    user.Sex = updateDto.Sex;
-
-                if (!string.IsNullOrEmpty(updateDto.PhoneNumber))
-                    user.Phone_Number = updateDto.PhoneNumber;
-
-                if (!string.IsNullOrEmpty(updateDto.Address))
-                    user.Address = updateDto.Address;
-
-                if (!string.IsNullOrEmpty(updateDto.Role))
+                else
                 {
-                    // Kiểm tra vai trò hợp lệ
-                    string[] validRoles = { "Customer", "Staff", "Manager" };
-                    if (Array.Exists(validRoles, r => r.Equals(updateDto.Role, StringComparison.OrdinalIgnoreCase)))
+                    // Kiểm tra xem đã có yêu cầu đang chờ xử lý không
+                    if (_authService.HasPendingProfileRequest(userId))
                     {
-                        user.Role = updateDto.Role;
+                        return BadRequest(new { message = "Đã có yêu cầu thay đổi đang chờ người dùng xác nhận. Vui lòng đợi hoặc hủy yêu cầu cũ." });
+                    }
+
+                    // Tạo yêu cầu thay đổi và gửi email xác nhận
+                    bool requestCreated = await _authService.CreateProfileChangeRequestAsync(userId, adminId, updateDto);
+
+                    if (requestCreated)
+                    {
+                        return Ok(new { message = "Yêu cầu thay đổi đã được gửi đến email người dùng. Cần đợi người dùng chấp nhận." });
                     }
                     else
                     {
-                        return BadRequest(new { message = "Vai trò không hợp lệ. Các vai trò hợp lệ: Customer, Staff, Manager" });
+                        return BadRequest(new { message = "Không thể tạo yêu cầu thay đổi thông tin. Vui lòng thử lại sau." });
                     }
                 }
-
-                // Cập nhật trạng thái tài khoản nếu có thay đổi
-                if (!string.IsNullOrEmpty(updateDto.AccountStatus) && user.Account_Status != updateDto.AccountStatus)
-                {
-                    // Kiểm tra trạng thái hợp lệ
-                    string[] validStatuses = { "Active", "Inactive", "Locked", "Pending" };
-                    if (Array.Exists(validStatuses, s => s.Equals(updateDto.AccountStatus, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        // Gọi service để thay đổi trạng thái
-                        await _authService.ChangeAccountStatusAsync(id, updateDto.AccountStatus);
-
-                        // Cập nhật trạng thái trong đối tượng user (không cần thiết nếu ChangeAccountStatusAsync đã cập nhật)
-                        user.Account_Status = updateDto.AccountStatus;
-                    }
-                    else
-                    {
-                        return BadRequest(new { message = "Trạng thái tài khoản không hợp lệ. Các trạng thái hợp lệ: Active, Inactive, Locked, Pending" });
-                    }
-                }
-
-                // Lưu thay đổi vào cơ sở dữ liệu
-                await _userRepository.UpdateAsync(user);
-
-                // Trả về thông tin đã cập nhật
-                var updatedUserDto = new
-                {
-                    user.User_ID,
-                    user.Full_Name,
-                    user.Email,
-                    user.Role,
-                    user.Date_Of_Birth,
-                    user.Sex,
-                    user.Phone_Number,
-                    user.Address,
-                    user.Account_Status,
-                    user.Created_At,
-                    user.Last_Login
-                };
-
-                return Ok(updatedUserDto);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                // Trả về lỗi nếu có vấn đề
-                return BadRequest(new { message = ex.Message });
+                _logger.LogError(ex, $"Error updating user profile: {ex.Message}");
+                return StatusCode(500, "Đã xảy ra lỗi khi cập nhật hồ sơ");
             }
         }
 
@@ -481,6 +440,199 @@ namespace STP.APIService.Controllers
         }
 
         /// <summary>
+        /// API kiểm tra thử tạo yêu cầu thay đổi thông tin
+        /// </summary>
+        [HttpGet("test-profile-change")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> TestProfileChange(int userId)
+        {
+            try
+            {
+                int AdminId = GetCurrentUserId();
+                _logger.LogInformation($"Admin {AdminId} đang gọi test thay đổi thông tin cho user {userId}");
+
+                var updateDto = new BaseUpdateProfileDTO
+                {
+                    Phone_Number = "0987654321",
+                    Address = "Test Address",
+                    Date_Of_Birth = DateTime.Parse("2000-01-01"),
+                    Sex = "Male"
+                };
+
+                // Gọi trực tiếp AuthService tạo yêu cầu thay đổi
+                bool result = await _authService.CreateProfileChangeRequestAsync(userId, AdminId, updateDto);
+
+                return Ok(new { success = result, message = result ? "Đã gửi yêu cầu thành công" : "Gửi yêu cầu thất bại" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Xử lý token phê duyệt thay đổi thông tin
+        /// </summary>
+        [HttpGet("approve-profile-change")]
+        [AllowAnonymous] // Cho phép truy cập mà không cần xác thực
+        public async Task<IActionResult> ApproveProfileChange([FromQuery] string token)
+        {
+            try
+            {
+                _logger.LogInformation($"Đang xử lý token phê duyệt: {token}");
+                var result = await _authService.ProcessProfileApprovalTokenAsync(token);
+
+                if (result.Success)
+                {
+                    // Trả về HTML trực tiếp thay vì chuyển hướng
+                    string htmlResponse = $@"
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset='UTF-8'>
+                <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                <title>Cập nhật thông tin thành công</title>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100vh;
+                        margin: 0;
+                        background-color: #f5f5f5;
+                    }}
+                    .container {{
+                        max-width: 500px;
+                        padding: 30px;
+                        background-color: white;
+                        border-radius: 8px;
+                        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                        text-align: center;
+                    }}
+                    h1 {{
+                        color: #e50914;
+                        margin-bottom: 20px;
+                    }}
+                    p {{
+                        font-size: 16px;
+                        line-height: 1.5;
+                        color: #333;
+                        margin-bottom: 20px;
+                    }}
+                    .success-icon {{
+                        font-size: 60px;
+                        color: #4CAF50;
+                        margin-bottom: 20px;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class='container'>
+                    <div class='success-icon'>✓</div>
+                    <h1>Cập nhật thành công</h1>
+                    <p>{result.Message}</p>
+                    <p>Bạn có thể đóng trang này và tiếp tục sử dụng dịch vụ của STP Cinema.</p>
+                </div>
+            </body>
+            </html>";
+
+                    return Content(htmlResponse, "text/html");
+                }
+                else
+                {
+                    // Trả về HTML thông báo lỗi
+                    string errorHtml = $@"
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset='UTF-8'>
+                <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                <title>Không thể cập nhật thông tin</title>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100vh;
+                        margin: 0;
+                        background-color: #f5f5f5;
+                    }}
+                    .container {{
+                        max-width: 500px;
+                        padding: 30px;
+                        background-color: white;
+                        border-radius: 8px;
+                        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                        text-align: center;
+                    }}
+                    h1 {{
+                        color: #e50914;
+                        margin-bottom: 20px;
+                    }}
+                    p {{
+                        font-size: 16px;
+                        line-height: 1.5;
+                        color: #333;
+                        margin-bottom: 20px;
+                    }}
+                    .error-icon {{
+                        font-size: 60px;
+                        color: #e50914;
+                        margin-bottom: 20px;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class='container'>
+                    <div class='error-icon'>✗</div>
+                    <h1>Không thể cập nhật thông tin</h1>
+                    <p>{result.Message}</p>
+                    <p>Vui lòng liên hệ với quản trị viên để được hỗ trợ.</p>
+                </div>
+            </body>
+            </html>";
+
+                    return Content(errorHtml, "text/html");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi xử lý token phê duyệt: {ex.Message}");
+                return BadRequest("Có lỗi xảy ra khi xử lý yêu cầu");
+            }
+        }
+
+        /// <summary>
+        /// Hủy yêu cầu thay đổi thông tin
+        /// </summary>
+        [HttpDelete("cancel-profile-change/{userId}")]
+        [Authorize(Roles = "Admin")]
+        public IActionResult CancelProfileChangeRequest(int userId)
+        {
+            try
+            {
+                int AdminId = GetCurrentUserId();
+                bool cancelled = _authService.CancelProfileChangeRequest(userId, AdminId);
+
+                if (cancelled)
+                {
+                    return Ok(new { message = "Đã hủy yêu cầu thay đổi thông tin thành công" });
+                }
+                else
+                {
+                    return NotFound(new { message = "Không tìm thấy yêu cầu thay đổi thông tin" });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi hủy yêu cầu thay đổi thông tin: {ex.Message}");
+                return StatusCode(500, "Đã xảy ra lỗi khi hủy yêu cầu thay đổi thông tin");
+            }
+        }
+
+        /// <summary>
         /// Phương thức hỗ trợ để lấy ID người dùng từ claims
         /// </summary>
         private int GetUserIdFromClaims()
@@ -492,6 +644,15 @@ namespace STP.APIService.Controllers
             }
 
             return int.Parse(userIdClaim.Value);
+        }
+
+        /// <summary>
+        /// Lấy ID người dùng hiện tại từ token
+        /// </summary>
+        private int GetCurrentUserId()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return int.Parse(userId ?? "0");
         }
     }
 }
