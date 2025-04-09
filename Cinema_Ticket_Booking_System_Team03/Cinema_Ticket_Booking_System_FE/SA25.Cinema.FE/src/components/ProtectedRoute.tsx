@@ -31,7 +31,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
     // Kiểm tra nếu người dùng cần thay đổi mật khẩu
     if (requirePasswordChange && user?.requiresPasswordChange) {
-      toast.warning("You must change your password before proceeding.");
+      // toast.warning("You must change your password before proceeding.");
       navigate("/settings", {
         state: {
           passwordChangeRequired: true,
@@ -39,7 +39,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         },
       });
       return;
-    }
+    } 
 
     // Kiểm tra vai trò của người dùng
     if (requiredRole && user?.role !== requiredRole) {

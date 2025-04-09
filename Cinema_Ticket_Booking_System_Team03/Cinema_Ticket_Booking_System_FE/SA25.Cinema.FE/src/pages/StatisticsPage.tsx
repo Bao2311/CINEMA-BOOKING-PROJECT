@@ -1233,7 +1233,7 @@ const StatisticsPage = () => {
           Thống kê đặt chỗ
         </Title>
         <Paragraph style={{ 
-          textAlign: "center", 
+          textAlign: "center",
           color: colors.textLight, 
           marginTop: "-15px", 
           marginBottom: "30px",
@@ -1861,3 +1861,7 @@ const StatisticsPage = () => {
     };
     
     export default StatisticsPage;
+
+
+
+
