@@ -2613,12 +2613,7 @@ const EnhancedPromotionSection = () => {
         open={paymentQrVisible}
         onCancel={() => setPaymentQrVisible(false)}
         footer={[
-          <Button key="cancel" onClick={() => setPaymentQrVisible(false)}>
-            Hủy
-          </Button>,
-          <Button key="success" type="primary" onClick={handlePaymentSuccess}>
-            Đã thanh toán thành công
-          </Button>,
+         
         ]}
       >
         {paymentData && (
