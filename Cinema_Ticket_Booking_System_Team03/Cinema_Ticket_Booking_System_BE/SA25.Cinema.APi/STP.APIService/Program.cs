@@ -98,7 +98,7 @@ namespace STP.APIService
             builder.Services.AddScoped<UserRepository>();
             builder.Services.AddScoped<AuthService>();
             builder.Services.AddScoped<EmailService>();
-            builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+            builder.Services.AddScoped<UserProfileService>();
             builder.Services.AddScoped<MovieRepository>();
             builder.Services.AddScoped<MovieService>();
             builder.Services.AddScoped<EmailVerificationService>();

@@ -206,36 +206,40 @@ const ManageUsersPage: React.FC = () => {
     if (!editingUser) return;
 
     const putData = {
-      fullName: data.full_Name,
-      dateOfBirth: data.date_Of_Birth,
-      sex: data.sex,
-      phoneNumber: data.phone_Number,
+      full_Name: data.full_Name,
+      phone_Number: data.phone_Number,
       address: data.address,
+      date_Of_Birth: data.date_Of_Birth,
+      sex: data.sex,
       role: data.role,
-      accountStatus: data.account_Status,
+      account_Status: data.account_Status
     };
 
     try {
       setIsSubmitting(true);
 
-      await axios.put(`${API_BASE_URL}/User/${editingUser.user_ID}`, putData, {
+      const response = await axios.put(`${API_BASE_URL}/User/${editingUser.user_ID}`, putData, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
       });
 
-      toast.success("Cập nhật người dùng thành công!");
-      setEditingUser(null);
-      await fetchUsers(); // Refresh user list
+      if (response.status === 200) {
+        toast.success("Yêu cầu thay đổi đã được gửi đến email người dùng. Cần đợi người dùng chấp nhận.");
+        setEditingUser(null);
+        await fetchUsers(); // Refresh user list
+      }
     } catch (error) {
       console.error("Error updating user:", error);
 
       if (error.response) {
-        toast.error(
-          `Lỗi: ${
-            error.response.data.message || "Cập nhật người dùng thất bại."
-          }`
-        );
+        const errorMessage = error.response.data.message || 
+                           error.response.data.title || 
+                           `Lỗi ${error.response.status}: Cập nhật người dùng thất bại.`;
+        toast.error(errorMessage);
+      } else if (error.request) {
+        toast.error("Không nhận được phản hồi từ máy chủ. Vui lòng kiểm tra kết nối và thử lại.");
       } else {
         toast.error("Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.");
       }
