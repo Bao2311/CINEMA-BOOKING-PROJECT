@@ -63,8 +63,18 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({
       let formattedDateOfBirth = formData.date_Of_Birth;
       if (formData.date_Of_Birth) {
         const dob = new Date(formData.date_Of_Birth);
-        if (isNaN(dob.getTime()) || dob >= new Date()) {
+        const today = new Date('2025-04-08'); // Current date: April 08, 2025
+        const ageDiff = today.getFullYear() - dob.getFullYear();
+        const monthDiff = today.getMonth() - dob.getMonth();
+        const dayDiff = today.getDate() - dob.getDate();
+        const isUnder10 = ageDiff < 10 || (ageDiff === 10 && (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)));
+  
+        if (isNaN(dob.getTime()) || dob >= today) {
           showAlert('error', 'Ngày sinh không hợp lệ hoặc phải trong quá khứ.');
+          return;
+        }
+        if (isUnder10) {
+          showAlert('error', 'Bạn phải ít nhất 10 tuổi.');
           return;
         }
         formattedDateOfBirth = dob.toISOString().split('T')[0];
