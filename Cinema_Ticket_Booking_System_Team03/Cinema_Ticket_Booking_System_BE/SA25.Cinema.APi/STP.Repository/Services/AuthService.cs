@@ -30,6 +30,8 @@ namespace STP.Repository.Services
         private readonly EmailVerificationService _emailVerificationService;
         private readonly IMemoryCache _cache; // Thêm cache
         private const string TempPasswordCachePrefix = "TempPassword_"; // Prefix cho cache key
+        private const string ProfileChangeRequestPrefix = "ProfileChangeRequest_";
+
         // Constructor với dependency injection
         public AuthService(CinemaDbContext context, IConfiguration configuration, UserRepository userRepository, EmailService emailService, ILogger<AuthService> logger, AccountLockingService accountLockingService, EmailVerificationService emailVerificationService, IMemoryCache cache)
         {
@@ -71,7 +73,7 @@ namespace STP.Repository.Services
             // Trường hợp 1: So sánh trực tiếp (nếu mật khẩu được lưu dưới dạng plain text)
             if (password == storedPassword)
                 return true;
-            
+
             // cần xóa 
             // Trường hợp 2: So sánh hash (nếu mật khẩu đã được hash)
             string hashedPassword = HashPasswordWithSHA256(password);
@@ -720,6 +722,516 @@ namespace STP.Repository.Services
                 };
             }
         }
+
+        #region Profile Management
+
+        // Phương thức tạo yêu cầu thay đổi thông tin cá nhân và gửi email xác nhận
+        public async Task<bool> CreateProfileChangeRequestAsync(int userId, int adminId, BaseUpdateProfileDTO updateDto)
+        {
+            try
+            {
+                _logger.LogInformation($"Bắt đầu tạo yêu cầu thay đổi thông tin cho người dùng {userId} bởi admin {adminId}");
+                _logger.LogInformation($"Thông tin cập nhật: Phone={updateDto.Phone_Number}, Address={updateDto.Address}, " +
+                                      $"DoB={updateDto.Date_Of_Birth?.ToString("dd/MM/yyyy")}, Sex={updateDto.Sex}");
+
+                // Tìm người dùng
+                var user = await _userRepository.GetByIdAsync(userId);
+                if (user == null)
+                {
+                    _logger.LogWarning($"Không tìm thấy người dùng với ID: {userId}");
+                    return false;
+                }
+                _logger.LogInformation($"Đã tìm thấy người dùng: ID={userId}, Email={user.Email}, Name={user.Full_Name}");
+
+                // Tìm admin
+                var admin = await _userRepository.GetByIdAsync(adminId);
+                if (admin == null || admin.Role != "Admin")
+                {
+                    _logger.LogWarning($"Người dùng {adminId} không phải là admin hoặc không tồn tại. Role={admin?.Role}");
+                    return false;
+                }
+                _logger.LogInformation($"Đã tìm thấy admin: ID={adminId}, Email={admin.Email}, Name={admin.Full_Name}");
+
+                // Tạo token xác nhận
+                string token = GenerateProfileApprovalToken(userId, adminId, updateDto);
+                _logger.LogInformation($"Đã tạo token xác nhận: {token}");
+
+                // Lưu yêu cầu vào cache
+                string cacheKey = $"ProfileChangeRequest_{userId}";
+                var changeRequest = new ProfileChangeRequest
+                {
+                    UserId = userId,
+                    AdminId = adminId,
+                    ProfileData = updateDto,
+                    RequestedAt = DateTime.UtcNow,
+                    Token = token,
+                    AdminName = admin.Full_Name
+                };
+
+                var cacheEntryOptions = new MemoryCacheEntryOptions()
+                    .SetAbsoluteExpiration(TimeSpan.FromDays(1));
+
+                _cache.Set(cacheKey, changeRequest, cacheEntryOptions);
+                _logger.LogInformation($"Đã lưu yêu cầu thay đổi vào cache với key: {cacheKey}");
+
+                // Gửi email xác nhận
+                _logger.LogInformation($"Bắt đầu gửi email xác nhận đến {user.Email}");
+                bool emailSent = await SendProfileChangeApprovalEmail(user, admin.Full_Name, updateDto, token);
+
+                if (!emailSent)
+                {
+                    _logger.LogWarning($"Không thể gửi email xác nhận đến {user.Email}");
+                    return false;
+                }
+
+                _logger.LogInformation($"Đã gửi email xác nhận thành công đến {user.Email}");
+                _logger.LogInformation($"Đã tạo yêu cầu thay đổi thông tin cho người dùng {userId} thành công");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi tạo yêu cầu thay đổi thông tin: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    _logger.LogError($"Inner Exception: {ex.InnerException.Message}");
+                    _logger.LogError($"Stack Trace: {ex.StackTrace}");
+                }
+                return false;
+            }
+        }
+
+        // Xử lý token phê duyệt và cập nhật thông tin người dùng
+        public async Task<(bool Success, string Message)> ProcessProfileApprovalTokenAsync(string token)
+        {
+            try
+            {
+                _logger.LogInformation($"Xử lý token phê duyệt: {token}");
+
+                // Giải mã token
+                var tokenData = DecodeProfileToken(token);
+                if (tokenData == null)
+                {
+                    _logger.LogWarning("Token không hợp lệ hoặc không thể giải mã");
+                    return (false, "Token không hợp lệ");
+                }
+
+                // Kiểm tra hết hạn
+                if (tokenData.ExpiryTime < DateTime.UtcNow)
+                {
+                    _logger.LogWarning($"Token đã hết hạn. Hết hạn: {tokenData.ExpiryTime}, Hiện tại: {DateTime.UtcNow}");
+                    return (false, "Yêu cầu đã hết hạn");
+                }
+
+                // Lấy thông tin yêu cầu từ cache
+                string cacheKey = $"ProfileChangeRequest_{tokenData.UserId}";
+                if (!_cache.TryGetValue(cacheKey, out ProfileChangeRequest changeRequest))
+                {
+                    _logger.LogWarning($"Không tìm thấy yêu cầu thay đổi trong cache với key: {cacheKey}");
+                    return (false, "Không tìm thấy yêu cầu thay đổi hoặc yêu cầu đã hết hạn");
+                }
+
+                // Lấy thông tin người dùng và admin
+                var user = await _userRepository.GetByIdAsync(tokenData.UserId);
+                if (user == null)
+                {
+                    _logger.LogWarning($"Không tìm thấy người dùng với ID: {tokenData.UserId}");
+                    return (false, "Không tìm thấy thông tin người dùng");
+                }
+
+                var admin = await _userRepository.GetByIdAsync(tokenData.AdminId);
+                if (admin == null)
+                {
+                    _logger.LogWarning($"Không tìm thấy admin với ID: {tokenData.AdminId}");
+                    // Vẫn tiếp tục xử lý, không cần phải dừng lại
+                }
+
+                _logger.LogInformation($"Bắt đầu cập nhật thông tin: userID={user.User_ID}, Thông tin hiện tại: " +
+                                      $"Phone={user.Phone_Number}, Address={user.Address}, " +
+                                      $"DoB={user.Date_Of_Birth?.ToString("yyyy-MM-dd")}, Sex={user.Sex}");
+
+                _logger.LogInformation($"Thông tin mới: Phone={changeRequest.ProfileData.Phone_Number}, " +
+                                      $"Address={changeRequest.ProfileData.Address}, " +
+                                      $"DoB={changeRequest.ProfileData.Date_Of_Birth?.ToString("yyyy-MM-dd")}, " +
+                                      $"Sex={changeRequest.ProfileData.Sex}");
+
+                // Sử dụng transaction để đảm bảo tính toàn vẹn của giao dịch
+                using (var transaction = await _context.Database.BeginTransactionAsync())
+                {
+                    try
+                    {
+                        // Cập nhật thông tin người dùng
+                        if (!string.IsNullOrEmpty(changeRequest.ProfileData.Full_Name))
+                            user.Full_Name = changeRequest.ProfileData.Full_Name;
+
+                        if (!string.IsNullOrEmpty(changeRequest.ProfileData.Phone_Number))
+                            user.Phone_Number = changeRequest.ProfileData.Phone_Number;
+
+                        if (!string.IsNullOrEmpty(changeRequest.ProfileData.Address))
+                            user.Address = changeRequest.ProfileData.Address;
+
+                        if (changeRequest.ProfileData.Date_Of_Birth.HasValue)
+                            user.Date_Of_Birth = changeRequest.ProfileData.Date_Of_Birth;
+
+                        if (!string.IsNullOrEmpty(changeRequest.ProfileData.Sex))
+                            user.Sex = changeRequest.ProfileData.Sex;
+
+                        if (!string.IsNullOrEmpty(changeRequest.ProfileData.Account_Status))
+                            user.Sex = changeRequest.ProfileData.Account_Status;
+
+                        if (!string.IsNullOrEmpty(changeRequest.ProfileData.Role))
+                            user.Sex = changeRequest.ProfileData.Role;
+
+                        // Thêm theo dõi entity và đánh dấu nó đã thay đổi
+                        _context.Entry(user).State = EntityState.Modified;
+
+                        _logger.LogInformation("Đã thiết lập các thuộc tính mới, chuẩn bị lưu thay đổi");
+
+                        // Lưu thay đổi vào DB
+                        var rowsAffected = await _context.SaveChangesAsync();
+
+                        _logger.LogInformation($"SaveChangesAsync hoàn tất. Số hàng bị ảnh hưởng: {rowsAffected}");
+
+                        // Commit transaction
+                        await transaction.CommitAsync();
+
+                        _logger.LogInformation("Transaction đã được commit thành công");
+
+                        // Xóa yêu cầu khỏi cache
+                        _cache.Remove(cacheKey);
+                        _logger.LogInformation($"Đã xóa yêu cầu thay đổi khỏi cache với key: {cacheKey}");
+
+                        // Kiểm tra lại thông tin đã cập nhật
+                        var updatedUser = await _userRepository.GetByIdAsync(tokenData.UserId);
+                        if (updatedUser != null)
+                        {
+                            _logger.LogInformation($"Thông tin sau khi cập nhật: " +
+                                                  $"Phone={updatedUser.Phone_Number}, Address={updatedUser.Address}, " +
+                                                  $"DoB={updatedUser.Date_Of_Birth?.ToString("yyyy-MM-dd")}, Sex={updatedUser.Sex}");
+                        }
+
+                        // Gửi email thông báo cho admin và người dùng
+                        await SendProfileUpdateConfirmationEmails(user, admin, changeRequest);
+
+                        return (true, "Thông tin cá nhân đã được cập nhật thành công");
+                    }
+                    catch (Exception ex)
+                    {
+                        // Rollback transaction khi có lỗi
+                        await transaction.RollbackAsync();
+                        _logger.LogError(ex, $"Lỗi khi cập nhật thông tin người dùng, đã rollback transaction: {ex.Message}");
+
+                        if (ex.InnerException != null)
+                        {
+                            _logger.LogError($"Inner Exception: {ex.InnerException.Message}");
+                            _logger.LogError($"Stack Trace: {ex.StackTrace}");
+                        }
+
+                        return (false, "Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại sau.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi ngoài khi xử lý token phê duyệt: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    _logger.LogError($"Inner Exception: {ex.InnerException.Message}");
+                    _logger.LogError($"Stack Trace: {ex.StackTrace}");
+                }
+                return (false, "Có lỗi xảy ra khi xử lý yêu cầu");
+            }
+        }
+
+        // Kiểm tra xem có yêu cầu thay đổi đang chờ xử lý cho người dùng không
+        public bool HasPendingProfileRequest(int userId)
+        {
+            string cacheKey = $"ProfileChangeRequest_{userId}";
+            return _cache.TryGetValue(cacheKey, out _);
+        }
+
+        // Hủy yêu cầu thay đổi thông tin
+        public bool CancelProfileChangeRequest(int userId, int adminId)
+        {
+            try
+            {
+                _logger.LogInformation($"Admin {adminId} đang hủy yêu cầu thay đổi thông tin cho người dùng {userId}");
+                string cacheKey = $"ProfileChangeRequest_{userId}";
+                if (_cache.TryGetValue(cacheKey, out _))
+                {
+                    _cache.Remove(cacheKey);
+                    _logger.LogInformation($"Đã hủy yêu cầu thay đổi thông tin cho người dùng {userId}");
+                    return true;
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi hủy yêu cầu thay đổi thông tin: {ex.Message}");
+                return false;
+            }
+        }
+
+        #region Profile Helper Methods
+
+        // Tạo token chứa thông tin phê duyệt
+        private string GenerateProfileApprovalToken(int userId, int adminId, BaseUpdateProfileDTO updateDto)
+        {
+            var tokenData = new ApprovalTokenData
+            {
+                UserId = userId,
+                AdminId = adminId,
+                Timestamp = DateTime.UtcNow,
+                ExpiryTime = DateTime.UtcNow.AddDays(1)
+            };
+
+            string json = System.Text.Json.JsonSerializer.Serialize(tokenData);
+            byte[] jsonBytes = System.Text.Encoding.UTF8.GetBytes(json);
+            return Convert.ToBase64String(jsonBytes);
+        }
+
+        // Giải mã token thành đối tượng dữ liệu
+        private ApprovalTokenData DecodeProfileToken(string token)
+        {
+            try
+            {
+                byte[] data = Convert.FromBase64String(token);
+                string json = System.Text.Encoding.UTF8.GetString(data);
+
+                return System.Text.Json.JsonSerializer.Deserialize<ApprovalTokenData>(json);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi giải mã token: {ex.Message}");
+                return null;
+            }
+        }
+
+        // Gửi email xác nhận thay đổi thông tin
+        private async Task<bool> SendProfileChangeApprovalEmail(User user, string adminName, BaseUpdateProfileDTO updateDto, string token)
+        {
+            try
+            {
+                _logger.LogInformation($"Bắt đầu chuẩn bị email xác nhận cho {user.Email}");
+
+                // Kiểm tra cấu hình URL API
+                string apiBaseUrl = _configuration["AppSettings:ApiBaseUrl"];
+                if (string.IsNullOrEmpty(apiBaseUrl))
+                {
+                    _logger.LogWarning("AppSettings:ApiBaseUrl is missing in configuration");
+                    apiBaseUrl = "https://localhost:7168"; // Default fallback
+                }
+
+                string approvalLink = $"{apiBaseUrl}/api/User/approve-profile-change?token={token}";
+                _logger.LogInformation($"Approval link: {approvalLink}");
+
+                string emailSubject = "Xác nhận yêu cầu thay đổi thông tin cá nhân";
+                string emailBody = $@"
+<html>
+<body style='font-family: Arial, sans-serif;'>
+    <div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+        <h2 style='color: #e50914;'>Yêu cầu thay đổi thông tin cá nhân</h2>
+        <p>Xin chào {user.Full_Name},</p>
+        <p>Quản trị viên <strong>{adminName}</strong> đã yêu cầu cập nhật thông tin cá nhân của bạn. Chi tiết thay đổi:</p>
+        <ul>
+            <li><strong>Họ và Tên:</strong> {updateDto.Full_Name}</li>
+            <li><strong>Số điện thoại:</strong> {updateDto.Phone_Number}</li>
+            <li><strong>Địa chỉ:</strong> {updateDto.Address}</li>
+            <li><strong>Ngày sinh:</strong> {updateDto.Date_Of_Birth?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật"}</li>
+            <li><strong>Giới tính:</strong> {updateDto.Sex}</li>
+            <li><strong>Vai trò:</strong> {user.Role}</li> 
+            <li><strong>Trạng thái:</strong> {user.Account_Status}</li>
+        </ul>
+        <p>Để xác nhận thay đổi này, vui lòng nhấp vào liên kết bên dưới:</p>
+        <p style='text-align: center;'>
+            <a href='{approvalLink}' style='background-color: #e50914; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block;'>Xác nhận thay đổi</a>
+        </p>
+        <p><i>Lưu ý: Liên kết này chỉ có hiệu lực trong vòng 24 giờ.</i></p>
+        <p>Nếu bạn không muốn chấp nhận thay đổi này, vui lòng bỏ qua email này.</p>
+        <p>Trân trọng,<br>Đội ngũ STP Cinema</p>
+    </div>
+</body>
+</html>";
+
+                // Gửi email
+                return await _emailService.SendEmailAsync(user.Email, emailSubject, emailBody);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi gửi email xác nhận: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    _logger.LogError($"Inner Exception: {ex.InnerException.Message}");
+                    _logger.LogError($"Stack Trace: {ex.StackTrace}");
+                }
+                return false;
+            }
+        }
+
+        // Gửi email thông báo cập nhật thành công cho người dùng và admin
+        private async Task SendProfileUpdateConfirmationEmails(User user, User admin, ProfileChangeRequest request)
+        {
+            try
+            {
+                // Email cho người dùng
+                string userSubject = "Thông tin cá nhân đã được cập nhật";
+                string userBody = $@"
+        <html>
+        <body style='font-family: Arial, sans-serif;'>
+            <div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+                <h2 style='color: #e50914;'>Thông tin cá nhân đã được cập nhật</h2>
+                <p>Xin chào {user.Full_Name},</p>
+                <p>Thông tin cá nhân của bạn đã được cập nhật thành công theo yêu cầu của quản trị viên <strong>{request.AdminName}</strong>.</p>
+                <p>Thông tin hiện tại của bạn:</p>
+                <ul>
+                    <li><strong>Số điện thoại:</strong> {user.Phone_Number}</li>
+                    <li><strong>Địa chỉ:</strong> {user.Address}</li>
+                    <li><strong>Ngày sinh:</strong> {user.Date_Of_Birth?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật"}</li>
+                    <li><strong>Giới tính:</strong> {user.Sex}</li>
+                    <li><strong>Vai trò:</strong> {user.Role}</li> 
+                    <li><strong>Trạng thái:</strong> {user.Account_Status}</li>
+                </ul>
+                <p>Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi.</p>
+                <p>Trân trọng,<br>Đội ngũ STP Cinema</p>
+            </div>
+        </body>
+        </html>";
+
+                await _emailService.SendEmailAsync(user.Email, userSubject, userBody);
+                _logger.LogInformation($"Đã gửi email thông báo cập nhật thành công đến người dùng {user.Email}");
+
+                // Email cho admin nếu admin tồn tại
+                if (admin != null)
+                {
+                    string adminSubject = "Thông tin cá nhân người dùng đã được cập nhật";
+                    string adminBody = $@"
+            <html>
+            <body style='font-family: Arial, sans-serif;'>
+                <div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+                    <h2 style='color: #e50914;'>Thông tin cá nhân người dùng đã được cập nhật</h2>
+                    <p>Xin chào {admin.Full_Name},</p>
+                    <p>Yêu cầu thay đổi thông tin cá nhân của người dùng <strong>{user.Full_Name}</strong> đã được phê duyệt và cập nhật thành công.</p>
+                    <p>Thông tin đã cập nhật:</p>
+                    <ul>
+                        <li><strong>Số điện thoại:</strong> {user.Phone_Number}</li>
+                        <li><strong>Địa chỉ:</strong> {user.Address}</li>
+                        <li><strong>Ngày sinh:</strong> {user.Date_Of_Birth?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật"}</li>
+                        <li><strong>Giới tính:</strong> {user.Sex}</li>
+                        <li><strong>Vai trò:</strong> {user.Role}</li> 
+                        <li><strong>Trạng thái:</strong> {user.Account_Status}</li>
+                    </ul>
+                    <p>Trân trọng,<br>Đội ngũ STP Cinema</p>
+                </div>
+            </body>
+            </html>";
+
+                    await _emailService.SendEmailAsync(admin.Email, adminSubject, adminBody);
+                    _logger.LogInformation($"Đã gửi email thông báo cập nhật thành công đến admin {admin.Email}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi gửi email thông báo cập nhật: {ex.Message}");
+                // Không ném ngoại lệ, đã cập nhật thông tin xong
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật thông tin hồ sơ người dùng với xác thực email (dùng khi admin cập nhật)
+        /// </summary>
+        public async Task<object> UpdateUserProfileWithEmailVerificationAsync(int userId, BaseUpdateProfileDTO updateDto, int adminId)
+        {
+            try
+            {
+                _logger.LogInformation($"Bắt đầu cập nhật thông tin cho người dùng {userId}, adminId={adminId}");
+
+                // Tìm kiếm người dùng theo ID
+                var user = await _userRepository.GetByIdAsync(userId);
+                if (user == null)
+                {
+                    _logger.LogWarning($"Không tìm thấy người dùng với ID: {userId}");
+                    throw new KeyNotFoundException($"User with ID {userId} not found");
+                }
+
+                // Kiểm tra xem có yêu cầu đang chờ xử lý không
+                if (HasPendingProfileRequest(userId))
+                {
+                    _logger.LogWarning($"Đã có yêu cầu thay đổi đang chờ xử lý cho người dùng {userId}");
+                    throw new InvalidOperationException("Đã có yêu cầu thay đổi đang chờ người dùng xác nhận. Vui lòng đợi hoặc hủy yêu cầu cũ.");
+                }
+
+                // Tạo yêu cầu thay đổi và gửi email
+                bool requestCreated = await CreateProfileChangeRequestAsync(userId, adminId, updateDto);
+                if (requestCreated)
+                {
+                    _logger.LogInformation($"Đã tạo yêu cầu thay đổi thông tin cho người dùng {userId}");
+                    return new { message = "Yêu cầu thay đổi đã được gửi đến email người dùng. Cần đợi người dùng chấp nhận." };
+                }
+                else
+                {
+                    _logger.LogWarning($"Không thể tạo yêu cầu thay đổi thông tin cho người dùng {userId}");
+                    throw new InvalidOperationException("Không thể tạo yêu cầu thay đổi thông tin. Vui lòng thử lại sau.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi cập nhật thông tin hồ sơ người dùng {userId}: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Hủy yêu cầu thay đổi thông tin
+        /// </summary>
+        public bool CancelProfileChangeRequest(int userId)
+        {
+            try
+            {
+                string cacheKey = $"{ProfileChangeRequestPrefix}{userId}";
+                if (_cache.TryGetValue(cacheKey, out _))
+                {
+                    _cache.Remove(cacheKey);
+                    _logger.LogInformation($"Đã hủy yêu cầu thay đổi thông tin cho người dùng {userId}");
+                    return true;
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi hủy yêu cầu thay đổi thông tin: {ex.Message}");
+                return false;
+            }
+        }
+
+
+        public bool HasPendingRequest(int userId)
+        {
+            string cacheKey = $"{ProfileChangeRequestPrefix}{userId}";
+            return _cache.TryGetValue(cacheKey, out _);
+        }
+        public class ProfileChangeRequest
+        {
+            public int UserId { get; set; }
+            public int AdminId { get; set; }
+            public string AdminName { get; set; }
+            public BaseUpdateProfileDTO ProfileData { get; set; }
+            public DateTime RequestedAt { get; set; }
+            public string Token { get; set; }
+        }
+
+        // Lớp chứa dữ liệu token phê duyệt
+        public class ApprovalTokenData
+        {
+            public int UserId { get; set; }
+            public int AdminId { get; set; }
+            public DateTime Timestamp { get; set; }
+            public DateTime ExpiryTime { get; set; }
+        }
+
+        #endregion
+
+        #endregion
     }
 }
 

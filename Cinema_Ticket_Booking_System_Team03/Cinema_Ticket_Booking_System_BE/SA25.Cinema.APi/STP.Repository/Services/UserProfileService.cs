@@ -5,6 +5,7 @@ using STP.Repositories;
 using System;
 using System.Threading.Tasks;
 using sa25.Repository.Data;
+using CloudinaryDotNet.Actions;
 
 namespace STP.Repository.Services
 {
@@ -107,6 +108,9 @@ namespace STP.Repository.Services
             user.Address = updateDto.Address;
             user.Date_Of_Birth = updateDto.Date_Of_Birth;
             user.Sex = updateDto.Sex;
+            user.Role = updateDto.Role;
+            user.Account_Status = updateDto.Account_Status;
+
 
             // Cập nhật người dùng trong cơ sở dữ liệu
             await _unitOfWork.UserRepository.UpdateAsync(user);

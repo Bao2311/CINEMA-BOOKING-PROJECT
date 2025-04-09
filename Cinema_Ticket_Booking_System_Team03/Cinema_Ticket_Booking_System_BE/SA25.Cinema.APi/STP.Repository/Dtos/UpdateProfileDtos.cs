@@ -48,6 +48,14 @@ namespace STP.Repository.Dtos
         [StringLength(10)]
         [RegularExpression("^(Male|Female)$", ErrorMessage = "Gender must be Male, Female")]
         public string Sex { get; set; }
+
+        [RegularExpression("^(Customer|Staff|Manager)$", ErrorMessage = "Role must be Customer, Staff, Manager")]
+
+        public string Role { get; set; }
+
+        [RegularExpression("^(Active|Pending|Deleted)$", ErrorMessage = "Gender must be Male, Female")]
+
+        public string Account_Status { get; set; }
     }
 
     /// <summary>
