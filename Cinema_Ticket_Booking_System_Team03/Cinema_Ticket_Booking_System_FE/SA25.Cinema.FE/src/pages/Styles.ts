@@ -1064,3 +1064,24 @@ export const ViewIn3DButton = styled(motion.button)`
     font-size: 16px;
   }
 `;
+
+export const RemovePromotionButton = styled(motion.button)`
+  padding: 0.5rem 1rem;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #dc2626;
+  }
+
+  &:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+  }
+`;

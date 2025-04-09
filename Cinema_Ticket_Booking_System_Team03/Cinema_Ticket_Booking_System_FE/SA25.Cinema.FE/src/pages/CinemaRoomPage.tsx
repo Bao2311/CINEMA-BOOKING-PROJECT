@@ -586,6 +586,36 @@ const CinemaRoomPage: React.FC = () => {
     }
   };
 
+  const handleRemovePromotion = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(
+        `https://localhost:7168/api/Promotion/remove/${bookingId}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+      
+      // Reset promotion related states
+      setPromotionCode('');
+      setPromoDiscountAmount(null);
+      setNewTotal(null);
+      
+      // If points were applied, keep the points discount
+      if (discountedTotal !== null) {
+        setNewTotal(discountedTotal);
+      }
+      
+      toast.success('Đã hủy mã khuyến mãi thành công!');
+    } catch (error) {
+      console.error('Error removing promotion:', error);
+      toast.error('Không thể hủy mã khuyến mãi. Vui lòng thử lại.');
+    }
+  };
+
   return (
     <>
       <Styles.GlobalStyle />
@@ -724,12 +754,21 @@ const CinemaRoomPage: React.FC = () => {
                           onChange={(e) => setPromotionCode(e.target.value.toUpperCase())}
                           placeholder="Nhập mã khuyến mãi"
                         />
-                        <Styles.ApplyPromotionButton
-                          onClick={handleApplyPromotion}
-                          disabled={!promotionCode.trim()}
-                        >
-                          Áp dụng
-                        </Styles.ApplyPromotionButton>
+                        {promoDiscountAmount !== null ? (
+                          <Styles.RemovePromotionButton
+                            onClick={handleRemovePromotion}
+                            disabled={!promoDiscountAmount}
+                          >
+                            Hủy mã
+                          </Styles.RemovePromotionButton>
+                        ) : (
+                          <Styles.ApplyPromotionButton
+                            onClick={handleApplyPromotion}
+                            disabled={!promotionCode.trim()}
+                          >
+                            Áp dụng
+                          </Styles.ApplyPromotionButton>
+                        )}
                       </Styles.PromotionContainer>
                       <Styles.SummaryDivider />
                       <Styles.SeatTypeSummary>

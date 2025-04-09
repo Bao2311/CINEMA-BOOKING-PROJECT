@@ -1224,28 +1224,50 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
   };
 
   // Remove applied promotion
-  const removePromotion = () => {
-    setAppliedPromotion(null);
-    setPromotionCode('');
-    
-    // Directly update the booking summary to remove the promotion discount
-    const subtotal = bookingSummary.subtotal;
-    const memberDiscount = bookingSummary.memberDiscount;
-    const pointsDiscount = bookingSummary.pointsDiscount;
-    
-    // Calculate new total without promotion discount
-    const totalDiscounts = memberDiscount + pointsDiscount;
-    const newTotal = Math.max(0, subtotal - totalDiscounts);
-    
-    // Update booking summary
-    setBookingSummary({
-      ...bookingSummary,
-      discounts: totalDiscounts,
-      promotionDiscount: 0,
-      total: newTotal
-    });
-    
-    message.success('Đã xóa mã khuyến mãi');
+  const removePromotion = async () => {
+    try {
+      const token = getAuthToken();
+      if (!bookingResponse) {
+        message.error('Không tìm thấy thông tin đặt vé');
+        return;
+      }
+
+      await axios.delete(
+        `https://localhost:7168/api/Promotion/remove/${bookingResponse.booking_ID}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Reset promotion states
+      setAppliedPromotion(null);
+      setPromotionCode('');
+      
+      // Update booking summary
+      const subtotal = bookingSummary.subtotal;
+      const memberDiscount = bookingSummary.memberDiscount;
+      const pointsDiscount = bookingSummary.pointsDiscount;
+      
+      // Calculate new total without promotion discount
+      const totalDiscounts = memberDiscount + pointsDiscount;
+      const newTotal = Math.max(0, subtotal - totalDiscounts);
+      
+      // Update booking summary
+      setBookingSummary({
+        ...bookingSummary,
+        discounts: totalDiscounts,
+        promotionDiscount: 0,
+        total: newTotal
+      });
+      
+      message.success('Đã hủy mã khuyến mãi thành công');
+    } catch (error) {
+      console.error('Error removing promotion:', error);
+      message.error('Không thể hủy mã khuyến mãi. Vui lòng thử lại.');
+    }
   };
 
   // Register new member with updated API
