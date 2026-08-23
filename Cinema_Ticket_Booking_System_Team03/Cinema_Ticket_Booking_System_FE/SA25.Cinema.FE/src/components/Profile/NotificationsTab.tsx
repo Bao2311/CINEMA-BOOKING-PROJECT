@@ -72,7 +72,7 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
         throw new Error("Không tìm thấy token xác thực.");
       }
 
-      await axios.put("https://localhost:7168/api/notifications/read-all", null, {
+      await axios.put("http://localhost:5204/api/notifications/read-all", null, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -102,7 +102,7 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
 
       // Gọi API để đánh dấu thông báo đã đọc
       await axios.put(
-        `https://localhost:7168/api/notifications/${notificationId}/read`,
+        `http://localhost:5204/api/notifications/${notificationId}/read`,
         null,
         {
           headers: {
@@ -131,13 +131,13 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
   const getBackgroundColor = (type: string) => {
     switch (type) {
       case "promo":
-        return "bg-green-50 hover:bg-green-100";
+        return "bg-green-500/10 hover:bg-green-500/15 border-green-500/20";
       case "system":
-        return "bg-blue-50 hover:bg-blue-100";
+        return "bg-blue-500/10 hover:bg-blue-500/15 border-blue-500/20";
       case "alert":
-        return "bg-red-50 hover:bg-red-100";
+        return "bg-red-500/10 hover:bg-red-500/15 border-red-500/20";
       default:
-        return "bg-yellow-50 hover:bg-yellow-100";
+        return "bg-amber-500/10 hover:bg-amber-500/15 border-amber-500/20";
     }
   };
 
@@ -159,18 +159,20 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl overflow-hidden text-white">
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Thông báo</h2>
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Bell className="h-5 w-5 text-red-500" /> Thông báo
+          </h2>
           {notifications.some((n) => !n.isRead) && (
             <button
               onClick={markAllNotificationsAsRead}
               disabled={isMarkingAllRead}
-              className={`text-sm ${
+              className={`text-sm font-semibold transition-colors ${
                 isMarkingAllRead
-                  ? "text-gray-400 cursor-not-allowed"
-                  : "text-indigo-600 hover:text-indigo-800"
+                  ? "text-gray-600 cursor-not-allowed"
+                  : "text-red-400 hover:text-red-300"
               }`}
             >
               {isMarkingAllRead ? "Đang xử lý..." : "Đánh dấu tất cả đã đọc"}
@@ -179,14 +181,14 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
         </div>
         {isLoading && (
           <div className="text-center py-12 animate-pulse">
-            <Loader2 className="animate-spin h-8 w-8 text-indigo-600 mx-auto mb-3" />
-            <p className="text-gray-500">Đang tải thông báo...</p>
+            <Loader2 className="animate-spin h-8 w-8 text-red-500 mx-auto mb-3" />
+            <p className="text-gray-400 text-sm">Đang tải thông báo...</p>
           </div>
         )}
         {!isLoading && notifications.length === 0 && (
           <div className="text-center py-12">
-            <Bell className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">Bạn không có thông báo nào.</p>
+            <Bell className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-400 text-sm">Bạn không có thông báo nào.</p>
           </div>
         )}
         {!isLoading && notifications.length > 0 && (
@@ -196,7 +198,7 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
                 <div
                   key={notification.id}
                   onClick={() => !notification.isRead && markNotificationAsRead(notification.id)} // Gọi API khi nhấn vào thông báo chưa đọc
-                  className={`border border-gray-200 rounded-lg p-4 cursor-pointer transition-all duration-300 ease-in-out ${getBackgroundColor(
+                  className={`border rounded-xl p-4 cursor-pointer transition-all duration-300 ease-in-out ${getBackgroundColor(
                     notification.type
                   )}`}
                 >
@@ -204,12 +206,12 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
                     <div
                       className={`flex-shrink-0 rounded-full p-1.5 mr-3 transition-all duration-300 ease-in-out group-hover:scale-110 ${
                         notification.type === "promo"
-                          ? "bg-green-100 text-green-600"
+                          ? "bg-green-500/20 text-green-400"
                           : notification.type === "system"
-                          ? "bg-blue-100 text-blue-600"
+                          ? "bg-blue-500/20 text-blue-400"
                           : notification.type === "alert"
-                          ? "bg-red-100 text-red-600"
-                          : "bg-yellow-100 text-yellow-600"
+                          ? "bg-red-500/20 text-red-400"
+                          : "bg-amber-500/20 text-amber-400"
                       }`}
                     >
                       {getIcon(notification.type)}
@@ -217,16 +219,16 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
                     <div className="flex-1">
                       <div className="flex justify-between items-start gap-2">
                         <h4
-                          className={`font-medium text-base ${
+                          className={`font-bold text-base ${
                             notification.isRead
-                              ? "text-gray-800"
+                              ? "text-gray-400"
                               : notification.type === "promo"
-                              ? "text-green-800"
+                              ? "text-green-400"
                               : notification.type === "system"
-                              ? "text-blue-800"
+                              ? "text-blue-400"
                               : notification.type === "alert"
-                              ? "text-red-800"
-                              : "text-yellow-800"
+                              ? "text-red-400"
+                              : "text-amber-400"
                           }`}
                         >
                           {notification.title}
@@ -235,37 +237,25 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
                           className={`text-xs flex-shrink-0 ${
                             notification.isRead
                               ? "text-gray-500"
-                              : notification.type === "promo"
-                              ? "text-green-700"
-                              : notification.type === "system"
-                              ? "text-blue-700"
-                              : notification.type === "alert"
-                              ? "text-red-700"
-                              : "text-yellow-700"
+                              : "text-gray-300"
                           }`}
                         >
                           {formatDateTime(notification.date)}
                         </span>
                       </div>
                       <p
-                        className={`text-sm mt-1 ${
+                        className={`text-sm mt-1 leading-relaxed ${
                           notification.isRead
-                            ? "text-gray-600"
-                            : notification.type === "promo"
-                            ? "text-green-700"
-                            : notification.type === "system"
-                            ? "text-blue-700"
-                            : notification.type === "alert"
-                            ? "text-red-700"
-                            : "text-yellow-700"
+                            ? "text-gray-500"
+                            : "text-gray-300"
                         }`}
                       >
                         {notification.message}
                       </p>
                     </div>
                     {!notification.isRead && (
-                      <div className="ml-2 flex-shrink-0 mt-1">
-                        <span className="h-2 w-2 bg-indigo-500 rounded-full inline-block"></span>
+                      <div className="ml-2 flex-shrink-0 mt-1.5">
+                        <span className="h-2.5 w-2.5 bg-red-500 rounded-full inline-block animate-pulse"></span>
                       </div>
                     )}
                   </div>
@@ -273,28 +263,28 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
               ))}
             </div>
             {/* Nút phân trang */}
-            <div className="flex justify-between items-center mt-6">
+            <div className="flex justify-between items-center mt-6 pt-4 border-t border-white/10">
               <button
                 onClick={handlePreviousPage}
                 disabled={currentPage === 1}
-                className={`px-4 py-2 rounded-md ${
+                className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
                   currentPage === 1
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-indigo-600 text-white hover:bg-indigo-700"
+                    ? "bg-white/[0.02] text-gray-600 border-white/5 cursor-not-allowed"
+                    : "bg-white/5 border-white/10 text-gray-300 hover:text-white hover:bg-white/10"
                 }`}
               >
                 Trang trước
               </button>
-              <span className="text-gray-600">
+              <span className="text-gray-400 text-sm">
                 Trang {currentPage} / {totalPages}
               </span>
               <button
                 onClick={handleNextPage}
                 disabled={currentPage === totalPages}
-                className={`px-4 py-2 rounded-md ${
+                className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
                   currentPage === totalPages
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-indigo-600 text-white hover:bg-indigo-700"
+                    ? "bg-white/[0.02] text-gray-600 border-white/5 cursor-not-allowed"
+                    : "bg-white/5 border-white/10 text-gray-300 hover:text-white hover:bg-white/10"
                 }`}
               >
                 Trang sau

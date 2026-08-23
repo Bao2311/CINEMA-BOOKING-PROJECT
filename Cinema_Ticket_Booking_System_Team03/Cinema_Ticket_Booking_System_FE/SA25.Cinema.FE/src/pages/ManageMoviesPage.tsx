@@ -112,7 +112,7 @@
 //   );
 // };
 
-// const API_URL = "https://localhost:7168/api";
+// const API_URL = "http://localhost:5204/api";
 
 // const ManageMoviesPage: React.FC = () => {
 //   // State quản lý danh sách phim
@@ -1931,7 +1931,7 @@ const CreateMovieSteps: React.FC<{
   );
 };
 
-const API_URL = "https://localhost:7168/api";
+const API_URL = "http://localhost:5204/api";
 
 const ManageMoviesPage: React.FC = () => {
   // State quản lý danh sách phim

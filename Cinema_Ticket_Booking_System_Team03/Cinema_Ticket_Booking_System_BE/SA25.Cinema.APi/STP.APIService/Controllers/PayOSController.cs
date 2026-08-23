@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
@@ -81,7 +81,22 @@ namespace STP.APIService.Controllers
 
                 if (!result.Success)
                 {
-                    return BadRequest(new { success = false, message = result.Message });
+                    // Fallback to local MockPayment
+                    _logger.LogWarning($"[PayOS] PayOS get URL failed: {result.Message}. Falling back to MockPayment.");
+                    var mockToken = GenerateMockToken(bookingId, int.Parse(userId));
+                    var frontendUrl = "http://localhost:5173";
+                    var paymentUrl = $"{frontendUrl}/mock-payment?bookingId={bookingId}&amount={booking.Total_Amount}&token={mockToken}";
+
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "MockPayment Fallback",
+                        paymentUrl = paymentUrl,
+                        qrCodeUrl = "",
+                        orderCode = "MOCK_" + bookingId,
+                        amount = booking.Total_Amount,
+                        paymentId = ""
+                    });
                 }
 
                 // Trả về thông tin thanh toán
@@ -220,7 +235,21 @@ namespace STP.APIService.Controllers
 
                 if (!paymentResponse.Success)
                 {
-                    return StatusCode(500, new { success = false, message = paymentResponse.Message });
+                    // Fallback to local MockPayment
+                    _logger.LogWarning($"[PayOS] PayOS link creation failed: {paymentResponse.Message}. Falling back to MockPayment.");
+                    var mockToken = GenerateMockToken(request.BookingId, int.Parse(userId));
+                    var frontendUrl = "http://localhost:5173";
+                    var paymentUrl = $"{frontendUrl}/mock-payment?bookingId={request.BookingId}&amount={booking.Total_Amount}&token={mockToken}";
+
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "MockPayment Fallback",
+                        paymentUrl = paymentUrl,
+                        qrCodeUrl = "",
+                        orderCode = "MOCK_" + request.BookingId,
+                        amount = booking.Total_Amount
+                    });
                 }
 
                 // Trả về thông tin thanh toán
@@ -764,6 +793,14 @@ namespace STP.APIService.Controllers
             // Chuyển hướng đến trang profile với tham số hủy
             string cancelUrl = _configuration["PayOS:CancelUrl"] ?? "http://localhost:5173/profile";
             return Redirect($"{cancelUrl}?code=000&id={orderCode}&cancel=true&status=CANCELLED&orderCode={orderCode}");
+        }
+
+        private static string GenerateMockToken(int bookingId, int userId)
+        {
+            var raw = $"MOCK_{bookingId}_{userId}_STP_CINEMA_2026";
+            using var sha = System.Security.Cryptography.SHA256.Create();
+            var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(raw));
+            return Convert.ToHexString(bytes)[..16];
         }
 
         // DTO cho yêu cầu tạo thanh toán

@@ -64,7 +64,7 @@ interface ApiError {
 }
 
 // API Service
-const API_BASE_URL = "https://localhost:7168/api";
+const API_BASE_URL = "http://localhost:5204/api";
 
 const promotionService = {
   getAllPromotions: async (): Promise<Promotion[]> => {

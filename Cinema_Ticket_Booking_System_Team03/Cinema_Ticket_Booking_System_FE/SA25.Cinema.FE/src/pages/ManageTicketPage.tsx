@@ -99,7 +99,7 @@ const ManageTicketPage: React.FC = () => {
         return;
       }
       
-      const response = await axios.get<TicketResponse>('https://localhost:7168/api/Ticket/all', {
+      const response = await axios.get<TicketResponse>('http://localhost:5204/api/Ticket/all', {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -195,7 +195,7 @@ const ManageTicketPage: React.FC = () => {
       
       // Send POST request to check in the ticket using the ticket_code
       const response = await axios.post(
-        `https://localhost:7168/api/Ticket/check-in/${ticket.ticket_code}`,
+        `http://localhost:5204/api/Ticket/check-in/${ticket.ticket_code}`,
         {}, // Empty body as we're just using path parameter
         {
           headers: {
@@ -373,259 +373,252 @@ const ManageTicketPage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-[#0B0F19] text-white py-8 px-4 sm:px-6 lg:px-8">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-indigo-700 to-purple-700 rounded-lg shadow-xl overflow-hidden mb-6">
-        <div className="p-6 text-white">
-          <h1 className="text-2xl font-bold mb-2 flex items-center">
-            <Ticket className="h-6 w-6 mr-2" />
-            Ticket Check-in Management
+      <div className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl overflow-hidden mb-6 p-6">
+        <div className="text-white">
+          <h1 className="text-2xl font-bold mb-1 flex items-center gap-2">
+            <Ticket className="h-6 w-6 text-red-500" />
+            Quản lý kiểm soát vé
           </h1>
-          <p className="opacity-90">
-            Track and manage movie ticket check-ins
+          <p className="text-gray-400 text-sm">
+            Theo dõi và xác thực vé xem phim tại rạp
           </p>
         </div>
       </div>
 
       {/* Authentication Error Alert */}
       {authError && (
-        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow-md">
-          <div className="flex items-center">
-            <AlertCircle className="h-6 w-6 mr-2" />
-            <p>{authError}</p>
+        <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 mb-6 rounded-xl flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            <p className="text-sm">{authError}</p>
           </div>
-          <div className="mt-2">
-            <button 
-              onClick={fetchTickets}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm"
-            >
-              Thử lại
-            </button>
-          </div>
+          <button
+            onClick={fetchTickets}
+            className="bg-red-600 hover:bg-red-500 text-white px-4 py-1.5 rounded-lg text-xs font-semibold"
+          >
+            Thử lại
+          </button>
         </div>
       )}
 
       {/* Statistics Section */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-indigo-500">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-[#161D2F] border border-white/10 rounded-2xl p-5 shadow-lg">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-sm text-gray-500">Total Tickets</p>
-              <p className="text-2xl font-bold">{stats.total}</p>
+              <p className="text-xs text-gray-400 font-medium">Tổng số vé</p>
+              <p className="text-2xl font-black text-white mt-1">{stats.total}</p>
             </div>
-            <Ticket className="h-8 w-8 text-indigo-500" />
+            <Ticket className="h-8 w-8 text-blue-400" />
           </div>
         </div>
-        
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-green-500">
+
+        <div className="bg-[#161D2F] border border-white/10 rounded-2xl p-5 shadow-lg">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-sm text-gray-500">Checked In</p>
-              <p className="text-2xl font-bold">{stats.checkedIn}</p>
+              <p className="text-xs text-gray-400 font-medium">Đã check-in</p>
+              <p className="text-2xl font-black text-emerald-400 mt-1">{stats.checkedIn}</p>
             </div>
-            <Check className="h-8 w-8 text-green-500" />
+            <Check className="h-8 w-8 text-emerald-400" />
           </div>
         </div>
-        
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-amber-500">
+
+        <div className="bg-[#161D2F] border border-white/10 rounded-2xl p-5 shadow-lg">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-sm text-gray-500">Active</p>
-              <p className="text-2xl font-bold">{stats.active}</p>
+              <p className="text-xs text-gray-400 font-medium">Chưa check-in</p>
+              <p className="text-2xl font-black text-amber-400 mt-1">{stats.active}</p>
             </div>
-            <Ticket className="h-8 w-8 text-amber-500" />
+            <Clock className="h-8 w-8 text-amber-400" />
           </div>
         </div>
-        
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-red-500">
+
+        <div className="bg-[#161D2F] border border-white/10 rounded-2xl p-5 shadow-lg">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-sm text-gray-500">Cancelled</p>
-              <p className="text-2xl font-bold">{stats.cancelled}</p>
+              <p className="text-xs text-gray-400 font-medium">Đã hủy</p>
+              <p className="text-2xl font-black text-red-400 mt-1">{stats.cancelled}</p>
             </div>
-            <X className="h-8 w-8 text-red-500" />
+            <X className="h-8 w-8 text-red-400" />
           </div>
         </div>
       </div>
 
-      {/* Search and Filter Section */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-        <div className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-                <input
-                  type="text"
-                placeholder="Search by ticket ID, code or booking ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-            </div>
-            
-            <button
-              onClick={fetchTickets}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center justify-center"
-            >
-              {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              ) : (
-                <RefreshCw className="h-5 w-5 mr-2" />
-              )}
-              Refresh
-            </button>
+        {/* Filter and Search Bar */}
+      <div className="bg-[#161D2F] border border-white/10 rounded-2xl p-6 shadow-xl mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Tìm theo mã vé, tên phim hoặc mã đặt vé..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 text-white placeholder-gray-500 rounded-xl text-sm focus:outline-none focus:border-red-500/50"
+            />
           </div>
-          
-          <div className="mt-4">
-                <button
-              onClick={() => setFilterOpen(!filterOpen)}
-              className="flex items-center text-gray-700 hover:text-indigo-600 text-sm font-medium"
-                >
-              <Filter className="h-4 w-4 mr-1" />
-              Filters & Sorting
-              {filterOpen ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />}
-                </button>
-            
-            {filterOpen && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <select 
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    <option value="all">All Statuses</option>
-                    <option value="active">Active</option>
-                    <option value="checked-in">Checked In</option>
-                    <option value="pending">Pending</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
-              <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    <option value="id-desc">Ticket ID (Desc)</option>
-                    <option value="id-asc">Ticket ID (Asc)</option>
-                    <option value="code-desc">Ticket Code (Desc)</option>
-                    <option value="code-asc">Ticket Code (Asc)</option>
-              </select>
-                </div>
-              
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Items Per Page</label>
-              <select
-                    value={itemsPerPage}
-                    onChange={(e) => {
-                      setItemsPerPage(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    <option value={5}>5 items</option>
-                    <option value={10}>10 items</option>
-                    <option value={20}>20 items</option>
-                    <option value={50}>50 items</option>
-              </select>
-                </div>
-              </div>
+
+          <button
+            onClick={fetchTickets}
+            className="bg-red-600 hover:bg-red-500 text-white px-5 py-2.5 rounded-xl flex items-center justify-center text-sm font-semibold transition-all shadow-md shadow-red-500/20"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
             )}
-          </div>
+            Làm mới
+          </button>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-white/5">
+          <button
+            onClick={() => setFilterOpen(!filterOpen)}
+            className="flex items-center text-gray-300 hover:text-white text-sm font-medium transition-colors"
+          >
+            <Filter className="h-4 w-4 mr-1.5 text-red-400" />
+            Bộ lọc & Sắp xếp
+            {filterOpen ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />}
+          </button>
+
+          {filterOpen && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 p-4 bg-white/5 border border-white/10 rounded-xl">
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">Trạng thái</label>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="w-full bg-[#161D2F] border border-white/10 text-white rounded-xl p-2 text-sm focus:outline-none focus:border-red-500"
+                >
+                  <option value="all">Tất cả trạng thái</option>
+                  <option value="active">Chưa check-in</option>
+                  <option value="checked-in">Đã check-in</option>
+                  <option value="pending">Chờ xử lý</option>
+                  <option value="cancelled">Đã hủy</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">Sắp xếp</label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full bg-[#161D2F] border border-white/10 text-white rounded-xl p-2 text-sm focus:outline-none focus:border-red-500"
+                >
+                  <option value="id-desc">Mã vé (Mới nhất)</option>
+                  <option value="id-asc">Mã vé (Cũ nhất)</option>
+                  <option value="code-desc">Mã Code (Z-A)</option>
+                  <option value="code-asc">Mã Code (A-Z)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">Số lượng hiển thị</label>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="w-full bg-[#161D2F] border border-white/10 text-white rounded-xl p-2 text-sm focus:outline-none focus:border-red-500"
+                >
+                  <option value={5}>5 vé / trang</option>
+                  <option value={10}>10 vé / trang</option>
+                  <option value={20}>20 vé / trang</option>
+                </select>
+              </div>
             </div>
-          </div>
+          )}
+        </div>
+      </div>
           
       {/* Tickets Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+      <div className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl overflow-hidden mb-6">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-white/10 text-left">
+            <thead className="bg-white/5">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ticket ID
+                <th scope="col" className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Mã vé ID
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Code
+                <th scope="col" className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Mã QR / Code
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Booking ID
+                <th scope="col" className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Mã đơn đặt
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
+                <th scope="col" className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Trạng thái
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
+                <th scope="col" className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Thao tác
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-          {isLoading ? (
+            <tbody className="divide-y divide-white/5 bg-[#161D2F]">
+              {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center">
-                    <div className="flex justify-center items-center">
-                      <Loader2 className="h-6 w-6 animate-spin mr-2 text-indigo-500" />
-                      <span>Loading tickets...</span>
-            </div>
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                    <div className="flex justify-center items-center gap-2">
+                      <Loader2 className="h-5 w-5 animate-spin text-red-500" />
+                      <span>Đang tải danh sách vé...</span>
+                    </div>
                   </td>
                 </tr>
               ) : paginatedTickets.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
-                    No tickets found
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                    Không tìm thấy vé nào
                   </td>
                 </tr>
               ) : (
                 paginatedTickets.map(ticket => {
                   const statusClasses = getStatusClasses(ticket);
-                    
-                    return (
-                    <tr key={ticket.ticket_id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {ticket.ticket_id}
-                          </div>
+
+                  return (
+                    <tr key={ticket.ticket_id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-white">
+                        #{ticket.ticket_id}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <QrCode className="h-4 w-4 text-gray-400 mr-2" />
-                          <div className="text-sm text-gray-900 font-mono">
+                        <div className="flex items-center gap-2">
+                          <QrCode className="h-4 w-4 text-red-400" />
+                          <span className="text-sm font-mono text-amber-400 font-bold">
                             {ticket.ticket_code}
-                          </div>
+                          </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {ticket.booking_id}
-                          </div>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                        #{ticket.booking_id}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClasses.bg} text-white`}>
-                          {statusClasses.icon}
-                          {statusClasses.statusText}
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
+                          ticket.is_checked_in
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : ticket.status === 'Cancelled'
+                            ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                            : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        }`}>
+                          {ticket.is_checked_in ? 'ĐÃ CHECK-IN' : ticket.status === 'Cancelled' ? 'ĐÃ HỦY' : 'CHƯA CHECK-IN'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex space-x-2">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex items-center gap-3">
                           <button
-                            onClick={() => viewTicketDetails(ticket)}
-                            className="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-3 py-1 rounded-md transition-colors"
+                            onClick={() => {
+                              setSelectedTicket(ticket);
+                              setShowModal(true);
+                            }}
+                            className="text-xs text-blue-400 hover:text-blue-300 font-semibold"
                           >
-                            View Details
+                            Xem chi tiết
                           </button>
-                          
                           {!ticket.is_checked_in && ticket.status !== 'Cancelled' && (
-                            <button 
-                              onClick={() => handleCheckin(ticket)}
-                              disabled={isCheckinLoading && selectedActionTicket?.ticket_id === ticket.ticket_id}
-                              className={`px-3 py-1 rounded-md transition-colors flex items-center ${
-                                isCheckinLoading && selectedActionTicket?.ticket_id === ticket.ticket_id
-                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                  : 'bg-green-100 hover:bg-green-200 text-green-700'
-                              }`}
+                            <button
+                              onClick={() => handleCheckin(ticket.ticket_id)}
+                              className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold"
                             >
                               {isCheckinLoading && selectedActionTicket?.ticket_id === ticket.ticket_id ? (
                                 <Loader2 className="h-4 w-4 animate-spin mr-1" />
@@ -651,85 +644,62 @@ const ManageTicketPage: React.FC = () => {
 
       {/* Ticket Detail Modal */}
       {showModal && selectedTicket && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h2 className="text-xl font-bold text-gray-900">
-                  Ticket Details
+              <div className="flex justify-between items-start mb-6 pb-4 border-b border-white/10">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Ticket className="h-5 w-5 text-red-500" />
+                  Chi tiết vé #{selectedTicket.ticket_id}
                 </h2>
-                              <button 
+                <button 
                   onClick={() => setShowModal(false)}
-                  className="text-gray-400 hover:text-gray-500"
-                              >
-                  <X className="h-6 w-6" />
-                              </button>
+                  className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-2">Ticket Information</h3>
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                    <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Thông tin vé</h3>
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2.5 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Ticket ID:</span>
-                        <span className="font-medium">{selectedTicket.ticket_id}</span>
+                        <span className="text-gray-400">Mã vé:</span>
+                        <span className="font-bold text-white">#{selectedTicket.ticket_id}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Ticket Code:</span>
-                        <span className="font-mono font-medium">{selectedTicket.ticket_code}</span>
+                        <span className="text-gray-400">Mã code:</span>
+                        <span className="font-mono font-bold text-amber-400">{selectedTicket.ticket_code}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Booking ID:</span>
-                        <span className="font-medium">{selectedTicket.booking_id}</span>
+                        <span className="text-gray-400">Mã đơn đặt:</span>
+                        <span className="font-semibold text-white">#{selectedTicket.booking_id}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Status:</span>
-                        <span className={`font-medium ${getStatusClasses(selectedTicket).text}`}>
-                        {selectedTicket.is_checked_in ? 'Checked In' : 
-                           selectedTicket.status === 'Cancelled' ? 'Cancelled' : 
-                           selectedTicket.status === null ? 'Pending' : 'Active'}
+                        <span className="text-gray-400">Trạng thái:</span>
+                        <span className="font-bold text-emerald-400">
+                          {selectedTicket.is_checked_in ? 'Đã check-in' : selectedTicket.status === 'Cancelled' ? 'Đã hủy' : 'Chưa check-in'}
                         </span>
                       </div>
-                      {selectedTicket.final_price !== undefined && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Price:</span>
-                          <span className="font-medium">${selectedTicket.final_price.toFixed(2)}</span>
-                        </div>
-                      )}
-                      {selectedTicket.booking_date && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Booking Date:</span>
-                          <span className="font-medium">
-                            {new Date(selectedTicket.booking_date).toLocaleDateString()}
-                          </span>
-                        </div>
-                      )}
-                      {selectedTicket.is_checked_in && selectedTicket.checkInTime && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Check-in Time:</span>
-                          <span className="font-medium">
-                            {new Date(selectedTicket.checkInTime).toLocaleString()}
-                          </span>
-                        </div>
-                      )}
                     </div>
                   </div>
-                  
+
                   {selectedTicket.movie_info && (
                     <div className="mb-6">
-                      <h3 className="text-lg font-semibold mb-2">Movie Information</h3>
-                      <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <Film className="h-5 w-5 text-indigo-600" />
-                          <span className="font-medium text-gray-900">{selectedTicket.movie_info.movie_name}</span>
+                      <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Thông tin phim</h3>
+                      <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Film className="h-4 w-4 text-red-400" />
+                          <span className="font-bold text-white text-base">{selectedTicket.movie_info.movie_name}</span>
                         </div>
                         {selectedTicket.movie_info.poster_url && (
-                          <div className="mt-2">
+                          <div className="w-24 aspect-[2/3] rounded-lg overflow-hidden border border-white/10">
                             <img 
                               src={selectedTicket.movie_info.poster_url} 
                               alt={selectedTicket.movie_info.movie_name}
-                              className="h-40 object-cover rounded-md" 
+                              className="w-full h-full object-cover" 
                             />
                           </div>
                         )}
@@ -737,80 +707,68 @@ const ManageTicketPage: React.FC = () => {
                     </div>
                   )}
                 </div>
-                
+
                 <div>
                   {selectedTicket.showtime_info && (
                     <div className="mb-6">
-                      <h3 className="text-lg font-semibold mb-2">Showtime Information</h3>
-                      <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Calendar className="h-4 w-4 text-gray-500" />
-                          <span className="text-gray-700">
-                            {new Date(selectedTicket.showtime_info.show_date).toLocaleDateString()}
-                          </span>
+                      <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Suất chiếu & Phòng</h3>
+                      <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2.5 text-sm">
+                        <div className="flex items-center gap-2 text-gray-300">
+                          <Calendar className="h-4 w-4 text-blue-400" />
+                          <span>{selectedTicket.showtime_info.show_date}</span>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Clock className="h-4 w-4 text-gray-500" />
-                          <span className="text-gray-700">{selectedTicket.showtime_info.start_time}</span>
+                        <div className="flex items-center gap-2 text-gray-300">
+                          <Clock className="h-4 w-4 text-red-400" />
+                          <span>{selectedTicket.showtime_info.start_time}</span>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <MapPin className="h-4 w-4 text-gray-500" />
-                          <span className="text-gray-700">{selectedTicket.showtime_info.room_name}</span>
+                        <div className="flex items-center gap-2 text-gray-300">
+                          <MapPin className="h-4 w-4 text-amber-400" />
+                          <span>{selectedTicket.showtime_info.room_name}</span>
                         </div>
                         {selectedTicket.seat_info && (
-                          <div className="flex items-center space-x-2">
-                            <User className="h-4 w-4 text-gray-500" />
-                            <span className="text-gray-700">Seat: {selectedTicket.seat_info}</span>
+                          <div className="flex items-center gap-2 text-gray-300">
+                            <User className="h-4 w-4 text-emerald-400" />
+                            <span>Ghế: <strong className="text-amber-400 font-bold">{selectedTicket.seat_info}</strong></span>
                           </div>
                         )}
                       </div>
                     </div>
                   )}
-                  
+
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-2">Ticket QR Code</h3>
-                    <div className="bg-gray-50 rounded-lg p-4 flex flex-col items-center">
+                    <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Mã QR Check-in</h3>
+                    <div className="bg-white rounded-xl p-4 flex flex-col items-center">
                       <QRCodeSVG 
                         value={selectedTicket.ticket_code} 
-                        size={180}
+                        size={150}
                         level="H"
                         includeMargin={true}
                         bgColor="#ffffff"
                         fgColor="#000000"
                       />
-                      <p className="mt-2 text-sm text-gray-500">Scan to verify ticket</p>
+                      <p className="mt-2 text-xs text-gray-600 font-mono font-semibold">{selectedTicket.ticket_code}</p>
                     </div>
                   </div>
                 </div>
               </div>
-              
-              <div className="mt-6 flex justify-end space-x-3">
+
+              <div className="mt-6 pt-4 border-t border-white/10 flex justify-end gap-3">
                 <button
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                  className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-medium transition-all"
                 >
-                  Close
+                  Đóng
                 </button>
-                
                 {!selectedTicket.is_checked_in && selectedTicket.status !== 'Cancelled' && (
                   <button
                     onClick={() => {
                       handleCheckin(selectedTicket);
-                      // We don't close the modal here to show the updated status after check-in
                     }}
                     disabled={isCheckinLoading}
-                    className={`px-4 py-2 rounded-md text-white flex items-center ${
-                      isCheckinLoading 
-                        ? 'bg-gray-400 cursor-not-allowed' 
-                        : 'bg-green-600 hover:bg-green-700'
-                    }`}
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-1.5"
                   >
-                    {isCheckinLoading && selectedActionTicket?.ticket_id === selectedTicket.ticket_id ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <Check className="h-4 w-4 mr-2" />
-                    )}
-                    Check In Ticket
+                    <Check className="h-4 w-4" />
+                    Xác nhận Check-in
                   </button>
                 )}
               </div>

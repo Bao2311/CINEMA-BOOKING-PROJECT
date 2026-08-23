@@ -68,7 +68,7 @@ const AlertDialog = ({ open, onOpenChange, children }) => {
   );
 };
 
-const API_BASE_URL = "https://localhost:7168/api";
+const API_BASE_URL = "http://localhost:5204/api";
 
 const ManageUsersPage: React.FC = () => {
   const navigate = useNavigate();
@@ -111,11 +111,14 @@ const ManageUsersPage: React.FC = () => {
 
   const fetchUserPoints = async (userId: number) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/Points/users/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await axios.get(
+        `${API_BASE_URL}/Points/users/${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       return response.data.total_Points || 0;
     } catch (error) {
       console.error(`Error fetching points for user ${userId}:`, error);
@@ -234,21 +237,27 @@ const ManageUsersPage: React.FC = () => {
       date_Of_Birth: data.date_Of_Birth,
       sex: data.sex,
       role: data.role,
-      account_Status: data.account_Status
+      account_Status: data.account_Status,
     };
 
     try {
       setIsSubmitting(true);
 
-      const response = await axios.put(`${API_BASE_URL}/User/${editingUser.user_ID}`, putData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-      });
+      const response = await axios.put(
+        `${API_BASE_URL}/User/${editingUser.user_ID}`,
+        putData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (response.status === 200) {
-        toast.success("Yêu cầu thay đổi đã được gửi đến email người dùng. Cần đợi người dùng chấp nhận.");
+        toast.success(
+          "Yêu cầu thay đổi đã được gửi đến email người dùng. Cần đợi người dùng chấp nhận."
+        );
         setEditingUser(null);
         await fetchUsers(); // Refresh user list
       }
@@ -256,12 +265,15 @@ const ManageUsersPage: React.FC = () => {
       console.error("Error updating user:", error);
 
       if (error.response) {
-        const errorMessage = error.response.data.message || 
-                           error.response.data.title || 
-                           `Lỗi ${error.response.status}: Cập nhật người dùng thất bại.`;
+        const errorMessage =
+          error.response.data.message ||
+          error.response.data.title ||
+          `Lỗi ${error.response.status}: Cập nhật người dùng thất bại.`;
         toast.error(errorMessage);
       } else if (error.request) {
-        toast.error("Không nhận được phản hồi từ máy chủ. Vui lòng kiểm tra kết nối và thử lại.");
+        toast.error(
+          "Không nhận được phản hồi từ máy chủ. Vui lòng kiểm tra kết nối và thử lại."
+        );
       } else {
         toast.error("Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.");
       }
@@ -631,18 +643,12 @@ const ManageUsersPage: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                           <Badge className="bg-purple-100 text-purple-800 border border-purple-200">
-                            {user.points?.toLocaleString() || '0'} điểm
+                            {user.points?.toLocaleString() || "0"} điểm
                           </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
-                            <a
-                              href={`mailto:${user.email}`}
-                              className="text-indigo-600 hover:text-indigo-900 p-1 rounded-md hover:bg-indigo-50"
-                              title="Gửi email"
-                            >
-                              <Mail className="h-4 w-4" />
-                            </a>
+                            
                             <button
                               onClick={() => setEditingUser(user)}
                               className="text-amber-600 hover:text-amber-900 p-1 rounded-md hover:bg-amber-50"

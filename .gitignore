@@ -1,109 +1,130 @@
-# Built files   
+# ============================================================
+# .gitignore - Cinema Booking Project
+# ============================================================
 
-bin/   
+# -------------------------------------------------------
+# .NET / ASP.NET Core Backend
+# -------------------------------------------------------
 
-obj/   
+# Build output
+bin/
+obj/
+out/
+build/
+publish/
 
-  
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userprefs
+*.userosscache
+*.sln.docstates
 
-# Visual Studio files   
+# Rider
+.idea/
 
-.vscode/   
+# NuGet
+*.nupkg
+*.snupkg
+packages/*
+!packages/repositories.config
+*.lock.json
+project.lock.json
+project.fragment.lock.json
 
-*.suo   
+# Test results
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
 
-*.user   
+# Publish output
+PublishProfiles/
 
-*.userprefs   
+# Entity Framework migrations (keep Migrations folder but ignore snapshots if desired)
+# Uncomment if you don't want to track migrations:
+# */Migrations/
 
-*.vs/   
+# -------------------------------------------------------
+# SENSITIVE CONFIGURATION - NEVER COMMIT THESE!
+# -------------------------------------------------------
+appsettings.json
+appsettings.*.json
+!appsettings.example.json
+secrets.json
+*.pem
+*.key
+*.pfx
+*.p12
+.env
+.env.*
+!.env.example
 
-  
+# -------------------------------------------------------
+# Node.js / React Frontend
+# -------------------------------------------------------
 
-# Rider files   
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
 
-.idea/   
+# Build output
+dist/
+dist-ssr/
+build/
+*.local
 
-  
+# Vite
+.vite/
 
-# NuGet Packages   
+# -------------------------------------------------------
+# Logs & Debug
+# -------------------------------------------------------
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-*.nupkg   
+# -------------------------------------------------------
+# OS & Editor Files
+# -------------------------------------------------------
 
-*.snupkg   
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
 
-packages/*   
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
 
-!.nuget/packages/*   
+# Visual Studio Code
+.vscode/
+.history/
 
-  
+# JetBrains
+.idea/
+*.iml
 
-# Visual Studio Code   
+# -------------------------------------------------------
+# Misc
+# -------------------------------------------------------
+*.swp
+*.swo
+*.tmp
+*.bak
+*~
+.cache/
 
-.vscode/   
-
-.history/   
-
-  
-
-# Backup & cache   
-
-*~    
-
-*.swp   
-
-*.tmp   
-
-*.bak   
-
-  
-
-# Logs   
-
-*.log   
-
-  
-
-# Configuration files   
-
-#appsettings*.json   
-
-  
-
-# DotNet Core   
-
-project.lock.json   
-
-project.fragment.lock.json   
-
-  
-
-# Build directory   
-
-build/   
-
-out/   
-
-  
-
-# Test results   
-
-TestResults/   
-
-  
-
-# Publish output   
-
-publish/   
-
-  
-
-# User-specific files   
-
-*.db   
-
-*.sln.docstates 
-
- 
-/Cinema_Ticket_Booking_System_Team03/Cinema_Ticket_Booking_System_BE/SA25.Cinema.APi/STP.APIService/appsettings.json
-/Cinema_Ticket_Booking_System_Team03/Cinema_Ticket_Booking_System_BE/SA25.Cinema.APi/STP.APIService/appsettings.json
+# TypeScript
+*.tsbuildinfo

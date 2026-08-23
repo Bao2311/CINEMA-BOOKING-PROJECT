@@ -1,9 +1,8 @@
+import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Mail, Lock, User, Phone, MapPin, Film, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import axios from "axios";
-import { Form, Input, Button } from "antd";
-import { useState } from "react";
 
 const RegisterForm: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -12,14 +11,13 @@ const RegisterForm: React.FC = () => {
     confirmPassword: "",
     fullName: "",
     dateOfBirth: "",
-    sex: "",
+    sex: "Nam",
     phoneNumber: "",
     address: "",
   });
 
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
   const navigate = useNavigate();
 
   const handleInputChange = (
@@ -30,255 +28,252 @@ const RegisterForm: React.FC = () => {
       ...prev,
       [name]: value,
     }));
+    if (error) setError("");
   };
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError("");
+
+    // Validate
+    const emailRegex = /^[\w.-]+@([\w-]+\.)+[\w-]{2,4}$/;
+    if (!emailRegex.test(formData.email)) {
+      setError("Định dạng email không hợp lệ");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Mật khẩu xác nhận không khớp");
+      return;
+    }
+
     setIsLoading(true);
 
-    // Kiểm tra định dạng email
-    const emailRegex = /^[\w.-]+@([\w-]+\.)+[\w-]{2,4}$/;
-    if (!emailRegex.test(values.email)) {
-      setError("Invalid email format");
-      setIsLoading(false);
-      return;
-    }
-
-    // Kiểm tra mật khẩu
-    const passwordPattern =
-      /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!passwordPattern.test(values.password)) {
-      setError(
-        "Password must be at least 8 characters long, contain letters, numbers, and at least one special character."
-      );
-      setIsLoading(false);
-      return;
-    }
-
-    if (values.password !== values.confirmPassword) {
-      setError("Passwords do not match");
-      setIsLoading(false);
-      return;
-    }
-
-    // Kiểm tra ngày sinh
-    const today = new Date();
-    const birthDate = new Date(values.dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birthDate.getDate())
-    ) {
-      age--;
-    }
-
-    if (age < 10) {
-      setError("You must be at least 10 years old.");
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      const response = await axios.post(
-        "https://localhost:7168/api/Auth/register",
-        values,
-        {
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      const response = await axios.post("http://localhost:5204/api/Auth/register", {
+        email: formData.email,
+        password: formData.password,
+        fullName: formData.fullName,
+        dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : new Date().toISOString(),
+        sex: formData.sex,
+        phoneNumber: formData.phoneNumber,
+        address: formData.address,
+      });
 
-      // Kiểm tra nội dung phản hồi thay vì chỉ mã trạng thái
-      if (response.data && response.data.success === false) {
-        throw new Error(response.data.message || "Registration failed");
-      }
-
-      // Chỉ điều hướng và hiển thị thành công nếu đăng ký thực sự thành công
-      if (response.status === 201 || response.status === 200) {
-        toast.success(response.data.message || "Registration successful!");
+      if (response.status === 200 || response.status === 201) {
+        toast.success("Đăng ký tài khoản thành công! Vui lòng đăng nhập.");
         navigate("/login");
-      } else {
-        throw new Error(response.data?.message || "Unexpected error occurred");
       }
-    } catch (error: unknown) {
-      let errorMessage = "Registration failed. Please try again.";
-      if (axios.isAxiosError(error)) {
-        errorMessage = error.response?.data?.message || errorMessage;
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      setError(errorMessage);
-      toast.error(errorMessage);
+    } catch (err: any) {
+      console.error("Registration error:", err);
+      const msg = err?.response?.data?.message || "Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="max-w-md w-full mx-auto bg-white rounded-lg shadow-md overflow-hidden border border-black">
-      <div className="px-6 py-8">
-        <div className="flex justify-center mb-6">
-          <UserPlus className="h-12 w-12 text-indigo-600" />
-        </div>
-        <h2 className="text-center text-3xl font-extrabold text-gray-900 mb-6">
-          Create your account
-        </h2>
-
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+    <div className="w-full max-w-lg mx-auto bg-[#161D2F] border border-white/10 rounded-2xl shadow-2xl overflow-hidden p-8">
+      {/* Brand Header */}
+      <div className="flex flex-col items-center mb-6">
+        <div className="relative mb-3">
+          <div className="absolute inset-0 bg-red-500 rounded-xl blur-lg opacity-60" />
+          <div className="relative bg-gradient-to-br from-red-500 to-red-700 p-3 rounded-xl">
+            <Film className="h-7 w-7 text-white" />
           </div>
-        )}
-
-        <Form layout="vertical" className="space-y-6" onFinish={handleSubmit}>
-          <Form.Item
-            label="Full Name"
-            name="fullName"
-            rules={[
-              { required: true, message: "Please enter your full name!" },
-            ]}
-          >
-            <Input
-              placeholder="Enter your full name"
-              style={{ width: "100%", padding: "8px" }}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Email"
-            name="email"
-            rules={[
-              {
-                required: true,
-                type: "email",
-                message: "Please enter a valid email!",
-              },
-            ]}
-          >
-            <Input
-              placeholder="Enter your email"
-              style={{ width: "100%", padding: "8px" }}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Password"
-            name="password"
-            rules={[
-              { required: true, message: "Please enter your password!" },
-              {
-                validator: (_, value) => {
-                  const passwordPattern =
-                    /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-                  if (!value || passwordPattern.test(value)) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(
-                    new Error(
-                      "Password must be at least 8 characters long, contain letters, numbers, and at least one special character."
-                    )
-                  );
-                },
-              },
-            ]}
-            validateTrigger={["onChange", "onBlur"]}
-          >
-            <Input.Password
-              placeholder="Enter your password"
-              style={{ width: "100%", padding: "8px" }}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Confirm Password"
-            name="confirmPassword"
-            dependencies={["password"]}
-            rules={[
-              { required: true, message: "Please confirm your password!" },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue("password") === value) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(new Error("Passwords do not match!"));
-                },
-              }),
-            ]}
-          >
-            <Input.Password
-              placeholder="Re-type your password"
-              style={{ width: "100%", padding: "8px" }}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Date of Birth"
-            name="dateOfBirth"
-            rules={[
-              { required: true, message: "Please enter your date of birth!" },
-            ]}
-          >
-            <Input
-              type="date"
-              placeholder="yyyy-mm-dd"
-              style={{ width: "100%", padding: "8px" }}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Gender"
-            name="sex"
-            rules={[{ required: true, message: "Please select your gender!" }]}
-          >
-            <select className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-              <option value="">Select gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-          </Form.Item>
-
-          <Form.Item
-            label="Phone Number"
-            name="phoneNumber"
-            rules={[
-              { required: true, message: "Please enter your phone number!" },
-            ]}
-          >
-            <Input
-              placeholder="Enter your phone number"
-              style={{ width: "100%", padding: "8px" }}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Address"
-            name="address"
-            rules={[{ required: true, message: "Please enter your address!" }]}
-          >
-            <Input
-              placeholder="Enter your address"
-              style={{ width: "100%", padding: "8px" }}
-            />
-          </Form.Item>
-
-          <Form.Item>
-            <Button type="primary" htmlType="submit" block loading={isLoading}>
-              {isLoading ? "Creating account..." : "Create account"}
-            </Button>
-          </Form.Item>
-        </Form>
-
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 mt-6">
-          <p className="text-center text-sm text-gray-600">
-            Already have an account?{" "}
-            <Link
-              to="/login"
-              className="font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              Sign in
-            </Link>
-          </p>
         </div>
+        <h2 className="text-2xl font-bold text-white tracking-tight">
+          Tạo tài khoản mới
+        </h2>
+        <p className="text-gray-400 text-sm mt-1">
+          Trở thành thành viên của CinemaPlus
+        </p>
+      </div>
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 p-3.5 mb-6 rounded-xl flex items-center gap-2.5 text-red-400 text-sm">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <p>{error}</p>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Full Name */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Họ và tên
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+              <User className="h-4 w-4" />
+            </div>
+            <input
+              type="text"
+              name="fullName"
+              required
+              value={formData.fullName}
+              onChange={handleInputChange}
+              placeholder="Nguyễn Văn A"
+              className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 focus:border-red-500 text-white placeholder-gray-500 rounded-xl text-sm focus:outline-none focus:bg-white/10 transition-all"
+            />
+          </div>
+        </div>
+
+        {/* Email */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Email
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+              <Mail className="h-4 w-4" />
+            </div>
+            <input
+              type="email"
+              name="email"
+              required
+              value={formData.email}
+              onChange={handleInputChange}
+              placeholder="you@example.com"
+              className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 focus:border-red-500 text-white placeholder-gray-500 rounded-xl text-sm focus:outline-none focus:bg-white/10 transition-all"
+            />
+          </div>
+        </div>
+
+        {/* Phone & Sex */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Số điện thoại
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                <Phone className="h-4 w-4" />
+              </div>
+              <input
+                type="tel"
+                name="phoneNumber"
+                required
+                value={formData.phoneNumber}
+                onChange={handleInputChange}
+                placeholder="0901234567"
+                className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 focus:border-red-500 text-white placeholder-gray-500 rounded-xl text-sm focus:outline-none focus:bg-white/10 transition-all"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Giới tính
+            </label>
+            <select
+              name="sex"
+              value={formData.sex}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2.5 bg-white/5 border border-white/10 focus:border-red-500 text-white rounded-xl text-sm focus:outline-none focus:bg-white/10 transition-all cursor-pointer"
+            >
+              <option value="Nam">Nam</option>
+              <option value="Nữ">Nữ</option>
+              <option value="Khác">Khác</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Password & Confirm */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Mật khẩu
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                <Lock className="h-4 w-4" />
+              </div>
+              <input
+                type="password"
+                name="password"
+                required
+                value={formData.password}
+                onChange={handleInputChange}
+                placeholder="••••••••"
+                className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 focus:border-red-500 text-white placeholder-gray-500 rounded-xl text-sm focus:outline-none focus:bg-white/10 transition-all"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Xác nhận MK
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                <Lock className="h-4 w-4" />
+              </div>
+              <input
+                type="password"
+                name="confirmPassword"
+                required
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                placeholder="••••••••"
+                className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 focus:border-red-500 text-white placeholder-gray-500 rounded-xl text-sm focus:outline-none focus:bg-white/10 transition-all"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Address */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Địa chỉ
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+              <MapPin className="h-4 w-4" />
+            </div>
+            <input
+              type="text"
+              name="address"
+              value={formData.address}
+              onChange={handleInputChange}
+              placeholder="TP. Hồ Chí Minh"
+              className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 focus:border-red-500 text-white placeholder-gray-500 rounded-xl text-sm focus:outline-none focus:bg-white/10 transition-all"
+            />
+          </div>
+        </div>
+
+        {/* Submit */}
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full flex items-center justify-center gap-2 py-3.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-all shadow-xl shadow-red-500/30 hover:shadow-red-500/50 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+        >
+          {isLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <>
+              <UserPlus className="h-4 w-4" />
+              Đăng ký tài khoản
+            </>
+          )}
+        </button>
+      </form>
+
+      <div className="mt-6 pt-6 border-t border-white/10 text-center">
+        <p className="text-sm text-gray-400">
+          Đã có tài khoản?{" "}
+          <Link
+            to="/login"
+            className="text-red-400 hover:text-red-300 font-semibold transition-colors"
+          >
+            Đăng nhập ngay
+          </Link>
+        </p>
       </div>
     </div>
   );

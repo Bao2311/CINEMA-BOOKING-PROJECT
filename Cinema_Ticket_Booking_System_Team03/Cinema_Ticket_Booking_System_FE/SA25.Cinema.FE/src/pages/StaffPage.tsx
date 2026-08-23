@@ -535,7 +535,7 @@ const ManageBookings: React.FC = () => {
     try {
       setLoading(true);
       const token = getAuthToken();
-      const response = await axios.get('https://localhost:7168/api/Movie/now-showing', {
+      const response = await axios.get('http://localhost:5204/api/Movie/now-showing', {
         headers: {
           Authorization: token ? `Bearer ${token}` : undefined,
         },
@@ -560,7 +560,7 @@ const ManageBookings: React.FC = () => {
   const fetchPromotions = async () => {
     try {
       const token = getAuthToken();
-      const response = await axios.get('https://localhost:7168/api/Promotion', {
+      const response = await axios.get('http://localhost:5204/api/Promotion', {
         headers: {
           Authorization: token ? `Bearer ${token}` : undefined,
         },
@@ -597,7 +597,7 @@ const ManageBookings: React.FC = () => {
   const fetchAvailableDates = async (movieId: number) => {
     try {
       const token = getAuthToken();
-      const response = await axios.get(`https://localhost:7168/api/Showtimes/movie/${movieId}/dates`, {
+      const response = await axios.get(`http://localhost:5204/api/Showtimes/movie/${movieId}/dates`, {
         headers: {
           Authorization: token ? `Bearer ${token}` : undefined,
         },
@@ -628,8 +628,8 @@ const ManageBookings: React.FC = () => {
       setLoading(true);
       const token = getAuthToken();
       let url = date 
-        ? `https://localhost:7168/api/Showtimes/movie/${movieId}/date/${date}` 
-        : `https://localhost:7168/api/Showtimes/movie/${movieId}`;
+        ? `http://localhost:5204/api/Showtimes/movie/${movieId}/date/${date}` 
+        : `http://localhost:5204/api/Showtimes/movie/${movieId}`;
       
       const response = await axios.get(url, {
         headers: {
@@ -672,7 +672,7 @@ const ManageBookings: React.FC = () => {
     try {
       setLoading(true);
       const token = getAuthToken();
-      const response = await axios.get<ShowtimeSeatsResponse>(`https://localhost:7168/api/Seat/showtime/${showtimeId}`, {
+      const response = await axios.get<ShowtimeSeatsResponse>(`http://localhost:5204/api/Seat/showtime/${showtimeId}`, {
         headers: {
           Authorization: token ? `Bearer ${token}` : undefined,
         },
@@ -761,8 +761,8 @@ const ManageBookings: React.FC = () => {
       setLookupLoading(true);
       const token = getAuthToken();
       const endpoint = type === 'phone' 
-        ? `https://localhost:7168/api/Member/lookup/phone/${encodeURIComponent(value)}`
-        : `https://localhost:7168/api/Member/lookup/email/${encodeURIComponent(value)}`;
+        ? `http://localhost:5204/api/Member/lookup/phone/${encodeURIComponent(value)}`
+        : `http://localhost:5204/api/Member/lookup/email/${encodeURIComponent(value)}`;
       
       const response = await axios.get(endpoint, {
         headers: {
@@ -829,7 +829,7 @@ const ManageBookings: React.FC = () => {
         message.success(`Đã tìm thấy thành viên ${response.data.full_Name} - ${response.data.currentPoints?.toLocaleString() || 0} điểm`);
 
         // New API call
-        const bookingResponse = await axios.post('https://localhost:7168/api/Member/link-member', {
+        const bookingResponse = await axios.post('http://localhost:5204/api/Member/link-member', {
           bookingId: bookingId, // Replace with actual booking ID
           memberIdentifier: value
         }, {
@@ -911,7 +911,7 @@ const applyMemberInfo = async () => {
   const fetchMemberDiscount = async (membershipLevel: string) => {
     try {
       const token = getAuthToken();
-      const response = await axios.get(`https://localhost:7168/api/Promotion/member-discount/${membershipLevel}`, {
+      const response = await axios.get(`http://localhost:5204/api/Promotion/member-discount/${membershipLevel}`, {
         headers: {
           Authorization: token ? `Bearer ${token}` : undefined,
         },
@@ -937,7 +937,7 @@ const linkMemberToBooking = async (bookingId: number, memberIdentifier: string) 
     setLoading(true);
     const token = getAuthToken();
     
-    const response = await axios.post('https://localhost:7168/api/Member/link-member', {
+    const response = await axios.post('http://localhost:5204/api/Member/link-member', {
       bookingId: bookingId,
       memberIdentifier: memberIdentifier
     }, {
@@ -1020,7 +1020,7 @@ const linkMemberToBooking = async (bookingId: number, memberIdentifier: string) 
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const response = await axios.post(
-        'https://localhost:7168/api/Promotion/apply',
+        'http://localhost:5204/api/Promotion/apply',
         {
           bookingId: bookingId,
           promotionCode: promotionCode
@@ -1178,7 +1178,7 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
       
       // Send the points as a direct value, not as a JSON object
       const response = await axios.post(
-        `https://localhost:7168/api/Points/booking/${bookingId}/apply-discount`,
+        `http://localhost:5204/api/Points/booking/${bookingId}/apply-discount`,
         pointsToUse,
         {
           headers: {
@@ -1233,7 +1233,7 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
       }
 
       await axios.delete(
-        `https://localhost:7168/api/Promotion/remove/${bookingResponse.booking_ID}`,
+        `http://localhost:5204/api/Promotion/remove/${bookingResponse.booking_ID}`,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -1275,7 +1275,7 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
     try {
       setLoading(true);
       const token = getAuthToken();
-      const response = await axios.post('https://localhost:7168/api/User/staff-register', {
+      const response = await axios.post('http://localhost:5204/api/User/staff-register', {
         fullName: values.name,
         email: values.email,
         phoneNumber: values.phone,
@@ -1366,7 +1366,7 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
       };
       
       // Gọi API để tạo booking
-      const response = await axios.post('https://localhost:7168/api/Booking', bookingPayload, {
+      const response = await axios.post('http://localhost:5204/api/Booking', bookingPayload, {
         headers: {
           Authorization: token ? `Bearer ${token}` : undefined,
           'Content-Type': 'application/json'
@@ -1411,7 +1411,7 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
     try {
       const token = getAuthToken();
       const response = await axios.get<PendingBookingResponse>(
-        'https://localhost:7168/api/Booking/staff/check-pending',
+        'http://localhost:5204/api/Booking/staff/check-pending',
         {
           headers: {
             Authorization: token ? `Bearer ${token}` : undefined,
@@ -1446,7 +1446,7 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
       setLoading(true);
       const token = getAuthToken();
       const response = await axios.put(
-        `https://localhost:7168/api/Booking/${pendingBooking.booking_ID}/cancel`,
+        `http://localhost:5204/api/Booking/${pendingBooking.booking_ID}/cancel`,
         {},
         {
           headers: {
@@ -1591,7 +1591,7 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
       
       if (paymentMethod === 'Cash') {
         // Thanh toán tại quầy - sử dụng PUT /api/Booking/{id}/payment
-        const response = await axios.put(`https://localhost:7168/api/Booking/${bookingId}/payment`, {}, {
+        const response = await axios.put(`http://localhost:5204/api/Booking/${bookingId}/payment`, {}, {
           headers: {
             Authorization: token ? `Bearer ${token}` : undefined,
             'Content-Type': 'application/json'
@@ -1614,7 +1614,7 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
         }
       } else if (paymentMethod === 'Payos') {
         // Thanh toán QR Code - sử dụng POST /api/payos/create
-        const response = await axios.post('https://localhost:7168/api/payos/create', {
+        const response = await axios.post('http://localhost:5204/api/payos/create', {
           bookingId: bookingId
         }, {
           headers: {
@@ -2241,7 +2241,7 @@ const EnhancedPromotionSection = () => {
               // Call the API here
               try {
                 const token = getAuthToken();
-                const response = await axios.put(`https://localhost:7168/api/Booking/${bookingId}/cancel`, {}, {
+                const response = await axios.put(`http://localhost:5204/api/Booking/${bookingId}/cancel`, {}, {
                   headers: {
                     Authorization: token ? `Bearer ${token}` : undefined,
                     'Content-Type': 'application/json'

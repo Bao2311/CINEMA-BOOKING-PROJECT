@@ -38,7 +38,7 @@ interface ProfilePageProps {
 const ProfilePage: React.FC<ProfilePageProps> = ({ defaultTab }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const apiBaseUrl = "https://localhost:7168/api";
+  const apiBaseUrl = "http://localhost:5204/api";
   const { user, isAuthenticated, logout, updateUser } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -339,7 +339,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ defaultTab }) => {
       }
 
       const response = await axios.get(
-        `${apiBaseUrl}/payos/payment-url/${bookingId}`,
+        `${apiBaseUrl}/mock-payment/payment-url/${bookingId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -402,34 +402,41 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ defaultTab }) => {
         return;
       }
 
-      const response = await axios.get<{ $values: TicketDetail[] }>(
+      const response = await axios.get<any>(
         `${apiBaseUrl}/Ticket/booking/${bookingId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      if (response.data.$values) {
-        setTicketDetails(response.data.$values);
+ 
+      const ticketList = response.data?.$values || response.data || [];
+      if (Array.isArray(ticketList) && ticketList.length > 0) {
+        setTicketDetails(ticketList);
         setIsDetailModalOpen(true);
+      } else {
+        showAlert("error", "Đơn đặt vé này không có chi tiết vé nào (có thể đơn hàng đã bị hủy).");
       }
     } catch (error) {
       console.error("Error fetching ticket details:", error);
-      showAlert("error", "Không thể tải thông tin vé. Vui lòng thử lại sau.");
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        showAlert("error", "Đơn đặt vé này không có vé (có thể đơn hàng đã bị hủy hoặc chưa thanh toán).");
+      } else {
+        showAlert("error", "Không thể tải thông tin vé. Vui lòng thử lại sau.");
+      }
     }
   };
 
   if (isProfileLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex justify-center items-center">
+      <div className="min-h-screen bg-[#0B0F19] flex justify-center items-center">
         <div className="flex flex-col items-center">
-          <Loader2 className="animate-spin h-12 w-12 text-indigo-600" />
-          <p className="mt-4 text-gray-600">Đang tải thông tin người dùng...</p>
+          <Loader2 className="animate-spin h-12 w-12 text-red-500" />
+          <p className="mt-4 text-gray-400">Đang tải thông tin người dùng...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#0B0F19] text-white pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {alert.show && (
           <AlertMessage

@@ -501,19 +501,19 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
       
 
       {/* Ticket History Section */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl overflow-hidden text-white">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Film className="h-5 w-5 mr-2 text-indigo-600" />
+            <h2 className="text-lg font-bold text-white flex items-center">
+              <Film className="h-5 w-5 mr-2 text-red-500" />
               Danh sách vé của tôi
-              {isLoaded && <span className="ml-2 text-sm text-gray-500">({filteredTickets.length} vé)</span>}
+              {isLoaded && <span className="ml-2 text-sm text-gray-400">({filteredTickets.length} vé)</span>}
             </h2>
             
             <div className="flex items-center">
               <button 
                 onClick={fetchAllTickets}
-                className="mr-4 text-indigo-600 hover:text-indigo-800 flex items-center text-sm font-medium"
+                className="mr-4 text-red-400 hover:text-red-300 flex items-center text-sm font-semibold transition-colors"
               >
                 <RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
                 Tải lại
@@ -525,9 +525,9 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
                   id="autoRefreshToggle"
                   checked={autoRefresh}
                   onChange={toggleAutoRefresh}
-                  className="mr-2 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  className="mr-2 h-4 w-4 text-red-600 focus:ring-red-500 border-white/10 rounded bg-[#0B0F19]"
                 />
-                <label htmlFor="autoRefreshToggle" className="text-sm text-gray-600">
+                <label htmlFor="autoRefreshToggle" className="text-sm text-gray-400">
                   Tự động cập nhật (30s)
                 </label>
               </div>
@@ -538,7 +538,7 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
           <div className="mb-4">
             <button 
               onClick={() => setFilterOpen(!filterOpen)}
-              className="flex items-center text-gray-700 hover:text-indigo-600 text-sm font-medium mb-2"
+              className="flex items-center text-gray-300 hover:text-red-400 text-sm font-medium mb-2 transition-colors"
             >
               <Filter className="h-4 w-4 mr-1" />
               Bộ lọc & Sắp xếp
@@ -546,13 +546,13 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
             </button>
             
             {filterOpen && (
-              <div className="p-4 bg-gray-50 rounded-lg grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 bg-white/5 border border-white/5 rounded-xl grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái vé</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Trạng thái vé</label>
                   <select 
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full bg-[#0B0F19] border border-white/10 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-red-500"
                   >
                     <option value="all">Tất cả</option>
                     <option value="active">Chưa check-in</option>
@@ -562,11 +562,11 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Sắp xếp theo</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Sắp xếp theo</label>
                   <select 
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full bg-[#0B0F19] border border-white/10 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-red-500"
                   >
                     <option value="date-desc">Ngày đặt (mới nhất)</option>
                     <option value="date-asc">Ngày đặt (cũ nhất)</option>
@@ -576,11 +576,11 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Vé mỗi trang</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Vé mỗi trang</label>
                   <select 
                     value={itemsPerPage}
                     onChange={handleItemsPerPageChange}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full bg-[#0B0F19] border border-white/10 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-red-500"
                   >
                     <option value={5}>5 vé</option>
                     <option value={10}>10 vé</option>
@@ -594,7 +594,7 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
           
           {isLoading && !isLoaded ? (
             <div className="py-12 flex justify-center">
-              <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+              <Loader2 className="h-8 w-8 text-red-500 animate-spin" />
             </div>
           ) : (
             <div id="ticketList">
@@ -606,8 +606,8 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
                   return (
                     <div 
                       key={index} 
-                      className={`border rounded-lg overflow-hidden hover:shadow-md transition-shadow ${
-                          ticketInfo?.ticket_code === ticket.ticket_code && showTicketModal ? 'ring-2 ring-indigo-500' : ''
+                      className={`border border-white/10 bg-white/5 rounded-xl overflow-hidden hover:shadow-md hover:border-white/20 transition-all ${
+                          ticketInfo?.ticket_code === ticket.ticket_code && showTicketModal ? 'ring-2 ring-red-500' : ''
                       }`}
                     >
                       <div className={`${status.bg} p-3 flex justify-between items-center`}>
@@ -623,27 +623,27 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
                             )}
                           </p>
                         </div>
-                        <div className={`bg-white px-3 py-1 rounded-full text-sm font-bold ${status.text} flex items-center`}>
+                        <div className={`bg-white/10 px-3 py-1 rounded-full text-sm font-bold ${status.text} flex items-center`}>
                           {status.icon}
                           {status.statusText}
                         </div>
                       </div>
                       <div className="p-4 grid grid-cols-3 gap-2">
                         <div>
-                          <p className="text-sm text-gray-500">Mã vé</p>
-                          <p className="font-mono font-medium">{ticket.ticket_code}</p>
+                          <p className="text-sm text-gray-400">Mã vé</p>
+                          <p className="font-mono font-medium text-white">{ticket.ticket_code}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-500">Ghế</p>
-                          <p className="font-medium">{ticket.seat_info || 'N/A'}</p>
+                          <p className="text-sm text-gray-400">Ghế</p>
+                          <p className="font-medium text-white">{ticket.seat_info || 'N/A'}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-500">Giá vé</p>
-                          <p className="font-medium">{ticket.final_price.toLocaleString('vi-VN')} đ</p>
+                          <p className="text-sm text-gray-400">Giá vé</p>
+                          <p className="font-medium text-white">{ticket.final_price.toLocaleString('vi-VN')} đ</p>
                         </div>
                         <div className="col-span-3 mt-2 flex justify-end">
                           <button 
-                            className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center"
+                            className="text-red-400 hover:text-red-300 text-sm font-semibold flex items-center transition-colors"
                             onClick={() => viewTicketDetails(ticket)}
                           >
                             <QrCode className="h-4 w-4 mr-1" />
@@ -655,28 +655,18 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
                   );
                 })
               ) : (
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                  <Ticket className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-700 text-lg font-medium mb-2">Không tìm thấy vé nào</p>
-                  <p className="text-sm text-gray-500 max-w-md mx-auto">
+                <div className="text-center py-12 bg-white/[0.02] border border-white/5 rounded-xl">
+                  <Ticket className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+                  <p className="text-white text-lg font-medium mb-2">Không tìm thấy vé nào</p>
+                  <p className="text-sm text-gray-400 max-w-md mx-auto">
                     Bạn chưa có vé nào hoặc không có vé nào phù hợp với bộ lọc hiện tại
                   </p>
                 </div>
               )}
               </div>
-              
-              {/* Pagination */}
-              {filteredTickets.length > 0 && renderPagination()}
-            </div>
-          )}
-        </div>
-      </div>
-
-{/* Ticket Statistics */}
-{isLoaded && allTickets.length > 0 && (
-  <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl overflow-hidden mt-6 text-white">
     <div className="p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Thống kê vé</h2>
+      <h2 className="text-lg font-bold text-white mb-4">Thống kê vé</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg p-4 text-white shadow-md">
@@ -702,11 +692,17 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
       </div>
     </div>
   </div>
-)}
+              
+              {/* Pagination */}
+              {filteredTickets.length > 0 && renderPagination()}
+            </div>
+          )}
+        </div>
+      </div>
 
-{/* Upcoming Movies */}
+{/* Hướng dẫn check-in */}
 {isLoaded && (
-  <div className="bg-gradient-to-r from-indigo-700 to-purple-700 rounded-lg shadow-md overflow-hidden text-white">
+  <div className="bg-gradient-to-r from-red-700 to-red-900 rounded-2xl shadow-xl overflow-hidden text-white mt-6">
     <div className="p-6">
       <h2 className="text-xl font-bold mb-4 flex items-center">
         <Film className="h-5 w-5 mr-2" />
@@ -715,7 +711,7 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4">
-          <div className="bg-white text-indigo-700 h-10 w-10 rounded-full flex items-center justify-center font-bold text-xl mb-3">1</div>
+          <div className="bg-white text-red-700 h-10 w-10 rounded-full flex items-center justify-center font-bold text-xl mb-3">1</div>
           <h3 className="font-semibold text-lg mb-2">Tìm mã vé</h3>
           <p className="text-white text-opacity-90">
             Kiểm tra email xác nhận hoặc trang danh sách vé để lấy mã vé của bạn
@@ -723,7 +719,7 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
         </div>
         
         <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4">
-          <div className="bg-white text-indigo-700 h-10 w-10 rounded-full flex items-center justify-center font-bold text-xl mb-3">2</div>
+          <div className="bg-white text-red-700 h-10 w-10 rounded-full flex items-center justify-center font-bold text-xl mb-3">2</div>
           <h3 className="font-semibold text-lg mb-2">Quét mã QR</h3>
           <p className="text-white text-opacity-90">
             Đưa mã QR trên vé của bạn cho nhân viên tại rạp để quét
@@ -731,7 +727,7 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
         </div>
         
         <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4">
-          <div className="bg-white text-indigo-700 h-10 w-10 rounded-full flex items-center justify-center font-bold text-xl mb-3">3</div>
+          <div className="bg-white text-red-700 h-10 w-10 rounded-full flex items-center justify-center font-bold text-xl mb-3">3</div>
           <h3 className="font-semibold text-lg mb-2">Tận hưởng phim</h3>
           <p className="text-white text-opacity-90">
             Sau khi check-in thành công, bạn có thể vào phòng chiếu để xem phim
@@ -747,15 +743,15 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
   <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center bg-black bg-opacity-50">
     <div 
       ref={modalRef}
-      className="bg-white rounded-lg shadow-2xl overflow-hidden w-full max-w-4xl mx-4 my-8 animate-slideIn"
+      className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-2xl overflow-hidden w-full max-w-4xl mx-4 my-8 animate-slideIn"
       style={{ maxHeight: 'calc(100vh - 64px)' }}
     >
       <div className={`p-4 flex justify-between items-center ${
             ticketInfo.is_checked_in 
-              ? 'bg-gradient-to-r from-green-500 to-emerald-600' 
+              ? 'bg-gradient-to-r from-green-600 to-emerald-700' 
               : ticketInfo.status === 'Cancelled'
-                ? 'bg-gradient-to-r from-red-500 to-rose-600'
-            : 'bg-gradient-to-r from-amber-500 to-orange-600'
+                ? 'bg-gradient-to-r from-red-600 to-rose-700'
+            : 'bg-gradient-to-r from-amber-600 to-orange-700'
           }`}>
             <div>
               <h3 className="font-bold text-xl text-white">
@@ -774,10 +770,10 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
         <div className="flex items-center space-x-4">
           <div className={`px-4 py-2 rounded-full text-sm font-bold flex items-center ${
               ticketInfo.is_checked_in 
-                ? 'bg-white text-green-700' 
+                ? 'bg-white/10 text-white' 
                 : ticketInfo.status === 'Cancelled'
-                  ? 'bg-white text-red-700'
-                : 'bg-white text-amber-700'
+                  ? 'bg-white/10 text-red-400'
+                : 'bg-white/10 text-amber-400'
             }`}>
               {ticketInfo.is_checked_in ? (
                 <>
@@ -811,22 +807,22 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
             <div className="md:col-span-2 space-y-6">
               <div className="flex flex-wrap gap-6">
                 <div className="flex-1 min-w-[200px]">
-                  <h4 className="text-sm font-medium text-gray-500 mb-2 flex items-center">
-                    <QrCode className="h-4 w-4 mr-1" /> Mã vé
+                  <h4 className="text-sm font-medium text-gray-400 mb-2 flex items-center">
+                    <QrCode className="h-4 w-4 mr-1 text-red-500" /> Mã vé
                   </h4>
-                  <div className="bg-gray-100 p-3 rounded-md">
-                    <p className="font-mono text-lg font-semibold tracking-wider">{ticketInfo.ticket_code}</p>
+                  <div className="bg-white/5 border border-white/5 p-3 rounded-xl">
+                    <p className="font-mono text-lg font-semibold tracking-wider text-white">{ticketInfo.ticket_code}</p>
                   </div>
                 </div>
                 
                 <div className="flex-1 min-w-[200px]">
-                  <h4 className="text-sm font-medium text-gray-500 mb-2 flex items-center">
-                    <MapPin className="h-4 w-4 mr-1" /> Phòng & Ghế
+                  <h4 className="text-sm font-medium text-gray-400 mb-2 flex items-center">
+                    <MapPin className="h-4 w-4 mr-1 text-red-500" /> Phòng & Ghế
                   </h4>
-                  <div className="bg-gray-100 p-3 rounded-md">
-                    <p className="font-semibold text-lg">{ticketInfo.showtime_info?.room_name || 'Không xác định'}</p>
+                  <div className="bg-white/5 border border-white/5 p-3 rounded-xl">
+                    <p className="font-semibold text-lg text-white">{ticketInfo.showtime_info?.room_name || 'Không xác định'}</p>
                     <div className="flex items-center mt-1">
-                      <span className="inline-block bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-sm font-medium">
+                      <span className="inline-block bg-red-500/20 text-red-400 px-2 py-1 rounded text-sm font-medium">
                         Ghế: {ticketInfo.seat_info || 'N/A'}
                       </span>
                     </div>
@@ -836,32 +832,32 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-2 flex items-center">
-                    <Calendar className="h-4 w-4 mr-1" /> Lịch chiếu
+                  <h4 className="text-sm font-medium text-gray-400 mb-2 flex items-center">
+                    <Calendar className="h-4 w-4 mr-1 text-red-500" /> Lịch chiếu
                   </h4>
-                  <div className="bg-gray-50 p-3 rounded-md">
-                    <p className="font-medium">
+                  <div className="bg-white/5 border border-white/5 p-3 rounded-xl">
+                    <p className="font-medium text-white">
                       {ticketInfo.showtime_info ? formatDate(ticketInfo.showtime_info.show_date) : 'N/A'}
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-300 mt-1">
                       {ticketInfo.showtime_info ? formatTime(ticketInfo.showtime_info.start_time) : 'N/A'}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-400 mt-1">
                       Phòng: {ticketInfo.showtime_info?.room_name || 'N/A'}
                     </p>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-2 flex items-center">
-                    <CreditCard className="h-4 w-4 mr-1" /> Thông tin thanh toán
+                  <h4 className="text-sm font-medium text-gray-400 mb-2 flex items-center">
+                    <CreditCard className="h-4 w-4 mr-1 text-red-500" /> Thông tin thanh toán
                   </h4>
-                  <div className="bg-gray-50 p-3 rounded-md">
-                    <div className="flex justify-between font-bold text-lg">
+                  <div className="bg-white/5 border border-white/5 p-3 rounded-xl">
+                    <div className="flex justify-between font-bold text-lg text-white">
                       <span>Thành tiền:</span>
-                      <span className="text-indigo-600">{ticketInfo.final_price.toLocaleString('vi-VN')} đ</span>
+                      <span className="text-red-400">{ticketInfo.final_price.toLocaleString('vi-VN')} đ</span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-400 mt-1">
                       Ngày đặt: {formatDate(ticketInfo.booking_date)}
                     </p>
                   </div>
@@ -870,13 +866,13 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
 
               {ticketInfo.is_checked_in && ticketInfo.checkInTime && (
                 <div className="flex-1">
-                  <h4 className="text-sm font-medium text-gray-500 mb-2 flex items-center">
-                    <Clock className="h-4 w-4 mr-1" /> Thời gian check-in
+                  <h4 className="text-sm font-medium text-gray-400 mb-2 flex items-center">
+                    <Clock className="h-4 w-4 mr-1 text-green-500" /> Thời gian check-in
                   </h4>
-                  <div className="bg-green-50 border border-green-100 p-3 rounded-md">
+                  <div className="bg-green-500/10 border border-green-500/20 p-3 rounded-xl">
                     <div className="flex items-center">
-                      <Check className="h-5 w-5 text-green-600 mr-2" />
-                      <p className="font-medium text-green-700">
+                      <Check className="h-5 w-5 text-green-400 mr-2" />
+                      <p className="font-medium text-green-400">
                         {new Date(ticketInfo.checkInTime).toLocaleString('vi-VN')}
                       </p>
                     </div>
@@ -886,13 +882,13 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
               
               {ticketInfo.status === 'Cancelled' && (
                 <div className="flex-1">
-                  <h4 className="text-sm font-medium text-gray-500 mb-2 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" /> Trạng thái vé
+                  <h4 className="text-sm font-medium text-gray-400 mb-2 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1 text-red-500" /> Trạng thái vé
                   </h4>
-                  <div className="bg-red-50 border border-red-100 p-3 rounded-md">
+                  <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-xl">
                     <div className="flex items-center">
-                      <X className="h-5 w-5 text-red-600 mr-2" />
-                      <p className="font-medium text-red-700">
+                      <X className="h-5 w-5 text-red-400 mr-2" />
+                      <p className="font-medium text-red-400">
                         Vé đã bị hủy
                       </p>
                     </div>
@@ -902,14 +898,8 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
             </div>
 
                         {/* Right Column - QR Code and Check-in Button */}
-        <div className="flex flex-col items-center justify-start space-y-4 md:border-l md:pl-6">
-          <div className={`bg-white p-4 rounded-lg shadow-md border-2 ${
-                ticketInfo.is_checked_in 
-                  ? 'border-green-400' 
-                  : ticketInfo.status === 'Cancelled'
-                    ? 'border-red-400'
-                : 'border-amber-400'
-              }`}>
+        <div className="flex flex-col items-center justify-start space-y-4 md:border-l md:border-white/10 md:pl-6">
+          <div className="bg-white p-4 rounded-lg shadow-md border-2 border-white/10">
                 <QRCodeSVG 
                   value={`TICKET:${ticketInfo.ticket_code}`} 
                   size={180}
@@ -917,39 +907,14 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
                   includeMargin={true}
                 />
               </div>
-              <p className="text-sm text-gray-600 text-center">
+              <p className="text-sm text-gray-400 text-center">
                 Quét mã QR này tại quầy vé để check-in
               </p>
               
-              {/* {!ticketInfo.is_checked_in && ticketInfo.status !== 'Cancelled' ? (
-                <button
-                  onClick={handleCheckin}
-                  disabled={isCheckinLoading}
-                  className="mt-4 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center justify-center w-full shadow-md"
-                >
-                  {isCheckinLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  ) : (
-                    <Check className="h-5 w-5 mr-2" />
-                  )}
-                  Check-in ngay
-                </button>
-              ) : ticketInfo.is_checked_in ? (
-                <div className="mt-4 bg-green-100 text-green-800 px-6 py-3 rounded-lg flex items-center justify-center w-full">
-                  <Check className="h-5 w-5 mr-2" />
-                  Đã check-in thành công
-                </div>
-              ) : (
-                <div className="mt-4 bg-red-100 text-red-800 px-6 py-3 rounded-lg flex items-center justify-center w-full">
-                  <X className="h-5 w-5 mr-2" />
-                  Vé đã bị hủy
-                </div>
-              )} */}
-              
               {ticketInfo.movie_info?.poster_url && (
                 <div className="mt-4 w-full">
-                  <h4 className="text-sm font-medium text-gray-500 mb-2 text-center">Poster phim</h4>
-                  <div className="rounded-lg overflow-hidden shadow-md">
+                  <h4 className="text-sm font-medium text-gray-400 mb-2 text-center">Poster phim</h4>
+                  <div className="rounded-lg overflow-hidden shadow-md max-h-48">
                     <img 
                       src={ticketInfo.movie_info.poster_url} 
                       alt={ticketInfo.movie_info.movie_name}
@@ -960,11 +925,11 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
               )}
         </div>
       </div>
-
-      <div className="p-4 bg-gray-50 border-t flex justify-end">
+      
+      <div className="p-4 bg-[#0B0F19] border-t border-white/10 flex justify-end">
         <button
           onClick={closeModal}
-          className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-5 py-2 rounded-lg transition-colors"
+          className="bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/10 px-5 py-2.5 transition-colors text-sm font-bold"
         >
           Đóng
         </button>
@@ -974,12 +939,12 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
       )}
 
       {/* Empty State - No ticket found */}
-{!ticketInfo && !isLoading && ticketCode && !showTicketModal && (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      {!ticketInfo && !isLoading && ticketCode && !showTicketModal && (
+        <div className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl overflow-hidden text-white">
           <div className="text-center py-12">
-            <X className="h-12 w-12 text-red-400 mx-auto mb-4" />
-            <p className="text-gray-700 text-lg font-medium mb-2">Không tìm thấy thông tin vé</p>
-            <p className="text-sm text-gray-500 max-w-md mx-auto">
+            <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <p className="text-white text-lg font-medium mb-2">Không tìm thấy thông tin vé</p>
+            <p className="text-sm text-gray-400 max-w-md mx-auto">
               Vui lòng kiểm tra lại mã vé và thử lại, hoặc liên hệ với bộ phận hỗ trợ nếu bạn gặp vấn đề
             </p>
           </div>
@@ -987,12 +952,12 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
       )}
 
       {/* Initial Empty State */}
-{!ticketInfo && !isLoading && !ticketCode && !isLoaded && !showTicketModal && (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      {!ticketInfo && !isLoading && !ticketCode && !isLoaded && !showTicketModal && (
+        <div className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl overflow-hidden text-white">
           <div className="text-center py-12">
-            <QrCode className="h-12 w-12 text-indigo-400 mx-auto mb-4" />
-            <p className="text-gray-700 text-lg font-medium mb-2">Nhập mã vé để bắt đầu</p>
-            <p className="text-sm text-gray-500 max-w-md mx-auto">
+            <QrCode className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <p className="text-white text-lg font-medium mb-2">Nhập mã vé để bắt đầu</p>
+            <p className="text-sm text-gray-400 max-w-md mx-auto">
               Mã vé có thể tìm thấy trong email xác nhận hoặc trang lịch sử đặt vé
             </p>
           </div>

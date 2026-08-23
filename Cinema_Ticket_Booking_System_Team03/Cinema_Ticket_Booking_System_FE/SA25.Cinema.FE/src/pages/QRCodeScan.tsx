@@ -10,15 +10,15 @@ import { motion } from "framer-motion";
 
 // Theme colors
 const theme = {
-  primary: "#0A1128",
-  secondary: "#001F54",
-  accent: "#FFD700", // Gold
-  light: "#F8F9FA",
-  dark: "#1A1A1A",
-  success: "#00A896",
-  error: "#E63946",
-  cardBg: "rgba(255, 255, 255, 0.95)",
-  gradient: "linear-gradient(135deg, #001F54 0%, #0A1128 100%)",
+  primary: "#0B0F19",
+  secondary: "#161D2F",
+  accent: "#E50914",
+  light: "#FFFFFF",
+  dark: "#0B0F19",
+  success: "#10B981",
+  error: "#EF4444",
+  cardBg: "#161D2F",
+  gradient: "linear-gradient(135deg, #0B0F19 0%, #161D2F 100%)",
 };
 
 // Animation variants
@@ -701,7 +701,7 @@ const QRCodeScanner = () => {
 
   const navigate = useNavigate();
   const { token } = useAuth();
-  const apiBaseUrl = "https://localhost:7168/api";
+  const apiBaseUrl = "http://localhost:5204/api";
 
   const successSound = new Audio("/sounds/success.mp3");
   const errorSound = new Audio("/sounds/error.mp3");

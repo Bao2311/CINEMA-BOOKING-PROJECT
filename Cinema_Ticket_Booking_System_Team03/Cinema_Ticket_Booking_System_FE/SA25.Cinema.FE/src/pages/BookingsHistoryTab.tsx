@@ -41,7 +41,7 @@ interface AlertState {
 
 const BookingHistoryPage: React.FC = () => {
   const navigate = useNavigate();
-  const apiBaseUrl = 'https://localhost:7168/api';
+  const apiBaseUrl = 'http://localhost:5204/api';
   
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -195,7 +195,7 @@ const BookingHistoryPage: React.FC = () => {
           }
     
           const response = await axios.get(
-            `${apiBaseUrl}/payos/payment-url/${bookingId}`,
+            `${apiBaseUrl}/mock-payment/payment-url/${bookingId}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
     
@@ -244,7 +244,6 @@ const BookingHistoryPage: React.FC = () => {
         }
       };
 
-  // Xem chi tiết đặt vé
   const handleViewDetails = async (bookingId: string) => {
         try {
           const token = localStorage.getItem('token');
@@ -254,18 +253,25 @@ const BookingHistoryPage: React.FC = () => {
             return;
           }
     
-          const response = await axios.get<{ $values: TicketDetail[] }>(
+          const response = await axios.get<any>(
             `${apiBaseUrl}/Ticket/booking/${bookingId}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
     
-          if (response.data.$values) {
-            setTicketDetails(response.data.$values);
+          const ticketList = response.data?.$values || response.data || [];
+          if (Array.isArray(ticketList) && ticketList.length > 0) {
+            setTicketDetails(ticketList);
             setIsDetailModalOpen(true);
+          } else {
+            showAlert('error', 'Đơn đặt vé này không có chi tiết vé nào (có thể đơn hàng đã bị hủy).');
           }
         } catch (error) {
           console.error("Error fetching ticket details:", error);
-          showAlert('error', 'Không thể tải thông tin vé. Vui lòng thử lại sau.');
+          if (axios.isAxiosError(error) && error.response?.status === 404) {
+            showAlert('error', 'Đơn đặt vé này không có vé (có thể đơn hàng đã bị hủy hoặc chưa thanh toán).');
+          } else {
+            showAlert('error', 'Không thể tải thông tin vé. Vui lòng thử lại sau.');
+          }
         }
       };
 

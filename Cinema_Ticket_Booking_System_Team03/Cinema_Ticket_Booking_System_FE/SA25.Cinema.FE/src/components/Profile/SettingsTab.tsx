@@ -196,13 +196,13 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+    <div className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl overflow-hidden text-white">
       <div className="p-6">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Đổi mật khẩu</h2>
+          <h2 className="text-xl font-bold text-white mb-6">Đổi mật khẩu</h2>
           <form className="space-y-6 max-w-md" onSubmit={handleChangePassword}>
             <div>
-              <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-300 mb-1">
                 Mật khẩu hiện tại <span className="text-red-500">*</span>
               </label>
               <input
@@ -211,16 +211,16 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 value={passwordForm.currentPassword}
                 onChange={handlePasswordChange}
                 onBlur={handleBlur}
-                className={`w-full px-3 py-2 border ${errors.currentPassword ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500`}
+                className={`w-full px-3 py-2.5 border bg-white/[0.02] text-white rounded-xl text-sm focus:outline-none focus:border-red-500 ${errors.currentPassword ? 'border-red-500' : 'border-white/10'}`}
                 required
                 autoComplete="current-password"
               />
               {errors.currentPassword && (
-                <p className="mt-1 text-xs text-red-600">{errors.currentPassword}</p>
+                <p className="mt-1 text-xs text-red-500">{errors.currentPassword}</p>
               )}
             </div>
             <div>
-              <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="newPassword" className="block text-sm font-medium text-gray-300 mb-1">
                 Mật khẩu mới <span className="text-red-500">*</span>
               </label>
               <input
@@ -229,20 +229,20 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 value={passwordForm.newPassword}
                 onChange={handlePasswordChange}
                 onBlur={handleBlur}
-                className={`w-full px-3 py-2 border ${errors.newPassword ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500`}
+                className={`w-full px-3 py-2.5 border bg-white/[0.02] text-white rounded-xl text-sm focus:outline-none focus:border-red-500 ${errors.newPassword ? 'border-red-500' : 'border-white/10'}`}
                 required
                 autoComplete="new-password"
               />
               {errors.newPassword ? (
-                <p className="mt-1 text-xs text-red-600">{errors.newPassword}</p>
+                <p className="mt-1 text-xs text-red-500">{errors.newPassword}</p>
               ) : (
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-gray-400 leading-relaxed">
                   Ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt (@$!%*?&).
                 </p>
               )}
             </div>
             <div>
-              <label htmlFor="confirmNewPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="confirmNewPassword" className="block text-sm font-medium text-gray-300 mb-1">
                 Xác nhận mật khẩu mới <span className="text-red-500">*</span>
               </label>
               <input
@@ -251,18 +251,18 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 value={passwordForm.confirmNewPassword}
                 onChange={handlePasswordChange}
                 onBlur={handleBlur}
-                className={`w-full px-3 py-2 border ${errors.confirmNewPassword ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500`}
+                className={`w-full px-3 py-2.5 border bg-white/[0.02] text-white rounded-xl text-sm focus:outline-none focus:border-red-500 ${errors.confirmNewPassword ? 'border-red-500' : 'border-white/10'}`}
                 required
                 autoComplete="new-password"
               />
               {errors.confirmNewPassword && (
-                <p className="mt-1 text-xs text-red-600">{errors.confirmNewPassword}</p>
+                <p className="mt-1 text-xs text-red-500">{errors.confirmNewPassword}</p>
               )}
             </div>
             <div className="flex justify-end pt-2">
               <button 
                 type="submit" 
-                className={`${isSubmitting ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'} text-white px-5 py-2 rounded-md transition-colors text-sm font-medium`}
+                className={`px-5 py-2.5 rounded-xl transition-all text-sm font-bold text-white shadow-lg ${isSubmitting ? 'bg-red-600/50 cursor-not-allowed' : 'bg-red-600 hover:bg-red-500 shadow-red-500/20'}`}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Đang xử lý...' : 'Đổi mật khẩu'}

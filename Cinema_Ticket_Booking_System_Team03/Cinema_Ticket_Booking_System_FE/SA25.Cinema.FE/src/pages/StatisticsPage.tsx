@@ -117,7 +117,7 @@ const StatisticsPage = () => {
       }
 
       const response = await axios.get(
-        "https://localhost:7168/api/BookingStatistics",
+        "http://localhost:5204/api/BookingStatistics",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -160,7 +160,7 @@ const StatisticsPage = () => {
       }
 
       const response = await axios.get(
-        "https://localhost:7168/api/SalesReport",
+        "http://localhost:5204/api/SalesReport",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -199,7 +199,7 @@ const StatisticsPage = () => {
       }
 
       const response = await axios.get(
-        "https://localhost:7168/api/StaffPerformance",
+        "http://localhost:5204/api/StaffPerformance",
         {
           headers: {
             Authorization: `Bearer ${token}`,

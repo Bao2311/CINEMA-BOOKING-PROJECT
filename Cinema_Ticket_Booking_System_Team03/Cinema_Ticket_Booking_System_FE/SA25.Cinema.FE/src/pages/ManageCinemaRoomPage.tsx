@@ -557,7 +557,7 @@ const ManageCinemaRoomPage: React.FC = () => {
     setIsSeatTypesPricesLoaded(false); // Set loading before fetch
     try {
       const response = await axios.get(
-        "https://localhost:7168/api/SeatLayout/seat-types",
+        "http://localhost:5204/api/SeatLayout/seat-types",
         {
           headers: {
             // Conditionally add Authorization header only if token exists
@@ -626,7 +626,7 @@ const ManageCinemaRoomPage: React.FC = () => {
     setIsLoading(true);
     setError(null); // Clear previous errors
     try {
-      const response = await axios.get("https://localhost:7168/api/CinemaRoom");
+      const response = await axios.get("http://localhost:5204/api/CinemaRoom");
       if (response.data && Array.isArray(response.data.$values)) {
         // Sắp xếp phòng theo ID từ lớn đến nhỏ
         const sortedRooms = response.data.$values.sort(
@@ -713,7 +713,7 @@ const ManageCinemaRoomPage: React.FC = () => {
 
     try {
       const response = await axios.get(
-        `https://localhost:7168/api/SeatLayout/room/${roomId}`,
+        `http://localhost:5204/api/SeatLayout/room/${roomId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -775,7 +775,7 @@ const ManageCinemaRoomPage: React.FC = () => {
       // This might be DELETE /api/SeatLayout/room/{roomId} or similar.
       // The current code assumes a bulk-delete endpoint which might be incorrect for deleting the whole layout.
       // Using a placeholder - replace with the actual endpoint.
-      // const response = await axios.delete(`https://localhost:7168/api/SeatLayout/room/${roomIdToDelete}`, {
+      // const response = await axios.delete(`http://localhost:5204/api/SeatLayout/room/${roomIdToDelete}`, {
       //   headers: { Authorization: `Bearer ${token}` },
       // });
 
@@ -788,7 +788,7 @@ const ManageCinemaRoomPage: React.FC = () => {
         toast.warn("No seats found in the layout to delete.");
         return;
       }
-      await axios.delete("https://localhost:7168/api/SeatLayout/bulk-delete", {
+      await axios.delete("http://localhost:5204/api/SeatLayout/bulk-delete", {
         headers: { Authorization: `Bearer ${token}` },
         data: { layoutIds }, // Send IDs in the request body for DELETE
       });
@@ -838,7 +838,7 @@ const ManageCinemaRoomPage: React.FC = () => {
       };
 
       await axios.put(
-        `https://localhost:7168/api/SeatLayout/seat/${layoutId}`,
+        `http://localhost:5204/api/SeatLayout/seat/${layoutId}`,
         updatedSeatPayload,
         {
           headers: {
@@ -906,7 +906,7 @@ const ManageCinemaRoomPage: React.FC = () => {
       };
 
       await axios.put(
-        "https://localhost:7168/api/SeatLayout/bulk-update",
+        "http://localhost:5204/api/SeatLayout/bulk-update",
         payload,
         {
           headers: {
@@ -1049,7 +1049,7 @@ const ManageCinemaRoomPage: React.FC = () => {
 
       try {
         const response = await axios.post(
-          "https://localhost:7168/api/SeatLayout/create-room-with-layout",
+          "http://localhost:5204/api/SeatLayout/create-room-with-layout",
           payload,
           {
             headers: {
@@ -1111,7 +1111,7 @@ const ManageCinemaRoomPage: React.FC = () => {
       }
       try {
         const response = await axios.post(
-          "https://localhost:7168/api/CinemaRoom",
+          "http://localhost:5204/api/CinemaRoom",
           newRoom,
           {
             headers: {
@@ -1181,7 +1181,7 @@ const ManageCinemaRoomPage: React.FC = () => {
 
     try {
       const response = await axios.put(
-        `https://localhost:7168/api/CinemaRoom/${currentRoomId}`,
+        `http://localhost:5204/api/CinemaRoom/${currentRoomId}`,
         {
           cinema_Room_ID: currentRoomId,
           ...newRoom,
@@ -1224,7 +1224,7 @@ const ManageCinemaRoomPage: React.FC = () => {
     }
 
     try {
-      await axios.delete(`https://localhost:7168/api/CinemaRoom/${id}`, {
+      await axios.delete(`http://localhost:5204/api/CinemaRoom/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -1320,7 +1320,7 @@ const ManageCinemaRoomPage: React.FC = () => {
 
       // Sử dụng API mới: /api/SeatLayout/bulk/{roomId}
       await axios.post(
-        `https://localhost:7168/api/SeatLayout/bulk/${currentRoomId}`,
+        `http://localhost:5204/api/SeatLayout/bulk/${currentRoomId}`,
         payload,
         {
           headers: {

@@ -115,18 +115,26 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="border-b border-gray-200">
+    <div className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl overflow-hidden text-white">
+      <div className="border-b border-white/10">
         <div className="flex">
           <button
             onClick={() => setActiveSubTab('personal')}
-            className={`px-6 py-4 text-sm font-medium ${activeSubTab === 'personal' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`px-6 py-4 text-sm font-semibold transition-all ${
+              activeSubTab === 'personal'
+                ? 'text-red-400 border-b-2 border-red-500 bg-white/5'
+                : 'text-gray-400 hover:text-white'
+            }`}
           >
             Thông tin cá nhân
           </button>
           <button
             onClick={() => setActiveSubTab('membership')}
-            className={`px-6 py-4 text-sm font-medium ${activeSubTab === 'membership' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`px-6 py-4 text-sm font-semibold transition-all ${
+              activeSubTab === 'membership'
+                ? 'text-red-400 border-b-2 border-red-500 bg-white/5'
+                : 'text-gray-400 hover:text-white'
+            }`}
           >
             Thành viên & Ưu đãi
           </button>
@@ -136,10 +144,13 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({
         {activeSubTab === 'personal' && (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Thông tin cá nhân</h2>
+              <h2 className="text-xl font-bold text-white">Thông tin cá nhân</h2>
               {!isEditing ? (
-                <button onClick={() => setIsEditing(true)} className="flex items-center text-indigo-600 hover:text-indigo-800 text-sm">
-                  <Edit className="h-4 w-4 mr-1" />
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600 hover:text-white rounded-lg text-xs font-semibold transition-all"
+                >
+                  <Edit className="h-3.5 w-3.5" />
                   <span>Chỉnh sửa</span>
                 </button>
               ) : (
@@ -157,9 +168,9 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({
                       });
                     }
                   }}
-                  className="flex items-center text-gray-600 hover:text-gray-800 text-sm"
+                  className="flex items-center gap-1 px-3 py-1.5 bg-white/10 text-gray-300 hover:text-white rounded-lg text-xs font-semibold transition-all"
                 >
-                  <X className="h-4 w-4 mr-1" />
+                  <X className="h-3.5 w-3.5" />
                   <span>Hủy</span>
                 </button>
               )}
@@ -167,7 +178,7 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({
             <form className="space-y-6" onSubmit={handleUpdateProfile}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="full_Name" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="full_Name" className="block text-sm font-medium text-gray-300 mb-1.5">
                     Họ và tên <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -175,80 +186,88 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({
                     id="full_Name"
                     value={formData.full_Name}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'}`}
+                    className={`w-full px-3.5 py-2.5 border rounded-xl text-sm focus:outline-none transition-all ${
+                      isEditing
+                        ? 'border-white/20 bg-white/5 text-white focus:border-red-500'
+                        : 'border-white/10 bg-white/[0.02] text-gray-400 cursor-not-allowed'
+                    }`}
                     disabled={!isEditing}
                     required
                   />
                 </div>
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1.5">
+                    Email
+                  </label>
                   <input
                     type="email"
                     id="email"
                     value={formData.email}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md shadow-sm bg-gray-50 text-gray-500"
+                    className="w-full px-3.5 py-2.5 border border-white/10 bg-white/[0.02] text-gray-400 rounded-xl text-sm cursor-not-allowed"
                     disabled
                   />
-                  <p className="mt-1 text-xs text-gray-500">Email không thể thay đổi.</p>
                 </div>
                 <div>
-                  <label htmlFor="phone_Number" className="block text-sm font-medium text-gray-700 mb-1">
-                    Số điện thoại <span className="text-red-500">*</span>
+                  <label htmlFor="phone_Number" className="block text-sm font-medium text-gray-300 mb-1.5">
+                    Số điện thoại
                   </label>
                   <input
                     type="tel"
                     id="phone_Number"
                     value={formData.phone_Number}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'}`}
+                    className={`w-full px-3.5 py-2.5 border rounded-xl text-sm focus:outline-none transition-all ${
+                      isEditing
+                        ? 'border-white/20 bg-white/5 text-white focus:border-red-500'
+                        : 'border-white/10 bg-white/[0.02] text-gray-400 cursor-not-allowed'
+                    }`}
                     disabled={!isEditing}
-                    required
-                    pattern="0[0-9]{9}"
-                    title="Số điện thoại phải bắt đầu bằng 0 và có 10 chữ số."
                   />
                 </div>
                 <div>
-                  <label htmlFor="date_Of_Birth" className="block text-sm font-medium text-gray-700 mb-1">Ngày sinh</label>
-                  <input
-                    type="date"
-                    id="date_Of_Birth"
-                    value={formData.date_Of_Birth ? formData.date_Of_Birth.split('T')[0] : ''}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'}`}
-                    disabled={!isEditing}
-                    max={new Date().toISOString().split('T')[0]}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="sex" className="block text-sm font-medium text-gray-700 mb-1">Giới tính</label>
+                  <label htmlFor="sex" className="block text-sm font-medium text-gray-300 mb-1.5">
+                    Giới tính
+                  </label>
                   <select
                     id="sex"
                     value={formData.sex}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'}`}
+                    className={`w-full px-3.5 py-2.5 border rounded-xl text-sm focus:outline-none transition-all ${
+                      isEditing
+                        ? 'border-white/20 bg-[#161D2F] text-white focus:border-red-500'
+                        : 'border-white/10 bg-white/[0.02] text-gray-400 cursor-not-allowed'
+                    }`}
                     disabled={!isEditing}
                   >
-                    <option value="">Chọn giới tính</option>
-                    <option value="Male">Nam</option>
-                    <option value="Female">Nữ</option>
-                    <option value="Other">Khác</option>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                    <option value="Khác">Khác</option>
                   </select>
                 </div>
                 <div className="md:col-span-2">
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ</label>
+                  <label htmlFor="address" className="block text-sm font-medium text-gray-300 mb-1.5">
+                    Địa chỉ
+                  </label>
                   <input
                     type="text"
                     id="address"
                     value={formData.address}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'}`}
+                    className={`w-full px-3.5 py-2.5 border rounded-xl text-sm focus:outline-none transition-all ${
+                      isEditing
+                        ? 'border-white/20 bg-white/5 text-white focus:border-red-500'
+                        : 'border-white/10 bg-white/[0.02] text-gray-400 cursor-not-allowed'
+                    }`}
                     disabled={!isEditing}
                   />
                 </div>
               </div>
               {isEditing && (
                 <div className="flex justify-end pt-4">
-                  <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-md transition-colors text-sm font-medium">
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-500/30 transition-all"
+                  >
                     Lưu thay đổi
                   </button>
                 </div>

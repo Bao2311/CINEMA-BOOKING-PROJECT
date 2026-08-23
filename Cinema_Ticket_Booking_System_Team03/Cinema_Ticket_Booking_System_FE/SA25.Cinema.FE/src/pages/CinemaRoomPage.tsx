@@ -146,7 +146,7 @@ const CinemaRoomPage: React.FC = () => {
     const fetchMovieDetails = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get(`https://localhost:7168/api/Movie/${movieId}`);
+        const response = await axios.get(`http://localhost:5204/api/Movie/${movieId}`);
         setMovieDetails(response.data);
       } catch (error) {
         console.error("Error fetching movie details:", error);
@@ -163,7 +163,7 @@ const CinemaRoomPage: React.FC = () => {
     const fetchShowtimeDetails = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get(`https://localhost:7168/api/Showtimes/${showtimeId}`);
+        const response = await axios.get(`http://localhost:5204/api/Showtimes/${showtimeId}`);
         setShowtimeDetails(response.data);
       } catch (error) {
         console.error("Error fetching showtime details:", error);
@@ -183,10 +183,10 @@ const CinemaRoomPage: React.FC = () => {
       const token = localStorage.getItem('token');
 
       try {
-        const layoutResponse = await axios.get(`https://localhost:7168/api/SeatLayout/room/${showtimeDetails.cinema_Room_ID}`, {
+        const layoutResponse = await axios.get(`http://localhost:5204/api/SeatLayout/room/${showtimeDetails.cinema_Room_ID}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const statusResponse = await axios.get(`https://localhost:7168/api/Seat/showtime/${showtimeId}`);
+        const statusResponse = await axios.get(`http://localhost:5204/api/Seat/showtime/${showtimeId}`);
 
         const seatStatusMap: Record<string, SeatStatus> = {};
         statusResponse.data.seats.$values.forEach((seat: SeatStatus) => {
@@ -276,7 +276,7 @@ const CinemaRoomPage: React.FC = () => {
       try {
         const token = localStorage.getItem('token');
         await axios.put(
-          `https://localhost:7168/api/Booking/${bookingId}/cancel`,
+          `http://localhost:5204/api/Booking/${bookingId}/cancel`,
           { id: bookingId },
           {
             headers: {
@@ -341,7 +341,7 @@ const CinemaRoomPage: React.FC = () => {
       setTotalPointsUsed(0); // Reset total points used when creating a new booking
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        'https://localhost:7168/api/Booking/',
+        'http://localhost:5204/api/Booking/',
         bookingData,
         {
           headers: {
@@ -378,17 +378,15 @@ const CinemaRoomPage: React.FC = () => {
     if (step === 'payment') {
       try {
         setIsLoading(true);
-        const payosResponse = await axios.post(
-          'https://localhost:7168/api/payos/create',
-          { bookingId: bookingId },
+        const mockPaymentRes = await axios.get(
+          `http://localhost:5204/api/mock-payment/payment-url/${bookingId}`,
           {
             headers: {
-              'Content-Type': 'application/json',
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
             },
           }
         );
-        const { paymentUrl } = payosResponse.data;
+        const { paymentUrl } = mockPaymentRes.data;
         if (paymentUrl) {
           window.location.href = paymentUrl;
         } else {
@@ -447,7 +445,7 @@ const CinemaRoomPage: React.FC = () => {
         return;
       }
 
-      const response = await axios.get(`https://localhost:7168/api/Points/my-points`, {
+      const response = await axios.get(`http://localhost:5204/api/Points/my-points`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -503,7 +501,7 @@ const CinemaRoomPage: React.FC = () => {
       const token = localStorage.getItem('token');
       
       const response = await axios.post(
-        `https://localhost:7168/api/Points/booking/${bookingId}/apply-discount`,
+        `http://localhost:5204/api/Points/booking/${bookingId}/apply-discount`,
         points,
         {
           headers: {
@@ -553,7 +551,7 @@ const CinemaRoomPage: React.FC = () => {
       const token = localStorage.getItem('token');
       
       const response = await axios.post(
-        'https://localhost:7168/api/Promotion/apply',
+        'http://localhost:5204/api/Promotion/apply',
         {
           bookingId: bookingId,
           promotionCode: promotionCode
@@ -590,7 +588,7 @@ const CinemaRoomPage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.delete(
-        `https://localhost:7168/api/Promotion/remove/${bookingId}`,
+        `http://localhost:5204/api/Promotion/remove/${bookingId}`,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -619,7 +617,7 @@ const CinemaRoomPage: React.FC = () => {
   return (
     <>
       <Styles.GlobalStyle />
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover theme="light" />
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover theme="dark" />
       <Styles.PageContainer>
         <Styles.BookingSection>
           <Styles.StepsIndicator>
@@ -857,7 +855,7 @@ const CinemaRoomPage: React.FC = () => {
                       try {
                         const token = localStorage.getItem('token');
                         await axios.put(
-                          `https://localhost:7168/api/Booking/${bookingId}/cancel`,
+                          `http://localhost:5204/api/Booking/${bookingId}/cancel`,
                           { id: bookingId },
                           {
                             headers: {

@@ -5,42 +5,44 @@ export const GlobalStyle = createGlobalStyle`
   body {
     margin: 0;
     padding: 0;
-    font-family: 'Poppins', sans-serif; /* Font hiá»‡n Ä‘áº¡i hÆ¡n */
-    background: linear-gradient(135deg, #f5f5f7 0%, #e0e0e5 100%); /* Gradient ná»n nháº¹ */
-    color: #2d2d2d;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #0B0F19;
+    color: #ffffff;
     overflow-x: hidden;
   }
   * { box-sizing: border-box; }
   :root {
-    --primary: #1e3a8a; /* MÃ u xanh Ä‘áº­m hÆ¡n */
-    --primary-hover: #1e40af;
-    --secondary: #22c55e; /* Xanh lÃ¡ tÆ°Æ¡i sÃ¡ng */
-    --accent: #ef4444;
-    --dark: #1f2937;
-    --light: #f9fafb;
-    --gray: #6b7280;
-    --text: #1f2937;
-    --text-light: #9ca3af;
-    --border-color: #e5e7eb;
+    --primary: #E50914;
+    --primary-hover: #DC2626;
+    --secondary: #10B981;
+    --accent: #E50914;
+    --dark: #ffffff;
+    --light: #161D2F;
+    --gray: #9CA3AF;
+    --text: #ffffff;
+    --text-light: #9CA3AF;
+    --border-color: rgba(255, 255, 255, 0.1);
   }
 `;
 
 const fadeIn = keyframes`from { opacity: 0; } to { opacity: 1; }`;
-const pulse = keyframes`0% { box-shadow: 0 0 0 0 rgba(30, 58, 138, 0.5); } 70% { box-shadow: 0 0 0 12px rgba(30, 58, 138, 0); } 100% { box-shadow: 0 0 0 0 rgba(30, 58, 138, 0); }`;
+const pulse = keyframes`0% { box-shadow: 0 0 0 0 rgba(229, 9, 20, 0.5); } 70% { box-shadow: 0 0 0 12px rgba(229, 9, 20, 0); } 100% { box-shadow: 0 0 0 0 rgba(229, 9, 20, 0); }`;
 const spin = keyframes`from { transform: rotate(0deg); } to { transform: rotate(360deg); }`;
 
 export const PageContainer = styled.div`
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.05));
+  background-color: #0B0F19;
+  color: #ffffff;
 `;
 
 export const BookingHeader = styled.header`
-  background: linear-gradient(90deg, var(--primary), var(--primary-hover));
-  padding: 1.5rem;
+  background: #161D2F;
+  padding: 1.2rem 1.5rem;
   color: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 `;
 
 export const HeaderContent = styled.div`
@@ -63,50 +65,56 @@ export const Logo = styled.div<{ $small?: boolean }>`
 export const MovieTitle = styled.h1`
   margin: 0;
   font-size: 1.4rem;
-  font-weight: 600;
+  font-weight: 700;
+  color: #ffffff;
 `;
 
 export const BookingSection = styled.section`
   flex: 1;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2.5rem 1rem;
+  padding: 2rem 1rem 3rem;
   width: 100%;
 `;
 
 export const MovieInfoCard = styled.div`
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  margin-bottom: 2.5rem;
+  width: 100%;
+  max-width: 1200px;
+  background: #161D2F;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  margin-bottom: 2rem;
   overflow: hidden;
   transition: transform 0.3s ease;
-  &:hover { transform: translateY(-5px); }
+  &:hover { transform: translateY(-2px); }
 `;
 
 export const MovieInfoContent = styled.div`
   display: flex;
   padding: 1.5rem;
-  @media (max-width: 768px) { flex-direction: column; }
+  align-items: center;
+  @media (max-width: 768px) { flex-direction: column; text-align: center; }
 `;
 
 export const MoviePoster = styled.img`
-  width: 140px;
-  height: 200px;
+  width: 110px;
+  height: 160px;
   object-fit: cover;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  @media (max-width: 768px) { width: 120px; height: 180px; margin-bottom: 1rem; }
+  border-radius: 12px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  @media (max-width: 768px) { width: 100px; height: 150px; margin-bottom: 1rem; }
 `;
 
 export const MovieDetails = styled.div`
   padding-left: 2rem;
   flex: 1;
   h2 {
-    margin: 0 0 1rem;
-    color: var(--dark);
-    font-size: 1.8rem;
-    font-weight: 700;
+    margin: 0 0 0.8rem;
+    color: #ffffff;
+    font-size: 1.6rem;
+    font-weight: 800;
   }
   @media (max-width: 768px) { padding-left: 0; }
 `;
@@ -115,11 +123,16 @@ export const MovieMetaInfo = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 1.2rem;
+  @media (max-width: 768px) { justify-content: center; }
 `;
 
 export const MetaItem = styled.div`
-  font-size: 0.95rem;
-  color: var(--text);
+  font-size: 0.9rem;
+  color: #e5e7eb;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.3rem 0.8rem;
+  border-radius: 8px;
 `;
 
 export const MetaLabel = styled.span`
@@ -129,10 +142,11 @@ export const MetaLabel = styled.span`
 `;
 
 export const CinemaContainer = styled.div`
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  padding: 2.5rem;
+  background: #161D2F;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  padding: 2.5rem 1.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -155,7 +169,7 @@ export const LoadingContainer = styled.div`
 export const LoadingSpinner = styled.div`
   width: 50px;
   height: 50px;
-  border: 5px solid rgba(30, 58, 138, 0.2);
+  border: 4px solid rgba(229, 9, 20, 0.2);
   border-radius: 50%;
   border-top-color: var(--primary);
   animation: ${spin} 0.8s ease-in-out infinite;
@@ -169,17 +183,18 @@ export const LoadingText = styled.div`
 `;
 
 export const Screen = styled.div`
-  width: 85%;
-  height: 50px;
-  background: linear-gradient(135deg, #e5e7eb, #d1d5db);
-  border-radius: 8px;
+  width: 80%;
+  height: 40px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(200, 220, 255, 0.6) 40%, rgba(99, 102, 241, 0.05) 100%);
+  border-radius: 12px;
   margin-bottom: 3.5rem;
   transform: rotateX(-35deg);
-  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 12px 35px rgba(229, 9, 20, 0.25), 0 0 25px rgba(255, 255, 255, 0.2);
   display: flex;
   justify-content: center;
   align-items: center;
   position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.4);
   &:after {
     content: '';
     position: absolute;
@@ -187,15 +202,15 @@ export const Screen = styled.div`
     left: 5%;
     width: 90%;
     height: 25px;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.15), transparent);
+    background: linear-gradient(to bottom, rgba(229, 9, 20, 0.15), transparent);
   }
 `;
 
 export const ScreenText = styled.div`
-  color: #4b5563;
-  font-weight: 700;
-  font-size: 0.9rem;
-  letter-spacing: 3px;
+  color: #0B0F19;
+  font-weight: 900;
+  font-size: 0.85rem;
+  letter-spacing: 4px;
   text-transform: uppercase;
 `;
 
@@ -208,22 +223,24 @@ export const SeatingArea = styled.div`
   margin: 0 auto;
   justify-content: center;
   align-items: center;
+  overflow-x: auto;
+  padding: 0.5rem;
 `;
 
 export const RowContainer = styled(motion.div)`
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.5rem;
   width: 100%;
 `;
 
 export const RowLabel = styled.div`
   width: 35px;
   text-align: center;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-light);
-  font-size: 1rem;
+  font-size: 0.95rem;
 `;
 
 export const SectionContainer = styled.div`
@@ -240,7 +257,7 @@ export const SeatsSection = styled.div`
 `;
 
 export const Aisle = styled.div`
-  width: 10px;
+  width: 14px;
 `;
 
 export const SeatContent = styled.div`
@@ -253,47 +270,51 @@ export const SeatContent = styled.div`
 `;
 
 export const SeatNumber = styled.div`
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
 `;
 
 export const SeatPrice = styled.div`
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   opacity: 0.9;
 `;
 
 export const CheckMark = styled.div`
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   position: absolute;
 `;
 
 export const SeatButton = styled(motion.button)<{ $isBooked: boolean; $isSelected: boolean; $seatType: string; $seatSize?: string }>`
-  width: 38px;
-  height: 38px;
-  border-radius: 8px 8px 0 0;
-  border: none;
-  background: ${props => props.$isBooked ? '#6b7280' : props.$isSelected ? 'var(--secondary)' : props.$seatType === 'vip' ? '#ef4444' : '#3b82f6'};
+  width: 36px;
+  height: 36px;
+  border-radius: 8px 8px 4px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: ${props =>
+    props.$isBooked
+      ? '#374151'
+      : props.$isSelected
+      ? '#10B981'
+      : props.$seatType === 'vip'
+      ? '#E50914'
+      : '#2563EB'};
   color: white;
-  font-weight: 600;
+  font-weight: 700;
   cursor: ${props => props.$isBooked ? 'not-allowed' : 'pointer'};
   position: relative;
-  transition: all 0.25s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  &:after {
-    content: '';
-    position: absolute;
-    bottom: -5px;
-    left: 0;
-    width: 100%;
-    height: 5px;
-    background: ${props => props.$isBooked ? '#4b5563' : props.$isSelected ? '#16a34a' : props.$seatType === 'vip' ? '#b91c1c' : '#1e40af'};
-    border-radius: 0 0 5px 5px;
-  }
+  transition: all 0.2s ease;
+  box-shadow: ${props =>
+    props.$isSelected
+      ? '0 0 15px rgba(16, 185, 129, 0.6)'
+      : props.$seatType === 'vip' && !props.$isBooked
+      ? '0 0 10px rgba(229, 9, 20, 0.3)'
+      : '0 2px 6px rgba(0, 0, 0, 0.3)'};
+  
   &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-3px) scale(1.08);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+    z-index: 10;
   }
-  &:disabled { opacity: 0.6; }
+  &:disabled { opacity: 0.4; }
 `;
 
 export const SeatLegend = styled.div`
@@ -302,30 +323,37 @@ export const SeatLegend = styled.div`
   gap: 2rem;
   margin-top: 2.5rem;
   flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.8rem 1.5rem;
+  border-radius: 12px;
 `;
 
 export const LegendItem = styled.div`
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  font-size: 0.9rem;
-  color: var(--text-light);
+  font-size: 0.85rem;
+  color: #d1d5db;
   font-weight: 500;
 `;
 
 export const ColorBox = styled.div<{ $color: string }>`
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   background: ${props => props.$color};
   border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 `;
 
 export const BookingPanel = styled.div`
-  background: #fff;
-  border-top: 1px solid var(--border-color);
-  padding: 1.5rem;
-  box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.1);
+  background: #161D2F;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.2rem 1.5rem;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+  position: sticky;
+  bottom: 0;
+  z-index: 40;
 `;
 
 export const BookingPanelContent = styled.div`
@@ -335,38 +363,38 @@ export const BookingPanelContent = styled.div`
   justify-content: space-between;
   align-items: center;
   h3 {
-    margin: 0 0 0.6rem;
-    color: var(--dark);
+    margin: 0 0 0.4rem;
+    color: #ffffff;
     font-size: 1.1rem;
-    font-weight: 600;
+    font-weight: 700;
   }
-  @media (max-width: 768px) { flex-direction: column; gap: 1.5rem; }
+  @media (max-width: 768px) { flex-direction: column; gap: 1rem; }
 `;
 
 export const SelectedSeatsContainer = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
-  min-height: 45px;
+  gap: 0.5rem;
+  min-height: 40px;
+  align-items: center;
 `;
 
 export const EmptySelection = styled.div`
   color: var(--text-light);
   font-style: italic;
-  padding: 12px 0;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 `;
 
 export const SeatBadge = styled(motion.div)<{ $seatType: string }>`
   display: flex;
   align-items: center;
-  background: ${props => props.$seatType === 'premium' ? 'rgba(234, 179, 8, 0.15)' : props.$seatType === 'vip' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.15)'};
-  border: 1px solid ${props => props.$seatType === 'premium' ? '#eab308' : props.$seatType === 'vip' ? '#ef4444' : 'var(--primary)'};
-  border-radius: 6px;
-  padding: 0.4rem 0.6rem;
-  font-weight: 600;
+  background: ${props => props.$seatType === 'vip' ? 'rgba(229, 9, 20, 0.2)' : 'rgba(37, 99, 235, 0.2)'};
+  border: 1px solid ${props => props.$seatType === 'vip' ? '#E50914' : '#2563EB'};
+  border-radius: 8px;
+  padding: 0.3rem 0.6rem;
+  font-weight: 700;
   font-size: 0.85rem;
-  color: var(--text);
+  color: #ffffff;
 `;
 
 export const SeatTypeIndicator = styled.div<{ $seatType: string }>`
@@ -376,7 +404,7 @@ export const SeatTypeIndicator = styled.div<{ $seatType: string }>`
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: ${props => props.$seatType === 'premium' ? '#eab308' : props.$seatType === 'vip' ? '#ef4444' : 'var(--primary)'};
+  background: ${props => props.$seatType === 'vip' ? '#E50914' : '#2563EB'};
   color: white;
   font-size: 0.65rem;
   margin-left: 0.4rem;
@@ -386,7 +414,7 @@ export const RemoveButton = styled(motion.button)`
   background: none;
   border: none;
   color: var(--text-light);
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   margin-left: 0.4rem;
   cursor: pointer;
   display: flex;
@@ -405,32 +433,33 @@ export const ActionContainer = styled.div`
   align-items: center;
   justify-content: flex-end;
   gap: 1rem;
+  width: 100%;
 `;
 
 export const BookButton = styled(motion.button)<{ $disabled?: boolean }>`
-  background: ${props => props.$disabled ? 'var(--gray)' : 'var(--primary)'};
+  background: ${props => props.$disabled ? '#374151' : 'var(--primary)'};
   color: white;
   border: none;
-  border-radius: 6px;
-  padding: 0.9rem 2rem;
-  font-size: 1.1rem;
-  font-weight: 600;
+  border-radius: 12px;
+  padding: 0.85rem 2.2rem;
+  font-size: 1rem;
+  font-weight: 700;
   cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: ${props => props.$disabled ? 'none' : '0 4px 15px rgba(229, 9, 20, 0.4)'};
   &:hover:not(:disabled) {
     background: var(--primary-hover);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 20px rgba(229, 9, 20, 0.6);
   }
 `;
 
 export const ButtonSpinner = styled.div`
   width: 18px;
   height: 18px;
-  border: 3px solid rgba(255, 255, 255, 0.4);
+  border: 3px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   border-top-color: white;
   animation: ${spin} 1s linear infinite;
@@ -440,119 +469,113 @@ export const StepsIndicator = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 2rem;
 `;
 
 export const Step = styled.div<{ $active?: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: center;
-  opacity: ${props => props.$active ? 1 : 0.7};
+  opacity: ${props => props.$active ? 1 : 0.6};
   transition: opacity 0.3s ease;
 `;
 
 export const StepNumber = styled.div<{ $active?: boolean }>`
-  width: 35px;
-  height: 35px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: ${props => props.$active ? 'var(--primary)' : '#d1d5db'};
+  background: ${props => props.$active ? 'var(--primary)' : '#374151'};
   color: ${props => props.$active ? 'white' : 'var(--text-light)'};
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.5rem;
   transition: all 0.3s ease;
+  border: 2px solid ${props => props.$active ? '#E50914' : 'transparent'};
   ${props => props.$active && css`animation: ${pulse} 2s infinite;`}
 `;
 
 export const StepLabel = styled.div`
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--text);
-  font-weight: 500;
+  font-weight: 600;
 `;
 
 export const StepConnector = styled.div`
-  height: 3px;
-  width: 100px;
-  background: #d1d5db;
-  margin: 0 1.2rem;
-  @media (max-width: 768px) { width: 50px; }
+  height: 2px;
+  width: 80px;
+  background: #374151;
+  margin: 0 1rem;
+  @media (max-width: 768px) { width: 40px; }
 `;
 
 export const PaymentContainer = styled.div`
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  background: #161D2F;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   padding: 2.5rem;
 `;
 
 export const PaymentHeader = styled.div`
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 20px;
-  color: #333;
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 24px;
+  color: #ffffff;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 1rem;
 `;
 
 export const CountdownTimer = styled.div<{ $warning: boolean }>`
-  font-size: 18px;
-  color: ${props => props.$warning ? '#ff4d4f' : '#52c41a'};
-  font-weight: 500;
-  padding: 8px 16px;
-  border-radius: 4px;
-  background-color: ${props => props.$warning ? '#fff1f0' : '#f6ffed'};
-  border: 1px solid ${props => props.$warning ? '#ffa39e' : '#b7eb8f'};
-  animation: ${props => props.$warning ? 'pulse 1s infinite' : 'none'};
-
-  @keyframes pulse {
-    0% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.05);
-    }
-    100% {
-      transform: scale(1);
-    }
-  }
+  font-size: 0.95rem;
+  color: ${props => props.$warning ? '#ff4d4f' : '#10B981'};
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 10px;
+  background-color: ${props => props.$warning ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)'};
+  border: 1px solid ${props => props.$warning ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'};
 `;
 
 export const PaymentGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2.5rem;
-  @media (max-width: 768px) { grid-template-columns: 1fr; }
+  display: flex;
+  justify-content: center;
+  width: 100%;
 `;
+
 export const OrderSummary = styled.div`
-  margin-left:330px;
-  width:500px;
-  background: #f9fafb;
-  border-radius: 10px;
+  width: 100%;
+  max-width: 580px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   padding: 2rem;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 `;
 
 export const SummaryTitle = styled.h3`
-  margin: 0 0 1.8rem;
-  color: var(--dark);
+  margin: 0 0 1.5rem;
+  color: #ffffff;
   font-size: 1.2rem;
-  font-weight: 600;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.8rem;
 `;
 
 export const SummaryItem = styled.div<{ $total?: boolean }>`
   display: flex;
   justify-content: space-between;
-  margin-bottom: 0.9rem;
-  font-weight: ${props => props.$total ? '700' : '500'};
-  font-size: ${props => props.$total ? '1.2rem' : '0.95rem'};
+  margin-bottom: 0.8rem;
+  font-weight: ${props => props.$total ? '800' : '500'};
+  font-size: ${props => props.$total ? '1.3rem' : '0.95rem'};
+  color: ${props => props.$total ? '#F59E0B' : '#d1d5db'};
 `;
 
 export const SummaryDivider = styled.div`
   height: 1px;
-  background: var(--border-color);
+  background: rgba(255, 255, 255, 0.1);
   margin: 1.2rem 0;
 `;
 
@@ -561,17 +584,17 @@ export const SeatTypeSummary = styled.div`
 `;
 
 export const PaymentForm = styled.div`
-  background: #f9fafb;
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   padding: 2rem;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 `;
 
 export const FormTitle = styled.h3`
   margin: 0 0 1.8rem;
-  color: var(--dark);
+  color: #ffffff;
   font-size: 1.2rem;
-  font-weight: 600;
+  font-weight: 700;
 `;
 
 export const FormGroup = styled.div`
@@ -589,25 +612,25 @@ export const FormLabel = styled.label`
   display: block;
   margin-bottom: 0.6rem;
   color: var(--text-light);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 500;
 `;
 
 export const FormInput = styled.input<{ $error?: boolean }>`
   width: 100%;
-  padding: 0.9rem;
-  border-radius: 6px;
-  border: 1px solid ${props => props.$error ? 'var(--accent)' : 'var(--border-color)'};
-  background: #fff;
-  color: var(--text);
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid ${props => props.$error ? 'var(--accent)' : 'rgba(255, 255, 255, 0.1)'};
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
   font-size: 0.95rem;
   transition: all 0.2s ease;
   &:focus {
     outline: none;
-    border-color: ${props => props.$error ? 'var(--accent)' : 'var(--primary)'};
-    box-shadow: 0 0 0 4px ${props => props.$error ? 'rgba(239, 68, 68, 0.15)' : 'rgba(30, 58, 138, 0.15)'};
+    border-color: var(--primary);
+    background: rgba(255, 255, 255, 0.08);
   }
-  &::placeholder { color: #9ca3af; }
+  &::placeholder { color: #6b7280; }
 `;
 
 export const ErrorMessage = styled.div`
@@ -618,7 +641,7 @@ export const ErrorMessage = styled.div`
 
 export const FormDivider = styled.div`
   height: 1px;
-  background: var(--border-color);
+  background: rgba(255, 255, 255, 0.1);
   margin: 1.8rem 0;
 `;
 
@@ -626,9 +649,10 @@ export const ConfirmationContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  background: #161D2F;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   padding: 3.5rem 2.5rem;
 `;
 
@@ -636,21 +660,21 @@ export const SuccessIcon = styled.div`
   width: 70px;
   height: 70px;
   border-radius: 50%;
-  background: var(--secondary);
+  background: #10B981;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.5rem;
+  font-size: 2.2rem;
   color: white;
-  margin-bottom: 2rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
 `;
 
 export const ConfirmationTitle = styled.h2`
-  margin: 0 0 1.2rem;
-  color: var(--dark);
+  margin: 0 0 0.8rem;
+  color: #ffffff;
   font-size: 2rem;
-  font-weight: 700;
+  font-weight: 800;
 `;
 
 export const ConfirmationText = styled.p`
@@ -658,32 +682,19 @@ export const ConfirmationText = styled.p`
   color: var(--text-light);
   max-width: 550px;
   margin-bottom: 2.5rem;
-  font-size: 1rem;
+  font-size: 0.95rem;
 `;
 
 export const TicketContainer = styled.div`
   width: 100%;
   max-width: 550px;
-  background: #fff;
-  border-radius: 12px;
+  background: #1E2738;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   margin-bottom: 2.5rem;
   position: relative;
-  border: 1px solid var(--border-color);
-  transform: perspective(1000px) rotateX(2deg);
-  transition: transform 0.3s ease;
-  &:hover { transform: perspective(1000px) rotateX(0deg); }
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%231e3a8a' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
-    opacity: 0.6;
-  }
+  border: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
 export const TicketHeader = styled.div`
@@ -691,8 +702,8 @@ export const TicketHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 2px dashed var(--border-color);
-  background: linear-gradient(90deg, var(--primary), var(--primary-hover));
+  border-bottom: 2px dashed rgba(255, 255, 255, 0.15);
+  background: linear-gradient(90deg, #E50914, #B91C1C);
   color: white;
 `;
 
@@ -700,61 +711,62 @@ export const QRCode = styled.div`
   width: 70px;
   height: 70px;
   background: #fff;
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   img { width: 100%; height: 100%; object-fit: cover; }
 `;
 
 export const TicketBody = styled.div`
-  padding: 2rem;
+  padding: 1.8rem;
 `;
 
 export const TicketMovie = styled.h3`
-  margin: 0 0 1.8rem;
-  font-size: 1.5rem;
-  color: var(--dark);
-  font-weight: 700;
+  margin: 0 0 1.5rem;
+  font-size: 1.4rem;
+  color: #ffffff;
+  font-weight: 800;
 `;
 
 export const TicketDetails = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1.5rem;
 `;
 
 export const TicketDetail = styled.div``;
 
 export const TicketDetailLabel = styled.div`
   color: var(--text-light);
-  font-size: 0.9rem;
-  margin-bottom: 0.6rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.4rem;
   font-weight: 500;
 `;
 
 export const TicketDetailValue = styled.div`
-  font-weight: 600;
-  color: var(--text);
-  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  font-size: 0.95rem;
 `;
 
 export const TicketFooter = styled.div`
   padding: 1rem;
-  background: #f9fafb;
+  background: rgba(0, 0, 0, 0.2);
   text-align: center;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 `;
 
 export const TicketId = styled.div`
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--text-light);
-  font-weight: 500;
+  font-weight: 600;
+  font-family: monospace;
 `;
 
 export const ActionButtons = styled.div`
   display: flex;
   gap: 1.2rem;
-  margin-top: 2.5rem;
+  margin-top: 1rem;
   @media (max-width: 500px) { flex-direction: column; }
 `;
 
@@ -762,326 +774,181 @@ export const DownloadButton = styled.button`
   background: var(--primary);
   color: white;
   border: none;
-  border-radius: 6px;
-  padding: 0.9rem 2rem;
-  font-weight: 600;
+  border-radius: 12px;
+  padding: 0.85rem 2rem;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.6rem;
   transition: all 0.2s ease;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
   &:hover {
     background: var(--primary-hover);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
   }
 `;
 
 export const AddToWalletButton = styled.button`
-  background: #1f2937;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 0.9rem 2rem;
-  font-weight: 600;
+  border-radius: 12px;
+  padding: 0.85rem 2rem;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.6rem;
   transition: all 0.2s ease;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
   &:hover {
-    background: #374151;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    background: rgba(255, 255, 255, 0.2);
   }
 `;
 
 export const DownloadIcon = styled.span`
-  font-size: 1.3rem;
+  font-size: 1.2rem;
 `;
 
 export const WalletIcon = styled.span`
-  font-size: 1.3rem;
+  font-size: 1.2rem;
 `;
 
 export const BackButton = styled(motion.button)`
-  background: #f97316;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 0.9rem 2rem;
-  font-size: 1rem;
+  border-radius: 12px;
+  padding: 0.85rem 1.8rem;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
   &:hover {
-    background: #ea580c;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    background: rgba(255, 255, 255, 0.2);
   }
 `;
 
 export const ConfirmButton = styled.button`
-  padding: 0.9rem 2rem;
+  padding: 0.85rem 2rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 12px;
   background: #3b82f6;
   color: white;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
-  &:hover {
-    background: #2563eb;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-  }
+  &:hover { background: #2563eb; }
   &:last-child {
     background: #ef4444;
-    &:hover {
-      background: #dc2626;
-    }
+    &:hover { background: #dc2626; }
   }
 `;
 
 export const PointsDisplay = styled.div`
-  background-color: #f6f8ff;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 12px 16px;
-  border-radius: 8px;
+  border-radius: 12px;
   margin: 16px 0;
-  border: 1px solid #e6e8f0;
 `;
 
 export const PointsText = styled.span`
-  color: #4a5568;
+  color: var(--text-light);
   font-weight: 500;
 `;
 
 export const PointsValue = styled.span`
-  color: #2563eb;
-  font-weight: 600;
+  color: #F59E0B;
+  font-weight: 700;
 `;
 
 export const PointsInputContainer = styled.div`
   display: flex;
   gap: 10px;
-  margin: 16px 0;
+  margin: 14px 0;
   align-items: center;
 `;
 
 export const PointsInput = styled.input`
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
   flex: 1;
   font-size: 14px;
-  
-  &::-webkit-inner-spin-button,
-  &::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+  color: #ffffff;
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
   }
-  
-  &[type=number] {
-    -moz-appearance: textfield;
-  }
-
-  &::placeholder {
-    color: #9ca3af;
-  }
+  &::placeholder { color: #6b7280; }
 `;
 
 export const ApplyPointsButton = styled.button<{ disabled?: boolean }>`
-  padding: 8px 16px;
-  background-color: ${props => props.disabled ? '#9ca3af' : '#3b82f6'};
+  padding: 10px 18px;
+  background-color: ${props => props.disabled ? '#374151' : 'var(--primary)'};
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;
+  font-weight: 700;
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  transition: all 0.2s;
-  
-  &:hover:not(:disabled) {
-    background-color: #2563eb;
-  }
-`;
-
-export const DiscountNote = styled.div`
-  color: #10b981;
-  font-size: 14px;
-  margin-top: 8px;
-  text-align: right;
-  font-weight: 500;
+  transition: all 0.2s ease;
 `;
 
 export const PromotionContainer = styled.div`
   display: flex;
   gap: 10px;
-  margin: 16px 0;
+  margin: 14px 0;
   align-items: center;
 `;
 
 export const PromotionInput = styled.input`
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
   flex: 1;
   font-size: 14px;
+  color: #ffffff;
   text-transform: uppercase;
-  
   &:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    border-color: var(--primary);
   }
+  &::placeholder { color: #6b7280; }
 `;
 
 export const ApplyPromotionButton = styled.button<{ disabled?: boolean }>`
-  padding: 8px 16px;
-  background-color: ${props => props.disabled ? '#9ca3af' : '#3b82f6'};
+  padding: 10px 18px;
+  background-color: ${props => props.disabled ? '#374151' : 'var(--primary)'};
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;
+  font-weight: 700;
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  transition: all 0.2s;
-  white-space: nowrap;
-  
-  &:hover:not(:disabled) {
-    background-color: #2563eb;
-  }
+  transition: all 0.2s ease;
+`;
+
+export const RemovePromotionButton = styled.button<{ disabled?: boolean }>`
+  padding: 10px 18px;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
 `;
 
 export const PriceCalculation = styled.div`
-  margin-top: 16px;
-  padding: 16px;
-  background-color: #f8fafc;
-  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
 `;
 
 export const CalculationItem = styled.div`
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
-  color: #4b5563;
-  font-size: 14px;
-  
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-// Thêm vào cuối file Styles.ts
-
-export const Modal3DContainer = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.9);
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-`;
-
-export const Canvas3DContainer = styled.div`
-  width: 100%;
-  height: 100%;
-  flex: 1;
-`;
-
-export const CloseButton = styled.button`
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: none;
-  border: none;
-  color: white;
-  font-size: 32px;
-  cursor: pointer;
-  z-index: 1001;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    transform: scale(1.1);
-    color: #ef4444;
-  }
-`;
-
-export const ViewToggleContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  padding: 15px;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1001;
-`;
-
-export const ViewToggleButton = styled.button<{ $active?: boolean, disabled?: boolean }>`
-  padding: 10px 20px;
-  margin: 0 10px;
-  background-color: ${props => props.$active ? '#ef4444' : '#2c3e50'};
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  opacity: ${props => props.disabled ? 0.5 : 1};
-  transition: all 0.3s ease;
-  font-weight: 600;
-  
-  &:hover:not(:disabled) {
-    background-color: ${props => props.$active ? '#c0392b' : '#34495e'};
-    transform: translateY(-2px);
-  }
-`;
-
-export const ViewIn3DButton = styled(motion.button)`
-  background-color: #2c3e50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 10px 15px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 20px auto;
-  transition: all 0.3s ease;
-  
-  &:hover:not(:disabled) {
-    background-color: #34495e;
-    transform: translateY(-2px);
-  }
-  
-  &:disabled {
-    background-color: #95a5a6;
-    cursor: not-allowed;
-    opacity: 0.7;
-  }
-  
-  &:before {
-    content: '🎬';
-    margin-right: 8px;
-    font-size: 16px;
-  }
-`;
-
-export const RemovePromotionButton = styled(motion.button)`
-  padding: 0.5rem 1rem;
-  background-color: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #dc2626;
-  }
-
-  &:disabled {
-    background-color: #9ca3af;
-    cursor: not-allowed;
-  }
+  font-size: 0.95rem;
+  color: #d1d5db;
 `;

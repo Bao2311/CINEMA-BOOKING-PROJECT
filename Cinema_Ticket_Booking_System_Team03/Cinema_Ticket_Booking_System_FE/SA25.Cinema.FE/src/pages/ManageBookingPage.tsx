@@ -39,7 +39,7 @@ interface Booking {
   showtime: Showtime;
 }
 
-const API_BASE_URL = 'https://localhost:7168';
+const API_BASE_URL = 'http://localhost:5204';
 
 const ManageBooking: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
