@@ -1613,23 +1613,37 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
           });
         }
       } else if (paymentMethod === 'Payos') {
-        // Thanh toán QR Code - sử dụng POST /api/payos/create
-        const response = await axios.post('http://localhost:5204/api/payos/create', {
-          bookingId: bookingId
-        }, {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : undefined,
-            'Content-Type': 'application/json'
-          },
-        });
-        
-        if (response.data) {
-          // Hiển thị QR code để thanh toán
-          setPaymentData(response.data);
-          setPaymentQrVisible(true);
+        // Thanh toán QR Code - sử dụng /api/mock-payment/payment-url/${bookingId} hoặc fallback payos
+        let payUrl = '';
+        let ordCode = `MOCK_${bookingId}`;
+        let amt = bookingSummary.total;
+
+        try {
+          const res = await axios.get(`http://localhost:5204/api/mock-payment/payment-url/${bookingId}`, {
+            headers: {
+              Authorization: token ? `Bearer ${token}` : undefined,
+            },
+          });
+          if (res.data?.paymentUrl) {
+            payUrl = res.data.paymentUrl;
+            amt = res.data.amount || bookingSummary.total;
+          }
+        } catch {
+          // Fallback if needed
+          payUrl = `http://localhost:5173/mock-payment?bookingId=${bookingId}&amount=${bookingSummary.total}`;
         }
+
+        setPaymentData({
+          success: true,
+          message: 'Tạo mã QR thanh toán thành công',
+          paymentUrl: payUrl,
+          qrCodeUrl: payUrl,
+          orderCode: ordCode,
+          amount: amt
+        });
+        setPaymentQrVisible(true);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing payment:', error);
       message.error('Lỗi xử lý thanh toán: ' + (error.response?.data?.message || error.message));
     } finally {
@@ -1638,21 +1652,38 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
   };
 
   // Cập nhật hàm xử lý khi thanh toán QR thành công
-  const handlePaymentSuccess = () => {
-    setPaymentQrVisible(false);
-    message.success('Thanh toán thành công!');
-    
-    // Chuyển đến trang xác nhận đặt vé
-    navigate('/booking-success', { 
-      state: { 
-        bookingId: bookingId,
-        movieName: selectedMovie?.movie_Name,
-        showtime: `${formatDate(selectedShowtime?.show_Date)} ${formatTime(selectedShowtime?.start_Time)}`,
-        seats: selectedSeats.map(seat => `${seat.row_Name}${seat.seat_Number}`).join(', '),
-        total: bookingSummary.total,
-        paymentMethod: 'Thanh toán QR Code'
-      } 
-    });
+  const handlePaymentSuccess = async () => {
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+      // Xác nhận thanh toán thành công cho đơn đặt vé
+      await axios.put(`http://localhost:5204/api/Booking/${bookingId}/payment`, {}, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+          'Content-Type': 'application/json'
+        },
+      });
+
+      setPaymentQrVisible(false);
+      message.success('Thanh toán thành công!');
+      
+      // Chuyển đến trang xác nhận đặt vé
+      navigate('/booking-success', { 
+        state: { 
+          bookingId: bookingId,
+          movieName: selectedMovie?.movie_Name,
+          showtime: `${formatDate(selectedShowtime?.show_Date)} ${formatTime(selectedShowtime?.start_Time)}`,
+          seats: selectedSeats.map(seat => `${seat.row_Name}${seat.seat_Number}`).join(', '),
+          total: bookingSummary.total,
+          paymentMethod: 'Thanh toán QR Code'
+        } 
+      });
+    } catch (err: any) {
+      console.error('Error confirming payment:', err);
+      message.error('Lỗi khi xác nhận thanh toán: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Format date for display
@@ -2635,7 +2666,18 @@ const EnhancedPromotionSection = () => {
         open={paymentQrVisible}
         onCancel={() => setPaymentQrVisible(false)}
         footer={[
-         
+          <Button key="cancel" onClick={() => setPaymentQrVisible(false)}>
+            Hủy / Đóng
+          </Button>,
+          <Button 
+            key="confirm" 
+            type="primary" 
+            loading={loading}
+            onClick={handlePaymentSuccess}
+            style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+          >
+            Đã thanh toán thành công
+          </Button>
         ]}
       >
         {paymentData && (

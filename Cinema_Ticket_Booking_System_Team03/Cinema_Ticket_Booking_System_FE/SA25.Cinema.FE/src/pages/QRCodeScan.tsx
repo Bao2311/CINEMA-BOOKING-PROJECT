@@ -712,7 +712,7 @@ const QRCodeScanner = () => {
 
   useEffect(() => {
     const role = getRole();
-    if (role !== "Staff") {
+    if (role !== "Staff" && role !== "Admin") {
       toast.error("Bạn không có quyền truy cập trang này.");
       navigate("/");
     }

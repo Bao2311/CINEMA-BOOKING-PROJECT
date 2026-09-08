@@ -299,32 +299,36 @@ const CheckInsTab: React.FC<CheckInsTabProps> = ({ showAlert, apiBaseUrl, naviga
         return;
       }
 
-      // In a real app, this would be a POST request to check in the ticket
-      // For now, we'll simulate it
-      setTimeout(() => {
+      const response = await axios.post(
+        `${apiBaseUrl}/Ticket/scan/${ticketInfo.ticket_code}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
         const updatedTicket = {
           ...ticketInfo,
           is_checked_in: true,
-          checkInTime: new Date().toISOString()
+          checkInTime: response.data.check_in_time
         };
-        
         setTicketInfo(updatedTicket);
-        
-        // Also update in the allTickets array
-        const updatedAllTickets = allTickets.map(ticket => 
-          ticket.ticket_code === ticketInfo.ticket_code 
-            ? { ...ticket, is_checked_in: true } 
+
+        // Cập nhật trong danh sách allTickets
+        const updatedAllTickets = allTickets.map(ticket =>
+          ticket.ticket_code === ticketInfo.ticket_code
+            ? { ...ticket, is_checked_in: true }
             : ticket
         );
-        
         setAllTickets(updatedAllTickets);
         showAlert('success', 'Check-in thành công!');
-        setIsCheckinLoading(false);
-      }, 1500);
-      
-    } catch (error) {
+      } else {
+        showAlert('error', response.data.message || 'Không thể check-in vé');
+      }
+    } catch (error: any) {
       console.error('Error checking in:', error);
-      showAlert('error', 'Đã xảy ra lỗi khi check-in. Vui lòng thử lại sau.');
+      const message = error.response?.data?.message || 'Đã xảy ra lỗi khi check-in. Vui lòng thử lại sau.';
+      showAlert('error', message);
+    } finally {
       setIsCheckinLoading(false);
     }
   };

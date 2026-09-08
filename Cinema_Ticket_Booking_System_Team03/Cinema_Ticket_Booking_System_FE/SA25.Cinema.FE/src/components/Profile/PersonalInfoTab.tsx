@@ -63,7 +63,7 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({
       let formattedDateOfBirth = formData.date_Of_Birth;
       if (formData.date_Of_Birth) {
         const dob = new Date(formData.date_Of_Birth);
-        const today = new Date('2025-04-08'); // Current date: April 08, 2025
+        const today = new Date(); // Ngày hiện tại
         const ageDiff = today.getFullYear() - dob.getFullYear();
         const monthDiff = today.getMonth() - dob.getMonth();
         const dayDiff = today.getDate() - dob.getDate();

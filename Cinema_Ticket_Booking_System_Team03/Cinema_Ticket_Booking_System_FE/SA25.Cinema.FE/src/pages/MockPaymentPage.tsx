@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
+import { QRCodeSVG } from 'qrcode.react';
 
 const API_BASE = 'http://localhost:5204/api';
 
@@ -422,6 +423,19 @@ const MockPaymentPage: React.FC = () => {
                 <div style={styles.bankRow}>
                   <span>Nội dung:</span><strong>CINEMA {bookingId}</strong>
                 </div>
+
+                {/* QR Code Chuyển khoản */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '14px 0 6px', padding: 16, background: '#ffffff', borderRadius: 16, boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}>
+                  <QRCodeSVG
+                    value={`00020101021238580010A00000072701270006970436011012345678900208QRIBFTTA530370454${bookingInfo?.totalAmount ?? amount ?? 0}5802VN62140810CINEMA${bookingId}6304`}
+                    size={160}
+                    level="M"
+                  />
+                  <p style={{ color: '#111827', fontSize: 12, fontWeight: 700, margin: '10px 0 2px' }}>
+                    Quét mã QR bằng App Ngân hàng
+                  </p>
+                  <span style={{ color: '#6B7280', fontSize: 11 }}>Tự động điền số tiền & nội dung chuyển khoản</span>
+                </div>
               </motion.div>
             )}
 
@@ -433,12 +447,21 @@ const MockPaymentPage: React.FC = () => {
                 exit={{ opacity: 0, y: -10 }}
                 style={styles.bankingBox}
               >
-                <div style={{ textAlign: 'center', padding: '12px 0' }}>
-                  <div style={{ fontSize: 60, marginBottom: 8 }}>💜</div>
-                  <p style={{ color: '#9CA3AF', fontSize: 13 }}>Quét mã QR bằng app MoMo</p>
-                  <div style={styles.fakeQR}>
-                    <span style={{ fontSize: 40 }}>📱</span>
-                    <p style={{ color: '#6B7280', fontSize: 11, margin: '8px 0 0' }}>QR Code giả lập</p>
+                <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                  <div style={{ fontSize: 42, marginBottom: 4 }}>💜</div>
+                  <p style={{ color: '#9CA3AF', fontSize: 13, margin: '0 0 10px' }}>Quét mã QR bằng ứng dụng MoMo</p>
+                  
+                  <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', padding: 16, background: '#ffffff', borderRadius: 16, boxShadow: '0 4px 15px rgba(165,0,100,0.2)' }}>
+                    <QRCodeSVG
+                      value={`2fa/momo/payment?amount=${bookingInfo?.totalAmount ?? amount ?? 0}&orderId=CINEMA_${bookingId}`}
+                      size={160}
+                      level="M"
+                      fgColor="#a50064"
+                    />
+                    <p style={{ color: '#a50064', fontSize: 12, fontWeight: 700, margin: '10px 0 2px' }}>
+                      Thanh toán Ví MoMo
+                    </p>
+                    <span style={{ color: '#6B7280', fontSize: 11 }}>Số tiền: {formatCurrency(bookingInfo?.totalAmount ?? Number(amount) ?? 0)}</span>
                   </div>
                 </div>
               </motion.div>
@@ -464,9 +487,18 @@ const MockPaymentPage: React.FC = () => {
                     <input readOnly value="123" placeholder="CVV" style={{ ...styles.fakeInput, flex: 1 }} />
                   </div>
                   <input readOnly value="NGUYEN VAN A" placeholder="Tên chủ thẻ" style={styles.fakeInput} />
-                  <p style={{ color: '#6B7280', fontSize: 11, margin: 0 }}>
-                    💡 Thẻ test — không cần nhập thông tin thật
-                  </p>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 4, padding: 12, background: '#ffffff', borderRadius: 12 }}>
+                    <QRCodeSVG
+                      value={`STP_CARD_PAYMENT_${bookingId}`}
+                      size={80}
+                      level="M"
+                    />
+                    <div style={{ textAlign: 'left' }}>
+                      <p style={{ color: '#111827', fontSize: 12, fontWeight: 700, margin: '0 0 2px' }}>Thẻ thử nghiệm</p>
+                      <p style={{ color: '#6B7280', fontSize: 11, margin: 0 }}>Chỉ cần nhấn xác nhận phía dưới để hoàn tất</p>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}

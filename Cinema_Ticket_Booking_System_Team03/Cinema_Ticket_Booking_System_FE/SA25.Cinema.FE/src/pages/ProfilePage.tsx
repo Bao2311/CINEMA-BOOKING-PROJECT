@@ -132,6 +132,18 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ defaultTab }) => {
     }
   }, [location.pathname]);
 
+  // Xử lý thông báo khi redirect từ trang thanh toán về
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const status = searchParams.get("status");
+    const bId = searchParams.get("bookingId");
+    if (status === "success") {
+      showAlert("success", `Thanh toán đơn đặt vé #${bId || ""} thành công! Vé của bạn đã được xác nhận.`);
+    } else if (status === "cancelled") {
+      showAlert("info", "Đã hủy giao dịch thanh toán.");
+    }
+  }, [location.search]);
+
   useEffect(() => {
     // Check if user is authenticated
     if (!isAuthenticated) {
@@ -323,7 +335,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ defaultTab }) => {
 
   const handleLogout = () => {
     if (window.confirm("Bạn có chắc chắn muốn đăng xuất?")) {
-      localStorage.removeItem("token");
+      logout();
       navigate("/");
     }
   };
@@ -407,9 +419,46 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ defaultTab }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
  
-      const ticketList = response.data?.$values || response.data || [];
-      if (Array.isArray(ticketList) && ticketList.length > 0) {
-        setTicketDetails(ticketList);
+      const rawList = response.data?.$values || (Array.isArray(response.data) ? response.data : []);
+      if (Array.isArray(rawList) && rawList.length > 0) {
+        // Map PascalCase API response → camelCase TicketDetail interface
+        const mapped = rawList.map((t: any) => ({
+          ticket_ID: t.ticket_ID ?? t.Ticket_ID,
+          booking_ID: t.booking_ID ?? t.Booking_ID,
+          ticket_Code: t.ticket_Code ?? t.Ticket_Code,
+          seatInfo: {
+            seat_ID: t.seatInfo?.seat_ID ?? t.SeatInfo?.Seat_ID ?? 0,
+            row_Label: t.seatInfo?.row_Label ?? t.SeatInfo?.Row_Label ?? '',
+            column_Number: t.seatInfo?.column_Number ?? t.SeatInfo?.Column_Number ?? 0,
+            seat_Type: t.seatInfo?.seat_Type ?? t.SeatInfo?.Seat_Type ?? '',
+            seatLabel: t.seatInfo?.seatLabel ?? t.SeatInfo?.SeatLabel ?? '',
+          },
+          movieInfo: {
+            movie_ID: t.movieInfo?.movie_ID ?? t.MovieInfo?.Movie_ID ?? 0,
+            movie_Name: t.movieInfo?.movie_Name ?? t.MovieInfo?.Movie_Name ?? '',
+            duration: t.movieInfo?.duration ?? t.MovieInfo?.Duration ?? 0,
+            rating: t.movieInfo?.rating ?? t.MovieInfo?.Rating ?? '',
+          },
+          showtimeInfo: {
+            showtime_ID: t.showtimeInfo?.showtime_ID ?? t.ShowtimeInfo?.Showtime_ID ?? 0,
+            showDate: t.showtimeInfo?.showDate ?? t.ShowtimeInfo?.ShowDate ?? '',
+            startTime: t.showtimeInfo?.startTime ?? t.ShowtimeInfo?.StartTime ?? '',
+            endTime: t.showtimeInfo?.endTime ?? t.ShowtimeInfo?.EndTime ?? '',
+          },
+          cinemaRoomInfo: {
+            cinema_Room_ID: t.cinemaRoomInfo?.cinema_Room_ID ?? t.CinemaRoomInfo?.Cinema_Room_ID ?? 0,
+            room_Name: t.cinemaRoomInfo?.room_Name ?? t.CinemaRoomInfo?.Room_Name ?? '',
+            room_Type: t.cinemaRoomInfo?.room_Type ?? t.CinemaRoomInfo?.Room_Type ?? '',
+          },
+          priceInfo: {
+            base_Price: t.priceInfo?.base_Price ?? t.PriceInfo?.Base_Price ?? 0,
+            discount_Amount: t.priceInfo?.discount_Amount ?? t.PriceInfo?.Discount_Amount ?? 0,
+            final_Price: t.priceInfo?.final_Price ?? t.PriceInfo?.Final_Price ?? 0,
+          },
+          is_Checked_In: t.is_Checked_In ?? t.Is_Checked_In ?? false,
+          checkInTime: t.checkInTime ?? t.CheckInTime ?? null,
+        }));
+        setTicketDetails(mapped);
         setIsDetailModalOpen(true);
       } else {
         showAlert("error", "Đơn đặt vé này không có chi tiết vé nào (có thể đơn hàng đã bị hủy).");

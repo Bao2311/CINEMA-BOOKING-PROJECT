@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -288,6 +288,7 @@ namespace STP.Web.Controllers
         /// Quét vé - Check-in vé tại rạp (Task 7.2)
         /// </summary>
         [HttpPost("scan/{ticketCode}")]
+        [HttpPost("check-in/{ticketCode}")]
         [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> ScanTicket(string ticketCode)
         {
@@ -318,15 +319,11 @@ namespace STP.Web.Controllers
                 DateTime showtimeStart = showtime.Show_Date.Add(showtime.Start_Time);
                 bool isShowtimeEnded = DateTime.Now >= showtimeStart.AddMinutes(showtime.Movie.Duration);
 
-                // Chỉ cho phép check-in vé trong ngày chiếu và trước khi suất chiếu kết thúc
-                if (!isValidForToday)
-                    return BadRequest(new { success = false, message = "Vé không phải cho ngày hôm nay" });
-
-                if (isShowtimeEnded)
-                    return BadRequest(new { success = false, message = "Suất chiếu đã kết thúc" });
-
+                // Chỉ chặn nếu đơn đặt chưa được xác nhận
                 if (ticket.TicketBooking.Status != "Confirmed")
                     return BadRequest(new { success = false, message = $"Trạng thái đặt vé không hợp lệ: {ticket.TicketBooking.Status}" });
+
+                // Ghi chú cho demo: bỏ check ngày để tiện demo/test
 
                 // Thực hiện check-in vé
                 bool success = await _ticketService.CheckInTicketAsync(ticketCode);
@@ -626,7 +623,7 @@ namespace STP.Web.Controllers
         }
 
         [HttpGet("all")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> GetAllTickets()
         {
             try

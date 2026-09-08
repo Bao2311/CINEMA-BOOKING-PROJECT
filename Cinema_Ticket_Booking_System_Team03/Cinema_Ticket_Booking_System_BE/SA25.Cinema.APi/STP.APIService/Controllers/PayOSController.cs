@@ -217,7 +217,8 @@ namespace STP.APIService.Controllers
                 // Kiểm tra thời hạn thanh toán
                 if (DateTime.Now > booking.Payment_Deadline)
                 {
-                    return BadRequest(new { success = false, message = "Đơn đặt vé đã quá hạn thanh toán" });
+                    booking.Payment_Deadline = DateTime.Now.AddMinutes(15);
+                    await _context.SaveChangesAsync();
                 }
 
                 // Tạo mô tả

@@ -124,6 +124,7 @@ const Navbar: React.FC = () => {
     { to: "/manage-cinemaroom", label: "Quản lý phòng chiếu", icon: BarChart3 },
     { to: "/manage-promotion", label: "Quản lý khuyến mãi", icon: Tag },
     { to: "/manage-accounts", label: "Quản lý nhân viên", icon: Users },
+    { to: "/qrcode", label: "Quét QR vé", icon: Ticket },
     { to: "/statistics", label: "Thống kê", icon: BarChart3 },
   ];
 
