@@ -288,7 +288,6 @@ namespace STP.Web.Controllers
         /// Quét vé - Check-in vé tại rạp (Task 7.2)
         /// </summary>
         [HttpPost("scan/{ticketCode}")]
-        [HttpPost("check-in/{ticketCode}")]
         [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> ScanTicket(string ticketCode)
         {

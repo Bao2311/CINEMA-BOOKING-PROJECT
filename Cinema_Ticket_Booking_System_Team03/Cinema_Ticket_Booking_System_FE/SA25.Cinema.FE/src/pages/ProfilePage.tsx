@@ -15,9 +15,10 @@ import SettingsTab from "../components/Profile/SettingsTab";
 import TicketDetailModal from "../components/Profile/TicketDetailModal";
 import CheckInsTab from "../components/Profile/CheckInsTab";
 
+import { API_URL } from '../config/apiUrl';
+
 // Import các interfaces
 import {
-import { API_URL } from '../config/apiUrl';
   UserProfile,
   Booking,
   Notification,
