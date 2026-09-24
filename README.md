@@ -6,11 +6,19 @@
 ![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?style=for-the-badge&logo=dotnet)
 ![React](https://img.shields.io/badge/React-18.3-61DAFB?style=for-the-badge&logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?style=for-the-badge&logo=typescript)
-![SQL Server](https://img.shields.io/badge/SQL%20Server-LocalDB-CC2927?style=for-the-badge&logo=microsoftsqlserver)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon_Cloud-4169E1?style=for-the-badge&logo=postgresql)
+![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?style=for-the-badge&logo=docker)
+![Render](https://img.shields.io/badge/Render-Backend_Live-46E3B7?style=for-the-badge&logo=render)
+![Vercel](https://img.shields.io/badge/Vercel-Frontend_Live-000000?style=for-the-badge&logo=vercel)
 
 **Hệ thống đặt vé xem phim trực tuyến full-stack** được thực hiện bởi **Lê Quốc Bảo** — Dự án thực tập (Internship) tại **FPT Software**, sinh viên **Đại học FPT**.
 
-[🚀 Demo](#demo) · [📖 Tài liệu](#-cài-đặt-và-chạy-project) · [🐛 Báo lỗi](https://github.com/Bao2311/CINEMA-BOOKING-PROJECT/issues)
+⚡ **Backend API (Swagger Docs Live):** [https://cinema-booking-api-gur7.onrender.com](https://cinema-booking-api-gur7.onrender.com)  
+🐘 **Database Cloud:** [Neon Serverless PostgreSQL](https://neon.tech)  
+🐳 **Backend Host:** Docker Web Service on [Render](https://render.com)  
+🚀 **Frontend Host:** SPA on [Vercel](https://vercel.com)  
+
+[📖 Hướng dẫn cài đặt](#-cài-đặt-và-chạy-project) · [📚 API Documentation](#-api-documentation) · [🐛 Báo lỗi](https://github.com/Bao2311/CINEMA-BOOKING-PROJECT/issues)
 
 </div>
 
@@ -21,9 +29,11 @@
 - [Giới thiệu](#-giới-thiệu)
 - [Tính năng](#-tính-năng)
 - [Công nghệ sử dụng](#-công-nghệ-sử-dụng)
+- [Kiến trúc triển khai Production](#-kiến-trúc-triển-khai-production)
 - [Cấu trúc project](#-cấu-trúc-project)
 - [Yêu cầu hệ thống](#-yêu-cầu-hệ-thống)
 - [Cài đặt và chạy project](#-cài-đặt-và-chạy-project)
+- [Tài khoản demo dùng thử](#-tài-khoản-demo-dùng-thử)
 - [Cấu hình môi trường](#-cấu-hình-môi-trường)
 - [API Documentation](#-api-documentation)
 - [Thông tin người thực hiện](#-thông-tin-người-thực-hiện)
@@ -36,8 +46,8 @@
 
 - 🎫 **Đặt vé trực tuyến** với chọn ghế ngồi theo sơ đồ rạp
 - 💳 **Thanh toán** qua PayOS (sandbox)
-- 📧 **Xác nhận email** tự động
-- 👤 **Quản lý tài khoản** người dùng, lịch sử đặt vé
+- 📧 **Xác nhận email** tự động kèm vé điện tử và mã QR
+- 👤 **Quản lý tài khoản** người dùng, lịch sử đặt vé, tích điểm thành viên
 - 🔐 **Phân quyền** Admin / Staff / Customer
 - 📊 **Dashboard Admin** với thống kê doanh thu, quản lý phim, suất chiếu
 
@@ -78,33 +88,47 @@
 
 ## 🛠️ Công nghệ sử dụng
 
-### Backend
-| Công nghệ | Phiên bản | Mục đích |
-|-----------|-----------|---------|
-| ASP.NET Core | .NET 9 | Web API |
-| Entity Framework Core | 9.x | ORM - Database access |
-| SQL Server LocalDB | - | Database |
-| JWT Bearer | - | Authentication & Authorization |
-| Cloudinary SDK | - | Upload & quản lý hình ảnh |
-| PayOS | - | Cổng thanh toán |
-| MailKit / SMTP | - | Gửi email |
-| Swagger / OpenAPI | - | API documentation |
+### 🚀 Triển khai & Vận hành (Deployment & Cloud Architecture)
+| Nền tảng / Công cụ | Loại hình | Mục đích |
+|--------------------|-----------|---------|
+| **Vercel** | Cloud PaaS / Edge Network | Hosting ứng dụng Frontend React (Vite SPA), tự động build & CI/CD từ GitHub |
+| **Render** | Cloud Container Platform | Hosting Backend API đóng gói bằng Docker Container, hỗ trợ HTTPS tự động |
+| **Neon** | Serverless PostgreSQL | Cơ sở dữ liệu đám mây Production, hỗ trợ autoscaling và kết nối SSL an toàn |
+| **Docker** | Containerization | Đóng gói môi trường chạy chuẩn hóa cho ASP.NET Core 9.0 Web API |
+| **GitHub Actions / Git** | Source Control & CI/CD | Quản lý mã nguồn, tự động kích hoạt deploy khi commit |
+| **Cloudinary** | Cloud Media CDN | Lưu trữ và tối ưu hóa hình ảnh poster phim |
+| **PayOS Gateway** | Online Payment | Cổng thanh toán trực tuyến QR Code ngân hàng (Sandbox) |
+| **Google SMTP** | Mail Service | Gửi email tự động xác nhận đơn hàng, vé điện tử và mã QR qua App Password |
 
-### Frontend
+### Backend (.NET 9 Web API)
 | Công nghệ | Phiên bản | Mục đích |
 |-----------|-----------|---------|
-| React | 18.3 | UI Framework |
-| TypeScript | 5.5 | Type-safe JavaScript |
-| Vite | 5.4 | Build tool & Dev server |
-| React Router DOM | 6.x | Client-side routing |
-| Axios | 1.x | HTTP client |
-| Tailwind CSS | 3.x | Utility-first CSS |
-| Ant Design (antd) | 5.x | UI Component library |
-| MUI (Material UI) | 7.x | UI Component library |
-| Framer Motion | 12.x | Animations |
-| Chart.js | 4.x | Biểu đồ thống kê |
-| QRCode.react | 4.x | Tạo mã QR cho vé |
-| React Toastify | 11.x | Thông báo toast |
+| ASP.NET Core | .NET 9.0 | Web API Framework |
+| Entity Framework Core | 9.x | ORM - Database access |
+| Npgsql EFCore Provider | 9.x | Driver kết nối PostgreSQL (Neon Cloud) |
+| SQL Server LocalDB | - | Database cục bộ cho phát triển (Local Development) |
+| JWT Bearer Authentication | - | Xác thực & phân quyền người dùng (Role-based Authorization) |
+| CloudinaryDotNet | 1.27+ | Upload và quản lý poster phim |
+| PayOS SDK | 1.0+ | Tích hợp cổng thanh toán trực tuyến |
+| MailKit / MimeKit | 4.x | Gửi email SMTP tự động |
+| Swashbuckle / Swagger | 6.x | Tài liệu hóa và giao diện thử nghiệm API trực tiếp (OpenAPI) |
+| QRCoder / ZXing | - | Tạo và giải mã QR Code vé xem phim |
+
+### Frontend (React + TypeScript)
+| Công nghệ | Phiên bản | Mục đích |
+|-----------|-----------|---------|
+| React | 18.3 | UI Library |
+| TypeScript | 5.5 | Ngôn ngữ tĩnh kiểu dữ liệu an toàn |
+| Vite | 5.4 | Công cụ build cực nhanh và Dev server |
+| React Router DOM | 6.x | Định tuyến trang Single Page Application (SPA) |
+| Axios | 1.x | Thư viện gọi HTTP API |
+| Tailwind CSS | 3.x | Hệ thống styling tiện ích |
+| Ant Design (antd) | 5.x | Thư viện UI Component chuyên nghiệp cho Dashboard |
+| Material UI (MUI) | 7.x | Thư viện component phụ trợ |
+| Framer Motion | 12.x | Hiệu ứng chuyển động mượt mà |
+| Chart.js / React-Chartjs-2 | 4.x / 5.x | Biểu đồ báo cáo doanh thu & thống kê |
+| QRCode.react | 4.x | Hiển thị mã QR vé xem phim trực tiếp trên web |
+| React Toastify | 11.x | Hệ thống thông báo toast tức thì |
 
 ---
 
@@ -233,17 +257,15 @@ Frontend sẽ chạy tại: **`http://localhost:5173`**
 
 ---
 
-### Bước 4: Đăng nhập thử
+### Bước 4: Đăng nhập thử (Tài khoản mẫu)
 
-Sau khi migration chạy xong, hệ thống tạo sẵn tài khoản:
+Hệ thống đã tích hợp sẵn cơ chế **Auto-Seeding (DbSeeder)** tự động nạp dữ liệu mẫu ban đầu:
 
-| Role | Email | Mật khẩu |
-|------|-------|---------|
-| Admin | *(xem trong seed data)* | *(xem trong seed data)* |
-| Staff | *(xem trong seed data)* | *(xem trong seed data)* |
-| Customer | Đăng ký tài khoản mới | - |
-
-> Xem file `STP.Repository/Migrations/` hoặc `Program.cs` để tìm seed data mặc định.
+| Role | Email | Mật khẩu | Quyền hạn |
+|------|-------|---------|-----------|
+| 👑 **Admin** | `admin@cinema.com` | `Admin@123` | Toàn quyền quản trị hệ thống, phim, rạp, nhân viên, thống kê |
+| 💼 **Staff** | `staff@cinema.com` | `Staff@123` | Quản lý vé, quét mã QR Check-in khách vào rạp |
+| 👤 **Customer** | `customer@cinema.com` | `User@123` | Khách hàng mẫu (hoặc bấm Đăng ký tài khoản mới) |
 
 ---
 
@@ -251,8 +273,15 @@ Sau khi migration chạy xong, hệ thống tạo sẵn tài khoản:
 
 File `appsettings.json` cần được tạo từ `appsettings.example.json`. Dưới đây là giải thích từng mục:
 
-### 🗄️ Database Connection
+### 🗄️ Database Connection (Hỗ trợ cả PostgreSQL & SQL Server)
 
+- **Production (Neon Cloud - PostgreSQL):**
+```bash
+DATABASE_PROVIDER=PostgreSQL
+DATABASE_URL=postgresql://<user>:<password>@<host>/<database>?sslmode=require
+```
+
+- **Local Development (SQL Server LocalDB):**
 ```json
 "ConnectionStrings": {
   "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=CinemaDB_Local;Trusted_Connection=True;TrustServerCertificate=True"
