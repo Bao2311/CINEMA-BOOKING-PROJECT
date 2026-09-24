@@ -189,15 +189,13 @@ namespace STP.APIService
             var app = builder.Build();
 
             // Cấu hình HTTP request pipeline
-            // Bật Swagger UI trong cả môi trường phát triển và sản xuất
-            if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
+            // Bật Swagger UI trong cả môi trường phát triển và sản xuất ngay tại trang chủ
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
             {
-                app.UseSwagger(); // Middleware để tạo JSON Swagger
-                app.UseSwaggerUI(c =>
-                {
-                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "STP Cinema API V1");
-                });
-            }
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "STP Cinema API V1");
+                c.RoutePrefix = string.Empty; // Mở trang chủ https://... sẽ hiện luôn giao diện Swagger UI
+            });
 
             // Áp dụng chính sách CORS đã cấu hình
             app.UseCors("CinemaAPIPolicy");
