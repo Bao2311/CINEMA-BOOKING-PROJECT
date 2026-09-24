@@ -1732,20 +1732,20 @@ const AlertDialog: React.FC<{
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full">
-        <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
-        <p className="text-sm text-gray-500 mb-4">{message}</p>
-        <div className="flex justify-end space-x-2">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+      <div className="bg-[#161D2F] border border-white/10 text-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+        <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+        <p className="text-sm text-gray-300 mb-6">{message}</p>
+        <div className="flex justify-end space-x-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+            className="px-4 py-2 text-sm font-medium text-gray-300 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
           >
             Hủy
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30"
           >
             Xác nhận
           </button>
@@ -1769,15 +1769,15 @@ const TrailerPreview: React.FC<{ trailerUrl: string }> = ({ trailerUrl }) => {
 
   if (!embedUrl) {
     return (
-      <div className="bg-gray-100 rounded-lg p-4 text-center">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
         <AlertCircle className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
-        <p className="text-gray-600">URL trailer không hợp lệ hoặc không được hỗ trợ</p>
+        <p className="text-gray-400 text-sm">URL trailer không hợp lệ hoặc không được hỗ trợ</p>
       </div>
     );
   }
 
   return (
-    <div className="aspect-w-16 aspect-h-9 rounded-lg overflow-hidden">
+    <div className="aspect-w-16 aspect-h-9 rounded-xl overflow-hidden border border-white/10">
       <iframe
         src={embedUrl}
         title="Trailer"
@@ -1828,14 +1828,14 @@ const PosterUpload: React.FC<{
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="block text-gray-700 text-sm font-bold">
+        <label className="block text-gray-300 text-sm font-semibold">
           Poster phim
         </label>
         {previewUrl && (
           <button
             type="button"
             onClick={handleRemove}
-            className="text-red-500 hover:text-red-700 text-sm flex items-center"
+            className="text-red-400 hover:text-red-300 text-sm flex items-center transition"
           >
             <X className="h-4 w-4 mr-1" /> Xóa
           </button>
@@ -1843,19 +1843,22 @@ const PosterUpload: React.FC<{
       </div>
       
       {previewUrl ? (
-        <div className="relative group">
-          <div className="aspect-w-2 aspect-h-3 rounded-lg overflow-hidden border border-gray-200">
+        <div className="relative group rounded-xl overflow-hidden border border-white/10 bg-black/40">
+          <div className="aspect-w-2 aspect-h-3 max-h-60 overflow-hidden flex items-center justify-center">
             <img
               src={previewUrl}
               alt="Movie poster preview"
-              className="object-cover w-full h-full"
+              className="object-cover max-h-60 rounded-xl"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=200&auto=format&fit=crop&q=60';
+              }}
             />
           </div>
-          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100">
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="bg-white text-gray-800 rounded-full p-2"
+              className="bg-white/20 hover:bg-white/30 text-white rounded-full p-2.5 backdrop-blur-sm transition"
             >
               <Edit className="h-5 w-5" />
             </button>
@@ -1864,11 +1867,11 @@ const PosterUpload: React.FC<{
       ) : (
         <div
           onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-blue-500 transition-colors"
+          className="border-2 border-dashed border-white/20 bg-white/5 hover:border-red-500/60 rounded-xl p-6 text-center cursor-pointer transition-colors"
         >
           <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-          <p className="text-gray-600 mb-1">Kéo thả hoặc click để tải lên</p>
-          <p className="text-xs text-gray-500">PNG, JPG (tối đa 2MB)</p>
+          <p className="text-gray-300 font-medium mb-1">Kéo thả hoặc click để tải lên</p>
+          <p className="text-xs text-gray-400">PNG, JPG (tối đa 2MB)</p>
         </div>
       )}
       
@@ -1889,8 +1892,8 @@ const ValidationError: React.FC<{ message: string }> = ({ message }) => {
   if (!message) return null;
   
   return (
-    <p className="text-red-500 text-xs mt-1 flex items-center">
-      <AlertCircle className="h-3 w-3 mr-1" /> {message}
+    <p className="text-red-400 text-xs mt-1.5 flex items-center">
+      <AlertCircle className="h-3.5 w-3.5 mr-1" /> {message}
     </p>
   );
 };
@@ -1904,29 +1907,43 @@ const CreateMovieSteps: React.FC<{
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between">
-        {Array.from({ length: totalSteps }).map((_, index) => (
-          <React.Fragment key={index}>
-            <div 
-              className={`flex flex-col items-center cursor-pointer ${index < currentStep ? 'text-blue-600' : index === currentStep ? 'text-blue-600' : 'text-gray-400'}`}
-              onClick={() => onStepChange(index)}
-            >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${index < currentStep ? 'bg-blue-100 text-blue-600' : index === currentStep ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                {index < currentStep ? (
-                  <CheckCircle className="h-5 w-5" />
-                ) : (
-                  <span>{index + 1}</span>
-                )}
+        {Array.from({ length: totalSteps }).map((_, index) => {
+          const isCompleted = index < currentStep;
+          const isActive = index === currentStep;
+          return (
+            <React.Fragment key={index}>
+              <div 
+                className={`flex flex-col items-center cursor-pointer transition ${
+                  isActive ? 'text-red-400 font-semibold' : isCompleted ? 'text-emerald-400' : 'text-gray-400 hover:text-gray-300'
+                }`}
+                onClick={() => onStepChange(index)}
+              >
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center mb-1.5 transition-all font-semibold text-sm ${
+                  isCompleted 
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' 
+                    : isActive 
+                    ? 'bg-red-600 text-white shadow-lg shadow-red-600/30' 
+                    : 'bg-[#1E2738] text-gray-400 border border-white/10'
+                }`}>
+                  {isCompleted ? (
+                    <CheckCircle className="h-5 w-5" />
+                  ) : (
+                    <span>{index + 1}</span>
+                  )}
+                </div>
+                <span className="text-xs">
+                  {index === 0 ? 'Thông tin cơ bản' : index === 1 ? 'Chi tiết phim' : 'Media & Trạng thái'}
+                </span>
               </div>
-              <span className="text-xs font-medium">
-                {index === 0 ? 'Thông tin cơ bản' : index === 1 ? 'Chi tiết phim' : 'Media & Trạng thái'}
-              </span>
-            </div>
-            
-            {index < totalSteps - 1 && (
-              <div className={`flex-1 h-1 mx-2 ${index < currentStep ? 'bg-blue-600' : 'bg-gray-200'}`} />
-            )}
-          </React.Fragment>
-        ))}
+              
+              {index < totalSteps - 1 && (
+                <div className={`flex-1 h-0.5 mx-3 transition-colors ${
+                  isCompleted ? 'bg-emerald-500/60' : 'bg-white/10'
+                }`} />
+              )}
+            </React.Fragment>
+          );
+        })}
       </div>
     </div>
   );
@@ -2502,15 +2519,15 @@ const ManageMoviesPage: React.FC = () => {
 
   // Render form theo bước hiện tại
   const renderStepContent = () => {
+    const inputBaseClass = "w-full px-4 py-2.5 bg-[#0B0F19] border text-white rounded-xl placeholder-gray-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all text-sm";
+    const labelClass = "block text-gray-300 text-sm font-medium mb-1.5";
+
     switch (currentStep) {
       case 0:
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="mb-4">
-              <label
-                htmlFor="movie_Name"
-                className="block text-gray-700 text-sm font-bold mb-2"
-              >
+            <div className="mb-2">
+              <label htmlFor="movie_Name" className={labelClass}>
                 Tên phim *
               </label>
               <input
@@ -2519,16 +2536,13 @@ const ManageMoviesPage: React.FC = () => {
                 value={newMovie.movie_Name}
                 onChange={handleInputChange}
                 placeholder="Nhập tên phim"
-                className={`shadow appearance-none border ${validationErrors.movie_Name ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`${inputBaseClass} ${validationErrors.movie_Name ? 'border-red-500' : 'border-white/15'}`}
               />
               <ValidationError message={validationErrors.movie_Name || ''} />
             </div>
 
-            <div className="mb-4">
-              <label
-                htmlFor="release_Date"
-                className="block text-gray-700 text-sm font-bold mb-2"
-              >
+            <div className="mb-2">
+              <label htmlFor="release_Date" className={labelClass}>
                 Ngày phát hành *
               </label>
               <input
@@ -2540,19 +2554,16 @@ const ManageMoviesPage: React.FC = () => {
                     : ""
                 }
                 onChange={handleInputChange}
-                className={`shadow appearance-none border ${validationErrors.release_Date ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`${inputBaseClass} [color-scheme:dark] ${validationErrors.release_Date ? 'border-red-500' : 'border-white/15'}`}
               />
               <ValidationError message={validationErrors.release_Date || ''} />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 Định dạng: YYYY-MM-DD
               </p>
             </div>
 
-            <div className="mb-4">
-              <label
-                htmlFor="end_Date"
-                className="block text-gray-700 text-sm font-bold mb-2"
-              >
+            <div className="mb-2">
+              <label htmlFor="end_Date" className={labelClass}>
                 Ngày kết thúc
               </label>
               <input
@@ -2560,18 +2571,15 @@ const ManageMoviesPage: React.FC = () => {
                 id="end_Date"
                 value={newMovie.end_Date ? newMovie.end_Date.split("T")[0] : ""}
                 onChange={handleInputChange}
-                className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`${inputBaseClass} [color-scheme:dark] border-white/15`}
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 Định dạng: YYYY-MM-DD
               </p>
             </div>
 
-            <div className="mb-4">
-              <label
-                htmlFor="production_Company"
-                className="block text-gray-700 text-sm font-bold mb-2"
-              >
+            <div className="mb-2">
+              <label htmlFor="production_Company" className={labelClass}>
                 Công ty sản xuất *
               </label>
               <input
@@ -2580,16 +2588,13 @@ const ManageMoviesPage: React.FC = () => {
                 value={newMovie.production_Company}
                 onChange={handleInputChange}
                 placeholder="Nhập tên công ty sản xuất"
-                className={`shadow appearance-none border ${validationErrors.production_Company ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`${inputBaseClass} ${validationErrors.production_Company ? 'border-red-500' : 'border-white/15'}`}
               />
               <ValidationError message={validationErrors.production_Company || ''} />
             </div>
 
-            <div className="mb-4">
-              <label
-                htmlFor="director"
-                className="block text-gray-700 text-sm font-bold mb-2"
-              >
+            <div className="mb-2 md:col-span-2">
+              <label htmlFor="director" className={labelClass}>
                 Đạo diễn *
               </label>
               <input
@@ -2598,7 +2603,7 @@ const ManageMoviesPage: React.FC = () => {
                 value={newMovie.director}
                 onChange={handleInputChange}
                 placeholder="Nhập tên đạo diễn"
-                className={`shadow appearance-none border ${validationErrors.director ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`${inputBaseClass} ${validationErrors.director ? 'border-red-500' : 'border-white/15'}`}
               />
               <ValidationError message={validationErrors.director || ''} />
             </div>
@@ -2607,11 +2612,8 @@ const ManageMoviesPage: React.FC = () => {
       case 1:
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="mb-4">
-              <label
-                htmlFor="cast"
-                className="block text-gray-700 text-sm font-bold mb-2"
-              >
+            <div className="mb-2 md:col-span-2">
+              <label htmlFor="cast" className={labelClass}>
                 Diễn viên *
               </label>
               <input
@@ -2620,16 +2622,13 @@ const ManageMoviesPage: React.FC = () => {
                 value={newMovie.cast}
                 onChange={handleInputChange}
                 placeholder="Nhập danh sách diễn viên"
-                className={`shadow appearance-none border ${validationErrors.cast ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`${inputBaseClass} ${validationErrors.cast ? 'border-red-500' : 'border-white/15'}`}
               />
               <ValidationError message={validationErrors.cast || ''} />
             </div>
 
-            <div className="mb-4">
-              <label
-                htmlFor="duration"
-                className="block text-gray-700 text-sm font-bold mb-2"
-              >
+            <div className="mb-2">
+              <label htmlFor="duration" className={labelClass}>
                 Thời lượng (phút) *
               </label>
               <input
@@ -2638,24 +2637,21 @@ const ManageMoviesPage: React.FC = () => {
                 value={newMovie.duration || ""}
                 onChange={handleInputChange}
                 placeholder="Nhập thời lượng phim"
-                className={`shadow appearance-none border ${validationErrors.duration ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`${inputBaseClass} ${validationErrors.duration ? 'border-red-500' : 'border-white/15'}`}
                 min="1"
               />
               <ValidationError message={validationErrors.duration || ''} />
             </div>
 
-            <div className="mb-4">
-              <label
-                htmlFor="genre"
-                className="block text-gray-700 text-sm font-bold mb-2"
-              >
+            <div className="mb-2">
+              <label htmlFor="genre" className={labelClass}>
                 Thể loại *
               </label>
               <select
                 id="genre"
                 value={newMovie.genre}
                 onChange={handleInputChange}
-                className={`shadow appearance-none border ${validationErrors.genre ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`${inputBaseClass} ${validationErrors.genre ? 'border-red-500' : 'border-white/15'}`}
               >
                 <option value="">{newMovie.genre || "Chọn thể loại"}</option>
                 <option value="Hành động">Hành động</option>
@@ -2675,18 +2671,15 @@ const ManageMoviesPage: React.FC = () => {
               <ValidationError message={validationErrors.genre || ''} />
             </div>
 
-            <div className="mb-4">
-              <label
-                htmlFor="rating"
-                className="block text-gray-700 text-sm font-bold mb-2"
-              >
+            <div className="mb-2">
+              <label htmlFor="rating" className={labelClass}>
                 Xếp hạng *
               </label>
               <select
                 id="rating"
                 value={newMovie.rating}
                 onChange={handleInputChange}
-                className={`shadow appearance-none border ${validationErrors.rating ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`${inputBaseClass} ${validationErrors.rating ? 'border-red-500' : 'border-white/15'}`}
               >
                 <option value="">Chọn xếp hạng</option>
                 <option value="P">P - Phổ thông</option>
@@ -2697,18 +2690,15 @@ const ManageMoviesPage: React.FC = () => {
               <ValidationError message={validationErrors.rating || ''} />
             </div>
 
-            <div className="mb-4">
-              <label
-                htmlFor="language"
-                className="block text-gray-700 text-sm font-bold mb-2"
-              >
+            <div className="mb-2">
+              <label htmlFor="language" className={labelClass}>
                 Ngôn ngữ *
               </label>
               <select
                 id="language"
                 value={newMovie.language}
                 onChange={handleInputChange}
-                className={`shadow appearance-none border ${validationErrors.language ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`${inputBaseClass} ${validationErrors.language ? 'border-red-500' : 'border-white/15'}`}
               >
                 <option value="">{newMovie.language || "Chọn ngôn ngữ"}</option>
                 <option value="Tiếng Anh">Tiếng Anh</option>
@@ -2725,18 +2715,15 @@ const ManageMoviesPage: React.FC = () => {
               <ValidationError message={validationErrors.language || ''} />
             </div>
 
-            <div className="mb-4">
-              <label
-                htmlFor="country"
-                className="block text-gray-700 text-sm font-bold mb-2"
-              >
+            <div className="mb-2">
+              <label htmlFor="country" className={labelClass}>
                 Quốc gia *
               </label>
               <select
                 id="country"
                 value={newMovie.country}
                 onChange={handleInputChange}
-                className={`shadow appearance-none border ${validationErrors.country ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`${inputBaseClass} ${validationErrors.country ? 'border-red-500' : 'border-white/15'}`}
               >
                 <option value="">{newMovie.country || "Chọn quốc gia"}</option>
                 <option value="Mỹ">Mỹ</option>
@@ -2754,11 +2741,8 @@ const ManageMoviesPage: React.FC = () => {
               <ValidationError message={validationErrors.country || ''} />
             </div>
 
-            <div className="mb-4 md:col-span-2">
-              <label
-                htmlFor="synopsis"
-                className="block text-gray-700 text-sm font-bold mb-2"
-              >
+            <div className="mb-2 md:col-span-2">
+              <label htmlFor="synopsis" className={labelClass}>
                 Tóm tắt nội dung *
               </label>
               <textarea
@@ -2766,7 +2750,7 @@ const ManageMoviesPage: React.FC = () => {
                 value={newMovie.synopsis}
                 onChange={handleInputChange}
                 placeholder="Nhập tóm tắt nội dung phim"
-                className={`shadow appearance-none border ${validationErrors.synopsis ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`${inputBaseClass} ${validationErrors.synopsis ? 'border-red-500' : 'border-white/15'}`}
                 rows={4}
               />
               <ValidationError message={validationErrors.synopsis || ''} />
@@ -2778,10 +2762,7 @@ const ManageMoviesPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="mb-4">
               <div className="mb-4">
-                <label
-                  htmlFor="trailer_Link"
-                  className="block text-gray-700 text-sm font-bold mb-2"
-                >
+                <label htmlFor="trailer_Link" className={labelClass}>
                   Link trailer *
                 </label>
                 <div className="flex">
@@ -2791,13 +2772,14 @@ const ManageMoviesPage: React.FC = () => {
                     value={newMovie.trailer_Link}
                     onChange={handleInputChange}
                     placeholder="https://www.youtube.com/watch?v=..."
-                    className={`shadow appearance-none border ${validationErrors.trailer_Link ? 'border-red-500' : 'border-gray-300'} rounded-l w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    className={`w-full px-4 py-2.5 bg-[#0B0F19] border ${validationErrors.trailer_Link ? 'border-red-500' : 'border-white/15'} text-white rounded-l-xl placeholder-gray-500 focus:outline-none focus:border-red-500 text-sm`}
                   />
                   <button
                     type="button"
                     onClick={toggleTrailerPreview}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 rounded-r flex items-center"
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 rounded-r-xl flex items-center transition"
                     disabled={!newMovie.trailer_Link}
+                    title="Xem trước trailer"
                   >
                     {showTrailerPreview ? <X className="h-5 w-5" /> : <Play className="h-5 w-5" />}
                   </button>
@@ -2806,24 +2788,21 @@ const ManageMoviesPage: React.FC = () => {
               </div>
               
               {showTrailerPreview && newMovie.trailer_Link && (
-                <div className="mt-4">
-                  <p className="text-sm font-medium text-gray-700 mb-2">Xem trước trailer:</p>
+                <div className="mt-4 mb-4">
+                  <p className="text-sm font-medium text-gray-300 mb-2">Xem trước trailer:</p>
                   <TrailerPreview trailerUrl={newMovie.trailer_Link} />
                 </div>
               )}
               
               <div className="mb-4 mt-6">
-                <label
-                  htmlFor="status"
-                  className="block text-gray-700 text-sm font-bold mb-2"
-                >
+                <label htmlFor="status" className={labelClass}>
                   Trạng thái *
                 </label>
                 <select
                   id="status"
                   value={newMovie.status}
                   onChange={handleInputChange}
-                  className={`shadow appearance-none border ${validationErrors.status ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  className={`${inputBaseClass} ${validationErrors.status ? 'border-red-500' : 'border-white/15'}`}
                 >
                   <option value="">Chọn trạng thái</option>
                   <option value="Now Showing">Đang chiếu</option>
@@ -3252,8 +3231,8 @@ const ManageMoviesPage: React.FC = () => {
         onClose={() => !isSubmitting && setIsAddingMovie(false)}
       >
         <div className="p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-            <Film className="h-6 w-6 mr-2 text-blue-600" />
+          <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
+            <Film className="h-6 w-6 mr-2.5 text-red-500" />
             Thêm phim mới
           </h2>
           
@@ -3266,15 +3245,15 @@ const ManageMoviesPage: React.FC = () => {
           <form onSubmit={addMovie}>
             {renderStepContent()}
             
-            <div className="flex items-center justify-between mt-8">
-              <p className="text-sm text-gray-500">* Trường bắt buộc</p>
-              <div className="flex space-x-2">
+            <div className="flex items-center justify-between mt-8 pt-4 border-t border-white/10">
+              <p className="text-xs text-gray-400">* Trường bắt buộc</p>
+              <div className="flex space-x-3">
                 {currentStep > 0 && (
                   <button
                     type="button"
                     onClick={handlePrevStep}
                     disabled={isSubmitting}
-                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    className="bg-white/10 hover:bg-white/20 text-gray-200 font-medium py-2.5 px-5 rounded-xl transition-colors focus:outline-none"
                   >
                     Quay lại
                   </button>
@@ -3284,10 +3263,10 @@ const ManageMoviesPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleNextStep}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center"
+                    className="bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-6 rounded-xl transition-all shadow-lg shadow-red-600/30 flex items-center focus:outline-none"
                   >
                     Tiếp theo
-                    <ArrowRight className="ml-1 h-4 w-4" />
+                    <ArrowRight className="ml-1.5 h-4 w-4" />
                   </button>
                 ) : (
                   <>
@@ -3298,14 +3277,14 @@ const ManageMoviesPage: React.FC = () => {
                         resetNewMovie();
                       }}
                       disabled={isSubmitting}
-                      className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-gray-500"
+                      className="bg-white/10 hover:bg-white/20 text-gray-200 font-medium py-2.5 px-5 rounded-xl transition-colors focus:outline-none"
                     >
                       Hủy
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-6 rounded-xl transition-all shadow-lg shadow-red-600/30 focus:outline-none"
                     >
                       {isSubmitting ? (
                         <div className="flex items-center">
@@ -3330,8 +3309,8 @@ const ManageMoviesPage: React.FC = () => {
         onClose={() => !isSubmitting && setIsUpdatingMovie(false)}
       >
         <div className="p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-            <Edit className="h-6 w-6 mr-2 text-blue-600" />
+          <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
+            <Edit className="h-6 w-6 mr-2.5 text-red-500" />
             Cập nhật phim
           </h2>
           
@@ -3344,15 +3323,15 @@ const ManageMoviesPage: React.FC = () => {
           <form onSubmit={updateMovie}>
             {renderStepContent()}
             
-            <div className="flex items-center justify-between mt-8">
-              <p className="text-sm text-gray-500">* Trường bắt buộc</p>
-              <div className="flex space-x-2">
+            <div className="flex items-center justify-between mt-8 pt-4 border-t border-white/10">
+              <p className="text-xs text-gray-400">* Trường bắt buộc</p>
+              <div className="flex space-x-3">
                 {currentStep > 0 && (
                   <button
                     type="button"
                     onClick={handlePrevStep}
                     disabled={isSubmitting}
-                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    className="bg-white/10 hover:bg-white/20 text-gray-200 font-medium py-2.5 px-5 rounded-xl transition-colors focus:outline-none"
                   >
                     Quay lại
                   </button>
@@ -3362,10 +3341,10 @@ const ManageMoviesPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleNextStep}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center"
+                    className="bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-6 rounded-xl transition-all shadow-lg shadow-red-600/30 flex items-center focus:outline-none"
                   >
                     Tiếp theo
-                    <ArrowRight className="ml-1 h-4 w-4" />
+                    <ArrowRight className="ml-1.5 h-4 w-4" />
                   </button>
                 ) : (
                   <>
@@ -3376,14 +3355,14 @@ const ManageMoviesPage: React.FC = () => {
                         resetNewMovie();
                       }}
                       disabled={isSubmitting}
-                      className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-gray-500"
+                      className="bg-white/10 hover:bg-white/20 text-gray-200 font-medium py-2.5 px-5 rounded-xl transition-colors focus:outline-none"
                     >
                       Hủy
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-6 rounded-xl transition-all shadow-lg shadow-red-600/30 focus:outline-none"
                     >
                       {isSubmitting ? (
                         <div className="flex items-center">

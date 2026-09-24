@@ -287,21 +287,21 @@ const TagSelector: React.FC<{
       <div
         key={tag}
         onClick={() => onChange(tag)}
-        className={`px-3 py-1.5 rounded-full text-sm cursor-pointer ${
+        className={`px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
           selectedTags.includes(tag)
-            ? "bg-indigo-100 text-indigo-700 border border-indigo-300"
-            : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+            ? "bg-red-600 text-white border border-red-500 shadow-md shadow-red-600/20"
+            : "bg-[#0B0F19] text-gray-300 border border-white/10 hover:border-red-500/40"
         }`}
       >
         <FaFilm
-          className={`mr-1.5 ${
-            selectedTags.includes(tag) ? "text-indigo-500" : "text-gray-500"
+          className={`mr-1.5 inline ${
+            selectedTags.includes(tag) ? "text-white" : "text-gray-400"
           }`}
-          size={12}
+          size={11}
         />
         {tag}
         {selectedTags.includes(tag) && (
-          <FaCheck className="ml-1.5 text-indigo-500" size={10} />
+          <FaCheck className="ml-1.5 inline text-white" size={10} />
         )}
       </div>
     ))}
@@ -323,21 +323,21 @@ const DiscountValueSelector: React.FC<{
         <div
           key={value}
           onClick={() => onChange(value)}
-          className={`px-3 py-1.5 rounded-full text-sm cursor-pointer ${
+          className={`px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
             selectedValue === value
-              ? "bg-indigo-100 text-indigo-700 border border-indigo-300"
-              : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+              ? "bg-red-600 text-white border border-red-500 shadow-md shadow-red-600/20"
+              : "bg-[#0B0F19] text-gray-300 border border-white/10 hover:border-red-500/40"
           }`}
         >
           <FaTag
-            className={`mr-1.5 ${
-              selectedValue === value ? "text-indigo-500" : "text-gray-500"
+            className={`mr-1.5 inline ${
+              selectedValue === value ? "text-white" : "text-gray-400"
             }`}
-            size={12}
+            size={11}
           />
           {formatNumberWithDots(value)}đ
           {selectedValue === value && (
-            <FaCheck className="ml-1.5 text-indigo-500" size={10} />
+            <FaCheck className="ml-1.5 inline text-white" size={10} />
           )}
         </div>
       ))}
@@ -364,14 +364,14 @@ const EnhancedDatePicker: React.FC<{
       placeholderText={placeholder}
       minDate={minDate}
       required={required}
-      className={`w-full bg-[#1E2738] text-white border ${
-        error ? "border-red-500" : "border-white/10"
-      } rounded-xl py-2.5 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-500 text-sm`}
+      className={`w-full bg-[#0B0F19] text-white border ${
+        error ? "border-red-500" : "border-white/15"
+      } rounded-xl py-2.5 pl-10 pr-3 focus:outline-none focus:border-red-500 placeholder-gray-500 text-sm [color-scheme:dark]`}
     />
     <div className="absolute left-0 top-0 bottom-0 w-10 flex items-center justify-center pointer-events-none">
       <FaCalendarDay className={error ? "text-red-400" : "text-gray-400"} />
     </div>
-    {error && <p className="mt-1 text-sm text-red-400">{error}</p>}
+    {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
   </div>
 );
 
@@ -389,18 +389,18 @@ const CustomToggle: React.FC<{
         onChange={onChange}
       />
       <div
-        className={`w-10 h-5 bg-gray-300 rounded-full shadow-inner ${
-          checked ? "bg-indigo-500" : ""
+        className={`w-10 h-5 bg-white/10 border border-white/15 rounded-full shadow-inner transition-colors ${
+          checked ? "bg-red-600 border-red-500" : ""
         }`}
       ></div>
       <div
-        className={`absolute w-3.5 h-3.5 bg-white rounded-full shadow transform ${
+        className={`absolute w-3.5 h-3.5 bg-white rounded-full shadow transform transition-transform ${
           checked ? "translate-x-5" : "translate-x-0.5"
         } top-0.75`}
         style={{ top: "3px", left: "2px" }}
       ></div>
     </div>
-    {label && <span className="ml-2 text-sm text-gray-700">{label}</span>}
+    {label && <span className="ml-2.5 text-sm text-gray-300">{label}</span>}
   </label>
 );
 
@@ -1018,41 +1018,44 @@ const PromotionFormModal: React.FC<{
         initial="hidden"
         animate="visible"
         exit="hidden"
-        className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
+        className="bg-[#161D2F] border border-white/10 text-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
       >
-        <div className="flex justify-between items-center px-6 py-4 border-b">
-          <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+        <div className="flex justify-between items-center px-6 py-4 border-b border-white/10 bg-[#161D2F]">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <span className="w-2.5 h-6 bg-red-600 rounded-full inline-block"></span>
+            {title}
+          </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 focus:outline-none"
+            className="text-gray-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors"
           >
-            <FaTimes />
+            <FaTimes size={16} />
           </button>
         </div>
-        <div className="px-6 py-4 border-b">
-          <div className="flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-white/10 bg-[#0B0F19]/40">
+          <div className="flex items-center justify-between max-w-md mx-auto">
             {Array.from({ length: totalSteps }).map((_, index) => (
               <React.Fragment key={index}>
                 <div className="flex flex-col items-center">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-sm transition-all ${
                       step > index + 1
-                        ? "bg-indigo-600"
+                        ? "bg-emerald-600 text-white"
                         : step === index + 1
-                        ? "bg-indigo-500"
-                        : "bg-gray-200"
-                    } text-white font-medium`}
+                        ? "bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-600/30 scale-105"
+                        : "bg-[#1E2738] text-gray-400 border border-white/10"
+                    }`}
                   >
-                    {step > index + 1 ? <FaCheck /> : index + 1}
+                    {step > index + 1 ? <FaCheck size={12} /> : index + 1}
                   </div>
-                  <div className="text-xs mt-2 text-gray-600">
-                    {index === 0 ? "Thông tin cơ bản" : "Thời gian & Giới hạn"}
+                  <div className={`text-xs mt-1.5 font-medium ${step === index + 1 ? "text-white font-semibold" : "text-gray-400"}`}>
+                    {index === 0 ? "1. Thông tin cơ bản" : "2. Thời gian & Giới hạn"}
                   </div>
                 </div>
                 {index < totalSteps - 1 && (
                   <div
-                    className={`flex-1 h-1 mx-2 ${
-                      step > index + 1 ? "bg-indigo-600" : "bg-gray-200"
+                    className={`flex-1 h-0.5 mx-4 transition-all ${
+                      step > index + 1 ? "bg-red-600" : "bg-white/10"
                     }`}
                   ></div>
                 )}
@@ -1061,17 +1064,22 @@ const PromotionFormModal: React.FC<{
           </div>
         </div>
         <div
-          className="px-6 py-4 overflow-y-auto"
+          className="px-6 py-6 overflow-y-auto flex-1 custom-scrollbar"
           style={{ maxHeight: "calc(90vh - 180px)" }}
         >
-          {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+          {error && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-300 rounded-xl text-sm flex items-center gap-2">
+              <FaExclamationTriangle className="text-red-400 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
           <form onSubmit={handleSubmit}>
             {step === 1 && (
-              <div className="space-y-6">
+              <div className="space-y-5">
                 <div>
                   <label
                     htmlFor="name"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="block text-sm font-medium text-gray-300 mb-1.5"
                   >
                     Tên khuyến mãi <span className="text-red-500">*</span>
                   </label>
@@ -1081,23 +1089,19 @@ const PromotionFormModal: React.FC<{
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className={`w-full border ${
-                      errors.name ? "border-red-500" : "border-gray-300"
-                    } rounded-lg py-2 px-3 focus:outline-none focus:ring-2 ${
-                      errors.name
-                        ? "focus:ring-red-500"
-                        : "focus:ring-indigo-500"
-                    }`}
-                    placeholder="Nhập tên khuyến mãi"
+                    className={`w-full bg-[#0B0F19] text-white border ${
+                      errors.name ? "border-red-500" : "border-white/15"
+                    } rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-red-500 placeholder-gray-500 text-sm`}
+                    placeholder="Nhập tên chương trình khuyến mãi"
                   />
                   {errors.name && (
-                    <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                    <p className="mt-1 text-xs text-red-400">{errors.name}</p>
                   )}
                 </div>
                 <div>
                   <label
                     htmlFor="code"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="block text-sm font-medium text-gray-300 mb-1.5"
                   >
                     Mã khuyến mãi <span className="text-red-500">*</span>
                   </label>
@@ -1114,23 +1118,19 @@ const PromotionFormModal: React.FC<{
                       if (errors.code)
                         setErrors((prev) => ({ ...prev, code: "" }));
                     }}
-                    className={`w-full border ${
-                      errors.code ? "border-red-500" : "border-gray-300"
-                    } rounded-lg py-2 px-3 focus:outline-none focus:ring-2 ${
-                      errors.code
-                        ? "focus:ring-red-500"
-                        : "focus:ring-indigo-500"
-                    }`}
-                    placeholder="Nhập mã khuyến mãi (VD: SUMMER2023)"
+                    className={`w-full bg-[#0B0F19] text-white uppercase font-mono tracking-wider border ${
+                      errors.code ? "border-red-500" : "border-white/15"
+                    } rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-red-500 placeholder-gray-500 text-sm`}
+                    placeholder="VD: CINEMA50, SUMMER2026"
                   />
                   {errors.code && (
-                    <p className="mt-1 text-sm text-red-600">{errors.code}</p>
+                    <p className="mt-1 text-xs text-red-400">{errors.code}</p>
                   )}
                 </div>
                 <div>
                   <label
                     htmlFor="discountType"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="block text-sm font-medium text-gray-300 mb-1.5"
                   >
                     Loại giảm giá <span className="text-red-500">*</span>
                   </label>
@@ -1139,16 +1139,16 @@ const PromotionFormModal: React.FC<{
                     name="discountType"
                     value={formData.discountType}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-[#0B0F19] text-white border border-white/15 rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-red-500 text-sm"
                   >
                     <option value="Percentage">Giảm theo phần trăm (%)</option>
-                    <option value="Fixed">Giảm số tiền cố định</option>
+                    <option value="Fixed">Giảm số tiền cố định (VNĐ)</option>
                   </select>
                 </div>
                 <div>
                   <label
                     htmlFor="discountValue"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="block text-sm font-medium text-gray-300 mb-1.5"
                   >
                     Giá trị giảm giá <span className="text-red-500">*</span>
                   </label>
@@ -1158,25 +1158,21 @@ const PromotionFormModal: React.FC<{
                         selectedValue={formData.discountValue}
                         onChange={handleDiscountValueSelect}
                       />
-                      <div className="flex items-center mt-2">
+                      <div className="flex items-center mt-2.5">
                         <input
                           type="text"
                           id="discountValue"
                           name="discountValue"
                           value={formattedValues.discountValue}
                           onChange={handleChange}
-                          className={`w-full border ${
+                          className={`w-full bg-[#0B0F19] text-white border ${
                             errors.discountValue
                               ? "border-red-500"
-                              : "border-gray-300"
-                          } rounded-lg py-2 px-3 focus:outline-none focus:ring-2 ${
-                            errors.discountValue
-                              ? "focus:ring-red-500"
-                              : "focus:ring-indigo-500"
-                          }`}
+                              : "border-white/15"
+                          } rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-red-500 placeholder-gray-500 text-sm`}
                           placeholder="Nhập số tiền giảm giá"
                         />
-                        <span className="ml-2 text-gray-500">đ</span>
+                        <span className="ml-3 text-gray-400 font-bold">VNĐ</span>
                       </div>
                     </>
                   ) : (
@@ -1218,22 +1214,18 @@ const PromotionFormModal: React.FC<{
                         min="0"
                         max="100"
                         step="1"
-                        className={`w-full border ${
+                        className={`w-full bg-[#0B0F19] text-white border ${
                           errors.discountValue
                             ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded-lg py-2 px-3 focus:outline-none focus:ring-2 ${
-                          errors.discountValue
-                            ? "focus:ring-red-500"
-                            : "focus:ring-indigo-500"
-                        }`}
-                        placeholder="Nhập % giảm giá"
+                            : "border-white/15"
+                        } rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-red-500 placeholder-gray-500 text-sm`}
+                        placeholder="Nhập % giảm giá (1 - 100)"
                       />
-                      <span className="ml-2 text-gray-500">%</span>
+                      <span className="ml-3 text-gray-400 font-bold text-base">%</span>
                     </div>
                   )}
                   {errors.discountValue && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-xs text-red-400">
                       {errors.discountValue}
                     </p>
                   )}
@@ -1243,74 +1235,71 @@ const PromotionFormModal: React.FC<{
                   <div>
                     <label
                       htmlFor="maxDiscount"
-                      className="block text-sm font-medium text-gray-700 mb-1"
+                      className="block text-sm font-medium text-gray-300 mb-1.5"
                     >
                       Giảm tối đa
                     </label>
-                    <div className="flex items-center">
-                      <select
-                        id="maxDiscount"
-                        name="maxDiscount"
-                        value={formData.maxDiscount}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value);
-                          setFormData((prev) => ({
-                            ...prev,
-                            maxDiscount: value,
-                          }));
-                          setFormattedValues((prev) => ({
-                            ...prev,
-                            maxDiscount: formatNumberWithDots(value),
-                          }));
-                        }}
-                        className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      >
-                        <option value="50000">50.000đ</option>
-                        <option value="100000">100.000đ</option>
-                        <option value="200000">200.000đ</option>
-                        <option value="500000">500.000đ</option>
-                        <option value="1000000">1.000.000đ</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <label
-                    htmlFor="minPurchase"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Giá trị đơn hàng tối thiểu (để 0 nếu không giới hạn)
-                  </label>
-                  <div className="flex items-center">
                     <select
-                      id="minPurchase"
-                      name="minPurchase"
-                      value={formData.minPurchase}
+                      id="maxDiscount"
+                      name="maxDiscount"
+                      value={formData.maxDiscount}
                       onChange={(e) => {
                         const value = parseInt(e.target.value);
                         setFormData((prev) => ({
                           ...prev,
-                          minPurchase: value,
+                          maxDiscount: value,
                         }));
                         setFormattedValues((prev) => ({
                           ...prev,
-                          minPurchase: formatNumberWithDots(value),
+                          maxDiscount: formatNumberWithDots(value),
                         }));
                       }}
-                      className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full bg-[#0B0F19] text-white border border-white/15 rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-red-500 text-sm"
                     >
+                      <option value="50000">50.000đ</option>
                       <option value="100000">100.000đ</option>
                       <option value="200000">200.000đ</option>
                       <option value="500000">500.000đ</option>
                       <option value="1000000">1.000.000đ</option>
                     </select>
                   </div>
+                )}
+
+                <div>
+                  <label
+                    htmlFor="minPurchase"
+                    className="block text-sm font-medium text-gray-300 mb-1.5"
+                  >
+                    Giá trị đơn hàng tối thiểu
+                  </label>
+                  <select
+                    id="minPurchase"
+                    name="minPurchase"
+                    value={formData.minPurchase}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      setFormData((prev) => ({
+                        ...prev,
+                        minPurchase: value,
+                      }));
+                      setFormattedValues((prev) => ({
+                        ...prev,
+                        minPurchase: formatNumberWithDots(value),
+                      }));
+                    }}
+                    className="w-full bg-[#0B0F19] text-white border border-white/15 rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-red-500 text-sm"
+                  >
+                    <option value="0">Không giới hạn</option>
+                    <option value="100000">100.000đ</option>
+                    <option value="200000">200.000đ</option>
+                    <option value="500000">500.000đ</option>
+                    <option value="1000000">1.000.000đ</option>
+                  </select>
                 </div>
                 <div>
                   <label
                     htmlFor="description"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="block text-sm font-medium text-gray-300 mb-1.5"
                   >
                     Mô tả khuyến mãi
                   </label>
@@ -1320,23 +1309,23 @@ const PromotionFormModal: React.FC<{
                     value={formData.description}
                     onChange={handleChange}
                     rows={3}
-                    className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="Nhập mô tả chi tiết về khuyến mãi"
+                    className="w-full bg-[#0B0F19] text-white border border-white/15 rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-red-500 placeholder-gray-500 text-sm"
+                    placeholder="Nhập mô tả chi tiết điều kiện & quy định khuyến mãi"
                   />
                 </div>
               </div>
             )}
             {step === 2 && (
-              <div className="space-y-6">
+              <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">
                     Thời gian áp dụng <span className="text-red-500">*</span>
                   </label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label
                         htmlFor="startDate"
-                        className="block text-sm text-gray-500 mb-1"
+                        className="block text-xs text-gray-400 mb-1"
                       >
                         Ngày bắt đầu
                       </label>
@@ -1364,7 +1353,7 @@ const PromotionFormModal: React.FC<{
                     <div>
                       <label
                         htmlFor="endDate"
-                        className="block text-sm text-gray-500 mb-1"
+                        className="block text-xs text-gray-400 mb-1"
                       >
                         Ngày kết thúc
                       </label>
@@ -1397,7 +1386,7 @@ const PromotionFormModal: React.FC<{
                 <div>
                   <label
                     htmlFor="usageLimit"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="block text-sm font-medium text-gray-300 mb-1.5"
                   >
                     Giới hạn số lần sử dụng{" "}
                     <span className="text-red-500">*</span>
@@ -1416,13 +1405,9 @@ const PromotionFormModal: React.FC<{
                       if (errors.usageLimit)
                         setErrors((prev) => ({ ...prev, usageLimit: "" }));
                     }}
-                    className={`w-full border ${
-                      errors.usageLimit ? "border-red-500" : "border-gray-300"
-                    } rounded-lg py-2 px-3 focus:outline-none focus:ring-2 ${
-                      errors.usageLimit
-                        ? "focus:ring-red-500"
-                        : "focus:ring-indigo-500"
-                    }`}
+                    className={`w-full bg-[#0B0F19] text-white border ${
+                      errors.usageLimit ? "border-red-500" : "border-white/15"
+                    } rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-red-500 text-sm`}
                   >
                     <option value="1">1 lần</option>
                     <option value="10">10 lần</option>
@@ -1433,7 +1418,7 @@ const PromotionFormModal: React.FC<{
                     <option value="999999">Không giới hạn</option>
                   </select>
                   {errors.usageLimit && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-xs text-red-400">
                       {errors.usageLimit}
                     </p>
                   )}
@@ -1441,7 +1426,7 @@ const PromotionFormModal: React.FC<{
                 <div>
                   <label
                     htmlFor="status"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="block text-sm font-medium text-gray-300 mb-1.5"
                   >
                     Trạng thái
                   </label>
@@ -1450,25 +1435,25 @@ const PromotionFormModal: React.FC<{
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-[#0B0F19] text-white border border-white/15 rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-red-500 text-sm"
                   >
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
+                    <option value="Active">Đang hoạt động (Active)</option>
+                    <option value="Inactive">Ngừng kích hoạt (Inactive)</option>
                   </select>
                 </div>
               </div>
             )}
           </form>
         </div>
-        <div className="px-6 py-4 border-t flex justify-between">
+        <div className="px-6 py-4 border-t border-white/10 flex justify-between items-center bg-[#161D2F]">
           <div>
             {step > 1 && (
               <button
                 type="button"
                 onClick={handlePrev}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
               >
-                <FaChevronLeft className="inline mr-1" size={12} />
+                <FaChevronLeft className="inline mr-1.5" size={11} />
                 Quay lại
               </button>
             )}
@@ -1478,19 +1463,19 @@ const PromotionFormModal: React.FC<{
               <button
                 type="button"
                 onClick={handleNext}
-                className="px-4 py-2 bg-indigo-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 rounded-xl text-sm font-semibold text-white hover:from-red-500 hover:to-rose-500 transition-all shadow-lg shadow-red-600/20"
               >
                 Tiếp tục
-                <FaChevronRight className="inline ml-1" size={12} />
+                <FaChevronRight className="inline ml-1.5" size={11} />
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="px-4 py-2 bg-indigo-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 rounded-xl text-sm font-semibold text-white hover:from-red-500 hover:to-rose-500 transition-all shadow-lg shadow-red-600/20 flex items-center"
               >
+                <FaCheck className="mr-2" size={12} />
                 Lưu khuyến mãi
-                <FaCheck className="inline ml-1.5" size={12} />
               </button>
             )}
           </div>
@@ -1520,46 +1505,47 @@ const PromotionDetailsModal: React.FC<{
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
     >
       <motion.div
         variants={modalVariants}
         initial="hidden"
         animate="visible"
         exit="hidden"
-        className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
+        className="bg-[#161D2F] border border-white/10 text-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
       >
-        <div className="flex justify-between items-center px-6 py-4 border-b">
-          <h2 className="text-xl font-semibold text-gray-800">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-white/10 bg-[#161D2F]">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <span className="w-2.5 h-6 bg-red-600 rounded-full inline-block"></span>
             Chi tiết khuyến mãi
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 focus:outline-none"
+            className="text-gray-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors"
           >
-            <FaTimes />
+            <FaTimes size={16} />
           </button>
         </div>
         <div
-          className="px-6 py-4 overflow-y-auto"
-          style={{ maxHeight: "calc(90vh - 130px)" }}
+          className="px-6 py-6 overflow-y-auto flex-1 custom-scrollbar"
+          style={{ maxHeight: "calc(90vh - 140px)" }}
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 p-4 bg-[#0B0F19]/60 rounded-xl border border-white/10">
             <div>
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-lg font-bold text-white">
                 {promotion.name}
               </h3>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 Mã:{" "}
-                <span className="font-mono font-medium">{promotion.code}</span>
+                <span className="font-mono font-bold text-red-400 text-sm tracking-wider">{promotion.code}</span>
               </p>
             </div>
             <div>
               <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
                   promotion.status === "Active"
-                    ? "bg-green-100 text-green-800"
-                    : "bg-red-100 text-red-800"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                    : "bg-red-500/20 text-red-300 border border-red-500/30"
                 }`}
               >
                 {promotion.status === "Active"
@@ -1570,16 +1556,15 @@ const PromotionDetailsModal: React.FC<{
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <div>
-                <h4 className="text-sm font-medium text-gray-500">Giảm giá</h4>
-                <p className="text-base font-medium text-gray-900 mt-1">
+              <div className="p-3.5 bg-[#0B0F19]/40 rounded-xl border border-white/5">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Giảm giá</h4>
+                <p className="text-lg font-bold text-red-400 mt-1">
                   {promotion.discountType === "Percentage" ? (
                     <>
                       {promotion.discountValue}%
                       {promotion.maxDiscount ? (
-                        <span className="text-sm text-gray-500 ml-1">
-                          (tối đa {formatNumberWithDots(promotion.maxDiscount)}
-                          đ)
+                        <span className="text-xs font-normal text-gray-400 ml-1.5">
+                          (tối đa {formatNumberWithDots(promotion.maxDiscount)}đ)
                         </span>
                       ) : null}
                     </>
@@ -1587,9 +1572,8 @@ const PromotionDetailsModal: React.FC<{
                     <>
                       {formatNumberWithDots(promotion.discountValue)}đ
                       {promotion.maxDiscount ? (
-                        <span className="text-sm text-gray-500 ml-1">
-                          (tối đa {formatNumberWithDots(promotion.maxDiscount)}
-                          đ/lần sử dụng)
+                        <span className="text-xs font-normal text-gray-400 ml-1.5">
+                          (tối đa {formatNumberWithDots(promotion.maxDiscount)}đ)
                         </span>
                       ) : null}
                     </>
@@ -1597,49 +1581,48 @@ const PromotionDetailsModal: React.FC<{
                 </p>
               </div>
 
-              <div>
-                <h4 className="text-sm font-medium text-gray-500">
+              <div className="p-3.5 bg-[#0B0F19]/40 rounded-xl border border-white/5">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
                   Thời gian áp dụng
                 </h4>
-                <p className="text-base text-gray-900 mt-1">
-                  {formatDate(promotion.startDate)} -{" "}
-                  {formatDate(promotion.endDate)}
+                <p className="text-sm font-semibold text-white mt-1">
+                  {formatDate(promotion.startDate)} - {formatDate(promotion.endDate)}
                 </p>
                 {validityInfo.isExpiringSoon && (
-                  <p className="text-sm text-amber-600 flex items-center mt-1">
+                  <p className="text-xs text-amber-400 flex items-center mt-1.5 font-medium">
                     <FaExclamationTriangle className="mr-1.5" size={12} />
                     Sẽ hết hạn trong {validityInfo.daysUntilExpiry} ngày
                   </p>
                 )}
               </div>
-              <div>
-                <h4 className="text-sm font-medium text-gray-500">
+              <div className="p-3.5 bg-[#0B0F19]/40 rounded-xl border border-white/5">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
                   Áp dụng cho
                 </h4>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm bg-gray-100 text-gray-800">
-                    <FaTicketAlt className="mr-1.5" size={12} />
-                    Vé
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs bg-white/5 border border-white/10 text-gray-300 font-medium">
+                    <FaTicketAlt className="mr-1.5 text-red-400" size={11} />
+                    Vé xem phim
                   </span>
                 </div>
               </div>
             </div>
             <div className="space-y-4">
-              <div>
-                <h4 className="text-sm font-medium text-gray-500">
+              <div className="p-3.5 bg-[#0B0F19]/40 rounded-xl border border-white/5">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
                   Số lần sử dụng
                 </h4>
-                <p className="text-base text-gray-900 mt-1">
+                <p className="text-base font-bold text-white mt-1">
                   {promotion.usageCount}
-                  {promotion.usageLimit ? `/${promotion.usageLimit}` : ""}
+                  {promotion.usageLimit ? `/${promotion.usageLimit}` : " (Không giới hạn)"}
                 </p>
                 {promotion.usageLimit && (
-                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                  <div className="w-full bg-white/10 rounded-full h-2 mt-2.5 overflow-hidden">
                     <div
-                      className={`h-2 rounded-full ${
+                      className={`h-2 rounded-full transition-all ${
                         promotion.usageCount / promotion.usageLimit > 0.9
-                          ? "bg-red-500"
-                          : "bg-indigo-500"
+                          ? "bg-amber-500"
+                          : "bg-gradient-to-r from-red-600 to-rose-600"
                       }`}
                       style={{
                         width: `${Math.min(
@@ -1651,20 +1634,20 @@ const PromotionDetailsModal: React.FC<{
                   </div>
                 )}
               </div>
-              <div>
-                <h4 className="text-sm font-medium text-gray-500">
-                  Giá trị đơn hàng tối thiểu
+              <div className="p-3.5 bg-[#0B0F19]/40 rounded-xl border border-white/5">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  Đơn hàng tối thiểu
                 </h4>
-                <p className="text-base text-gray-900 mt-1">
+                <p className="text-sm font-semibold text-white mt-1">
                   {promotion.minPurchase
                     ? `${formatNumberWithDots(promotion.minPurchase)}đ`
                     : "Không giới hạn"}
                 </p>
               </div>
               {promotion.description && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500">Mô tả</h4>
-                  <p className="text-base text-gray-900 mt-1">
+                <div className="p-3.5 bg-[#0B0F19]/40 rounded-xl border border-white/5">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Mô tả</h4>
+                  <p className="text-xs text-gray-300 mt-1 leading-relaxed">
                     {promotion.description}
                   </p>
                 </div>
@@ -1672,25 +1655,31 @@ const PromotionDetailsModal: React.FC<{
             </div>
           </div>
         </div>
-        <div className="px-6 py-4 border-t flex justify-between">
+        <div className="px-6 py-4 border-t border-white/10 flex justify-between items-center bg-[#161D2F]">
           <div>
             {promotion.status !== "Inactive" && (
               <button
                 onClick={onDelete}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="px-4 py-2 bg-red-500/10 border border-red-500/30 rounded-xl text-sm font-semibold text-red-400 hover:bg-red-500/20 transition-colors flex items-center"
               >
-                <FaTrash className="inline mr-1.5" size={12} />
+                <FaTrash className="mr-2" size={11} />
                 {promotion.usageCount > 0 ? "Vô hiệu hóa" : "Xóa"}
               </button>
             )}
           </div>
-          <div className="space-x-3">
+          <div className="flex space-x-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              Đóng
+            </button>
             {promotion.status !== "Inactive" && (
               <button
                 onClick={onEdit}
-                className="px-4 py-2 bg-indigo-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-5 py-2 bg-gradient-to-r from-red-600 to-rose-600 rounded-xl text-sm font-semibold text-white hover:from-red-500 hover:to-rose-500 transition-all shadow-lg shadow-red-600/20 flex items-center"
               >
-                <FaEdit className="inline mr-1.5" size={12} />
+                <FaEdit className="mr-2" size={12} />
                 Chỉnh sửa
               </button>
             )}
@@ -1722,36 +1711,41 @@ const ConfirmationModal: React.FC<{
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
-    className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
   >
     <motion.div
       variants={modalVariants}
       initial="hidden"
       animate="visible"
       exit="hidden"
-      className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden"
+      className="bg-[#161D2F] border border-white/10 text-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
     >
-      <div className="px-6 py-4 border-b">
-        <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+      <div className="px-6 py-4 border-b border-white/10 bg-[#161D2F]">
+        <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          {isDelete ? (
+            <span className="w-2.5 h-5 bg-red-600 rounded-full inline-block"></span>
+          ) : (
+            <span className="w-2.5 h-5 bg-blue-600 rounded-full inline-block"></span>
+          )}
+          {title}
+        </h2>
       </div>
-      <div className="px-6 py-4">
-        <p className="text-gray-700">{message}</p>
+      <div className="px-6 py-6">
+        <p className="text-gray-300 text-sm leading-relaxed">{message}</p>
       </div>
-      <div className="px-6 py-4 border-t flex justify-end space-x-3">
+      <div className="px-6 py-4 border-t border-white/10 flex justify-end space-x-3 bg-[#161D2F]">
         <button
           onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
         >
           {cancelText}
         </button>
         <button
           onClick={onConfirm}
-          className={`px-4 py-2 ${
+          className={`px-5 py-2 rounded-xl text-sm font-semibold text-white transition-all shadow-lg ${
             isDelete
-              ? "bg-red-600 hover:bg-red-700"
-              : "bg-indigo-600 hover:bg-indigo-700"
-          } border border-transparent rounded-md text-sm font-medium text-white focus:outline-none focus:ring-2 ${
-            isDelete ? "focus:ring-red-500" : "focus:ring-indigo-500"
+              ? "bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 shadow-red-600/20"
+              : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-blue-600/20"
           }`}
         >
           {confirmText}
@@ -1801,44 +1795,50 @@ const ExtendPromotionModal: React.FC<{
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
     >
       <motion.div
         variants={modalVariants}
         initial="hidden"
         animate="visible"
         exit="hidden"
-        className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden"
+        className="bg-[#161D2F] border border-white/10 text-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
       >
-        <div className="flex justify-between items-center px-6 py-4 border-b">
-          <h2 className="text-xl font-semibold text-gray-800">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-white/10 bg-[#161D2F]">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <span className="w-2.5 h-6 bg-red-600 rounded-full inline-block"></span>
             Gia hạn khuyến mãi
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 focus:outline-none"
+            className="text-gray-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors"
           >
-            <FaTimes />
+            <FaTimes size={16} />
           </button>
         </div>
-        <div className="px-6 py-4">
-          {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+        <div className="px-6 py-6">
+          {error && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-300 rounded-xl text-sm flex items-center gap-2">
+              <FaExclamationTriangle className="text-red-400 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
           <div className="space-y-4">
-            <div>
-              <p className="text-sm text-gray-700 mb-2">
+            <div className="p-3 bg-[#0B0F19]/60 rounded-xl border border-white/10">
+              <p className="text-xs text-gray-400 mb-1">
                 Khuyến mãi:{" "}
-                <span className="font-medium">{promotion.name}</span> (
-                {promotion.code})
+                <span className="font-semibold text-white">{promotion.name}</span> (
+                <span className="font-mono text-red-400 font-bold">{promotion.code}</span>)
               </p>
-              <p className="text-sm text-gray-700">
+              <p className="text-xs text-gray-400">
                 Hết hạn:{" "}
-                <span className="font-medium">
+                <span className="font-semibold text-white">
                   {new Date(promotion.endDate).toLocaleDateString("vi-VN")}
                 </span>
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">
                 Ngày kết thúc mới <span className="text-red-500">*</span>
               </label>
               <EnhancedDatePicker
@@ -1860,7 +1860,7 @@ const ExtendPromotionModal: React.FC<{
             <div>
               <label
                 htmlFor="usageLimit"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-gray-300 mb-1.5"
               >
                 Giới hạn số lần sử dụng mới{" "}
                 <span className="text-red-500">*</span>
@@ -1874,13 +1874,9 @@ const ExtendPromotionModal: React.FC<{
                   if (errors.usageLimit)
                     setErrors((prev) => ({ ...prev, usageLimit: "" }));
                 }}
-                className={`w-full border ${
-                  errors.usageLimit ? "border-red-500" : "border-gray-300"
-                } rounded-lg py-2 px-3 focus:outline-none focus:ring-2 ${
-                  errors.usageLimit
-                    ? "focus:ring-red-500"
-                    : "focus:ring-indigo-500"
-                }`}
+                className={`w-full bg-[#0B0F19] text-white border ${
+                  errors.usageLimit ? "border-red-500" : "border-white/15"
+                } rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-red-500 text-sm`}
               >
                 <option value={promotion.usageCount + 10}>
                   {promotion.usageCount + 10} lần
@@ -1897,26 +1893,26 @@ const ExtendPromotionModal: React.FC<{
                 <option value="999999">Không giới hạn</option>
               </select>
               {errors.usageLimit && (
-                <p className="mt-1 text-sm text-red-600">{errors.usageLimit}</p>
+                <p className="mt-1 text-xs text-red-400">{errors.usageLimit}</p>
               )}
-              <p className="mt-1 text-sm text-gray-500">
-                Đã sử dụng: {promotion.usageCount} lần
+              <p className="mt-1.5 text-xs text-gray-400">
+                Đã sử dụng: <strong className="text-white">{promotion.usageCount}</strong> lần
               </p>
             </div>
           </div>
         </div>
-        <div className="px-6 py-4 border-t flex justify-end space-x-3">
+        <div className="px-6 py-4 border-t border-white/10 flex justify-end space-x-3 bg-[#161D2F]">
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
           >
             Hủy
           </button>
           <button
             onClick={handleSubmit}
-            className="px-4 py-2 bg-indigo-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-5 py-2 bg-gradient-to-r from-red-600 to-rose-600 rounded-xl text-sm font-semibold text-white hover:from-red-500 hover:to-rose-500 transition-all shadow-lg shadow-red-600/20 flex items-center"
           >
-            <FaUndo className="inline mr-1.5" size={12} />
+            <FaUndo className="mr-2" size={11} />
             Gia hạn
           </button>
         </div>

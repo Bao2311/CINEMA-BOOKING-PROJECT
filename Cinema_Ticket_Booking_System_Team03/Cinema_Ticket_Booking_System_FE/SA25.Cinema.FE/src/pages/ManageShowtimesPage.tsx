@@ -1191,20 +1191,20 @@ useEffect(() => {
               initial={{ opacity: 0, y: 20 }} 
               animate={{ opacity: 1, y: 0 }} 
               transition={{ duration: 0.5 }}
-              className="bg-white p-6 rounded-lg shadow-lg mb-8 border border-blue-200"
+              className="bg-[#161D2F] border border-white/10 p-6 rounded-2xl shadow-xl mb-8 text-white"
             >
               <div className="flex items-center mb-6">
-                <div className="bg-blue-100 p-3 rounded-full mr-4">
-                  <FaEdit className="text-blue-600 text-xl" />
+                <div className="bg-red-500/20 text-red-500 p-3 rounded-xl mr-4">
+                  <FaEdit className="text-red-500 text-xl" />
                 </div>
-                <h3 className="text-2xl font-semibold text-gray-800">Chỉnh sửa lịch chiếu #{editingShowtime.showtime_ID}</h3>
+                <h3 className="text-2xl font-bold text-white">Chỉnh sửa lịch chiếu #{editingShowtime.showtime_ID}</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     <div className="flex items-center">
-                      <FaFilm className="mr-2 text-blue-500" />
+                      <FaFilm className="mr-2 text-red-400" />
                       Chọn phim
                     </div>
                   </label>
@@ -1212,42 +1212,45 @@ useEffect(() => {
                     <select 
                       value={editingShowtime.movie_ID || ''} 
                       onChange={(e) => setEditingShowtime({ ...editingShowtime, movie_ID: parseInt(e.target.value) })} 
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+                      className="w-full px-4 py-2.5 bg-[#0B0F19] border border-white/15 text-white rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all text-sm"
                     >
                       <option value="">Chọn phim</option>
                       {movies.map((movie) => (
-                        <option key={movie.movie_ID} value={movie.movie_ID}>
+                        <option key={movie.movie_ID} value={movie.movie_ID} className="bg-[#161D2F] text-white">
                           {movie.movie_Name} ({movie.duration} phút)
                         </option>
                       ))}
                     </select>
                     
                     {/* Movie Preview Grid */}
-                    <div className="mt-2 grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+                    <div className="mt-3 grid grid-cols-2 gap-2.5 max-h-60 overflow-y-auto pr-1">
                       {movies.map((movie) => (
                         <div 
                           key={movie.movie_ID}
                           onClick={() => setEditingShowtime({ ...editingShowtime, movie_ID: movie.movie_ID })}
-                          className={`p-2 border rounded-lg cursor-pointer transition-all ${
+                          className={`p-2.5 border rounded-xl cursor-pointer transition-all ${
                             editingShowtime.movie_ID === movie.movie_ID 
-                              ? 'border-blue-500 bg-blue-50' 
-                              : 'border-gray-200 hover:border-blue-300'
+                              ? 'border-red-500 bg-red-500/10 ring-1 ring-red-500' 
+                              : 'border-white/10 bg-[#1E2738] hover:border-white/20'
                           }`}
                         >
-                          <div className="flex space-x-2">
+                          <div className="flex space-x-3">
                             <img 
                               src={movie.poster_URL} 
                               alt={movie.movie_Name}
-                              className="w-16 h-24 object-cover rounded"
+                              className="w-14 h-20 object-cover rounded-lg bg-black/40 flex-shrink-0"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=100&auto=format&fit=crop&q=60';
+                              }}
                             />
-                            <div className="flex-1">
-                              <h4 className="font-medium text-sm text-gray-800 line-clamp-2">{movie.movie_Name}</h4>
-                              <p className="text-xs text-gray-500 mt-1">{movie.duration} phút</p>
-                              <p className="text-xs text-gray-500">{movie.genre}</p>
-                              <div className={`mt-1 inline-block px-1.5 py-0.5 text-xs rounded ${
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-sm text-white line-clamp-1">{movie.movie_Name}</h4>
+                              <p className="text-xs text-gray-400 mt-1">{movie.duration} phút</p>
+                              <p className="text-xs text-gray-400 truncate">{movie.genre}</p>
+                              <div className={`mt-1.5 inline-block px-2 py-0.5 text-[11px] font-medium rounded-md ${
                                 movie.status === 'Now Showing' 
-                                  ? 'bg-green-100 text-green-700'
-                                  : 'bg-yellow-100 text-yellow-700'
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                  : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                               }`}>
                                 {movie.status}
                               </div>
@@ -1260,9 +1263,9 @@ useEffect(() => {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     <div className="flex items-center">
-                      <FaDoorOpen className="mr-2 text-blue-500" />
+                      <FaDoorOpen className="mr-2 text-red-400" />
                       Chọn phòng chiếu
                     </div>
                   </label>
@@ -1270,7 +1273,7 @@ useEffect(() => {
                     <select 
                       value={editingShowtime.cinema_Room_ID || ''} 
                       onChange={(e) => setEditingShowtime({ ...editingShowtime, cinema_Room_ID: parseInt(e.target.value) })} 
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+                      className="w-full px-4 py-2.5 bg-[#0B0F19] border border-white/15 text-white rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all text-sm"
                     >
                       <option value="">Chọn phòng</option>
                       {cinemaRooms.map((room) => (
@@ -1278,6 +1281,7 @@ useEffect(() => {
                           key={room.cinema_Room_ID} 
                           value={room.cinema_Room_ID}
                           disabled={room.status === 'Inactive'}
+                          className="bg-[#161D2F] text-white"
                         >
                           {room.room_Name} - {room.room_Type} ({room.seat_Quantity} ghế)
                           {room.status === 'Inactive' ? ' - Không hoạt động' : ''}
@@ -1286,7 +1290,7 @@ useEffect(() => {
                     </select>
 
                     {/* Room Preview Grid */}
-                    <div className="mt-2 grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                    <div className="mt-3 grid grid-cols-2 gap-2.5 max-h-60 overflow-y-auto pr-1">
                       {cinemaRooms.map((room) => (
                         <div 
                           key={room.cinema_Room_ID}
@@ -1295,39 +1299,33 @@ useEffect(() => {
                               setEditingShowtime({ ...editingShowtime, cinema_Room_ID: room.cinema_Room_ID })
                             }
                           }}
-                          className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                          className={`p-3 border rounded-xl cursor-pointer transition-all ${
                             room.status === 'Inactive' 
-                              ? 'opacity-50 cursor-not-allowed bg-gray-50' 
+                              ? 'opacity-40 cursor-not-allowed bg-white/5 border-white/5' 
                               : editingShowtime.cinema_Room_ID === room.cinema_Room_ID 
-                                ? 'border-blue-500 bg-blue-50' 
-                                : 'border-gray-200 hover:border-blue-300'
+                                ? 'border-red-500 bg-red-500/10 ring-1 ring-red-500' 
+                                : 'border-white/10 bg-[#1E2738] hover:border-white/20'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-medium text-sm text-gray-800">{room.room_Name}</h4>
-                            <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${
+                            <h4 className="font-semibold text-sm text-white">{room.room_Name}</h4>
+                            <span className={`inline-block px-2 py-0.5 text-[11px] font-medium rounded-full ${
                               room.status === 'Active' 
-                                ? 'bg-green-100 text-green-700' 
-                                : 'bg-red-100 text-red-700'
+                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                                : 'bg-red-500/20 text-red-400 border border-red-500/30'
                             }`}>
                               {room.status}
                             </span>
                           </div>
                           <div className="space-y-1">
-                            <p className="text-xs text-gray-600">
-                              <span className={`inline-block px-1.5 py-0.5 rounded ${
-                                room.room_Type === '3D' 
-                                  ? 'bg-purple-100 text-purple-700' 
-                                  : room.room_Type === 'IMAX' 
-                                    ? 'bg-yellow-100 text-yellow-700'
-                                    : 'bg-blue-100 text-blue-700'
-                              }`}>
+                            <div className="flex items-center gap-2">
+                              <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded bg-white/10 text-white border border-white/10">
                                 {room.room_Type}
                               </span>
-                            </p>
-                            <p className="text-xs text-gray-500">{room.seat_Quantity} ghế</p>
+                              <span className="text-xs text-gray-400">{room.seat_Quantity} ghế</span>
+                            </div>
                             {room.hasUpcomingShowtimes && (
-                              <p className="text-xs text-orange-500">Có lịch chiếu sắp tới</p>
+                              <p className="text-xs text-amber-400 mt-1">Có lịch chiếu sắp tới</p>
                             )}
                           </div>
                         </div>
@@ -1337,9 +1335,9 @@ useEffect(() => {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     <div className="flex items-center">
-                      <FaCalendarAlt className="mr-2 text-blue-500" />
+                      <FaCalendarAlt className="mr-2 text-red-400" />
                       Ngày chiếu
                     </div>
                   </label>
@@ -1348,16 +1346,16 @@ useEffect(() => {
                       type="date"
                       value={editingShowtime.show_Date ? editingShowtime.show_Date.split('T')[0] : ''}
                       onChange={(e) => setEditingShowtime({ ...editingShowtime, show_Date: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+                      className="w-full px-4 py-2.5 bg-[#0B0F19] border border-white/15 text-white rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all [color-scheme:dark] text-sm"
                     />
-                    <p className="text-sm text-gray-500 mt-1">Nhập theo định dạng: Năm-Tháng-Ngày (VD: 2025-03-30)</p>
+                    <p className="text-xs text-gray-400 mt-1.5">Nhập theo định dạng: Năm-Tháng-Ngày (VD: 2025-03-30)</p>
                   </div>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     <div className="flex items-center">
-                      <FaClock className="mr-2 text-blue-500" />
+                      <FaClock className="mr-2 text-red-400" />
                       Giờ bắt đầu
                     </div>
                   </label>
@@ -1365,32 +1363,32 @@ useEffect(() => {
                     type="time" 
                     value={editingShowtime.start_Time} 
                     onChange={(e) => setEditingShowtime({ ...editingShowtime, start_Time: e.target.value })} 
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors" 
+                    className="w-full px-4 py-2.5 bg-[#0B0F19] border border-white/15 text-white rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all [color-scheme:dark] text-sm" 
                   />
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     <div className="flex items-center">
-                      <FaClock className="mr-2 text-blue-500" />
+                      <FaClock className="mr-2 text-red-400" />
                       Trạng thái
                     </div>
                   </label>
                   <select 
                     value={editingShowtime.status} 
                     onChange={(e) => setEditingShowtime({ ...editingShowtime, status: e.target.value })} 
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-2.5 bg-[#0B0F19] border border-white/15 text-white rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all text-sm"
                   >
-                    <option value="Hidden">Hidden</option>
-                    <option value="Scheduled">Scheduled</option>
+                    <option value="Hidden" className="bg-[#161D2F] text-white">Hidden</option>
+                    <option value="Scheduled" className="bg-[#161D2F] text-white">Scheduled</option>
                   </select>
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-white/10">
                 <button 
                   onClick={handleCancelEdit} 
-                  className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors shadow-md flex items-center"
+                  className="px-6 py-2.5 bg-white/10 text-gray-200 rounded-xl hover:bg-white/20 transition-colors font-medium flex items-center"
                 >
                   <FaTimes className="mr-2" />
                   Hủy
@@ -1398,7 +1396,7 @@ useEffect(() => {
                 <button 
                   onClick={handleSaveEdit} 
                   disabled={loading}
-                  className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors shadow-md flex items-center"
+                  className="px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-red-600/30 font-medium flex items-center"
                 >
                   {loading ? 'Đang lưu...' : (
                     <>
@@ -1417,22 +1415,22 @@ useEffect(() => {
               initial={{ opacity: 0, y: 20 }} 
               animate={{ opacity: 1, y: 0 }} 
               transition={{ delay: 0.1, duration: 0.4 }}
-              className="bg-white p-6 rounded-xl shadow-lg mb-8 border-l-4 border-blue-500"
+              className="bg-[#161D2F] border border-white/10 p-6 rounded-2xl shadow-xl mb-8 text-white"
             >
               <div className="flex items-center mb-8">
-                <div className="bg-blue-100 p-3 rounded-full mr-4">
-                  <FaPlus className="text-blue-600 text-xl" />
+                <div className="bg-red-500/20 text-red-500 p-3 rounded-xl mr-4">
+                  <FaPlus className="text-red-500 text-xl" />
                 </div>
-                <h3 className="text-2xl font-semibold text-gray-800">Tạo lịch chiếu mới</h3>
+                <h3 className="text-2xl font-bold text-white">Tạo lịch chiếu mới</h3>
               </div>
 
               {/* Stepper - Improved UI */}
               <div className="mb-10">
                 <div className="flex items-center justify-between mb-4 relative">
                   {/* Progress bar underneath */}
-                  <div className="absolute h-1 bg-gray-200 left-0 right-0 top-6 -z-10">
+                  <div className="absolute h-1 bg-white/10 left-0 right-0 top-6 -z-0">
                     <div 
-                      className="h-full bg-blue-500 transition-all duration-300"
+                      className="h-full bg-red-600 transition-all duration-300"
                       style={{ width: `${(currentStep - 1) * 33.33}%` }}
                     ></div>
                   </div>
@@ -1440,17 +1438,17 @@ useEffect(() => {
                   {[1, 2, 3, 4].map(step => (
                     <div key={step} className="flex flex-col items-center relative z-10">
                       <div 
-                        className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all ${
+                        className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all font-semibold ${
                           currentStep === step 
-                            ? 'bg-blue-600 text-white shadow-md scale-110' 
+                            ? 'bg-red-600 text-white shadow-lg shadow-red-600/30 scale-110' 
                             : currentStep > step 
-                              ? 'bg-green-500 text-white' 
-                              : 'bg-gray-200 text-gray-600'
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' 
+                              : 'bg-[#1E2738] text-gray-400 border border-white/10'
                         }`}
                       >
                         {currentStep > step ? <FaCheck className="text-lg" /> : step}
                       </div>
-                      <div className="text-sm font-medium text-center max-w-[100px]">
+                      <div className={`text-xs font-medium text-center max-w-[100px] ${currentStep === step ? 'text-white font-semibold' : 'text-gray-400'}`}>
                         {step === 1 && "Chọn phim"}
                         {step === 2 && "Chọn phòng"}
                         {step === 3 && "Chọn ngày"}
@@ -1470,51 +1468,54 @@ useEffect(() => {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.3 }}
-                    className="bg-white rounded-xl"
+                    className="rounded-xl"
                   >
-                    <h4 className="text-lg font-medium text-gray-800 mb-6 flex items-center">
-                      <FaFilm className="mr-2 text-blue-500" />
+                    <h4 className="text-lg font-bold text-white mb-6 flex items-center">
+                      <FaFilm className="mr-2 text-red-400" />
                       Bước 1: Chọn phim đang chiếu
                     </h4>
                     
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                     {loading ? (
                       <div className="col-span-full text-center py-10">
-                        <div className="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-                        <p className="text-gray-600">Đang tải danh sách phim...</p>
+                        <div className="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-red-500 mb-4"></div>
+                        <p className="text-gray-400">Đang tải danh sách phim...</p>
                       </div>
                     ) : movies.length === 0 ? (
-                      <div className="col-span-full text-center py-10 bg-gray-50 rounded-lg">
-                        <p className="text-gray-600">Không có phim đang chiếu nào.</p>
+                      <div className="col-span-full text-center py-10 bg-white/5 rounded-xl border border-white/10">
+                        <p className="text-gray-400">Không có phim đang chiếu nào.</p>
                       </div>
                     ) : (
                       movies.map(movie => (
                         <div 
                           key={movie.movie_ID}
                           onClick={() => setSelectedMovie(movie)}
-                          className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all transform hover:scale-105 hover:shadow-md ${
+                          className={`cursor-pointer rounded-xl overflow-hidden border transition-all transform hover:scale-105 bg-[#1E2738] ${
                             selectedMovie?.movie_ID === movie.movie_ID 
-                              ? 'border-blue-500 shadow-lg ring-4 ring-blue-100' 
-                              : 'border-transparent shadow-sm'
+                              ? 'border-red-500 ring-2 ring-red-500 shadow-lg shadow-red-600/20' 
+                              : 'border-white/10 hover:border-white/20'
                           }`}
                         >
-                          <div className="relative pb-[150%]">
+                          <div className="relative pb-[150%] bg-black/40">
                             <img 
-                              src={movie.poster_URL || 'https://via.placeholder.com/300x450?text=No+Image'} 
-                              alt={movie.title}
+                              src={movie.poster_URL || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=200&auto=format&fit=crop&q=60'} 
+                              alt={movie.title || movie.movie_Name}
                               className="absolute inset-0 w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=200&auto=format&fit=crop&q=60';
+                              }}
                             />
                             {selectedMovie?.movie_ID === movie.movie_ID && (
-                              <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
-                                <div className="bg-blue-500 text-white p-2 rounded-full">
+                              <div className="absolute inset-0 bg-red-600/30 backdrop-blur-[1px] flex items-center justify-center">
+                                <div className="bg-red-600 text-white p-2 rounded-full shadow-lg">
                                   <FaCheck />
                                 </div>
                               </div>
                             )}
                           </div>
-                          <div className="p-2 bg-white">
-                            <h5 className="font-medium text-gray-800 truncate">{movie.title}</h5>
-                            <p className="text-xs text-gray-500">{movie.duration} phút</p>
+                          <div className="p-2.5 bg-[#1E2738]">
+                            <h5 className="font-semibold text-white truncate text-xs">{movie.title || movie.movie_Name}</h5>
+                            <p className="text-[11px] text-gray-400 mt-0.5">{movie.duration} phút</p>
                           </div>
                         </div>
                       ))
@@ -1522,11 +1523,11 @@ useEffect(() => {
                   </div>
                   
                   {selectedMovie && (
-                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                      <p className="text-blue-700 flex items-center">
-                        <FaCheck className="mr-2 text-green-500" />
-                        Đã chọn: <span className="font-semibold ml-1">{selectedMovie.title}</span> 
-                        <span className="ml-2 text-sm bg-blue-100 px-2 py-0.5 rounded-full">
+                    <div className="mt-6 p-4 bg-red-500/10 rounded-xl border border-red-500/30">
+                      <p className="text-red-400 flex items-center font-medium">
+                        <FaCheck className="mr-2 text-emerald-400" />
+                        Đã chọn: <span className="font-semibold text-white ml-1">{selectedMovie.title || selectedMovie.movie_Name}</span> 
+                        <span className="ml-2 text-xs bg-white/10 text-white px-2 py-0.5 rounded-full border border-white/10">
                           {selectedMovie.duration} phút
                         </span>
                       </p>
@@ -1543,23 +1544,26 @@ useEffect(() => {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.3 }}
-                  className="bg-white rounded-xl"
+                  className="rounded-xl"
                 >
                   <div className="flex items-center justify-between mb-6">
-                    <h4 className="text-lg font-medium text-gray-800 flex items-center">
-                      <FaDoorOpen className="mr-2 text-blue-500" />
+                    <h4 className="text-lg font-bold text-white flex items-center">
+                      <FaDoorOpen className="mr-2 text-red-400" />
                       Bước 2: Chọn phòng chiếu
                     </h4>
                     
                     {selectedMovie && (
-                      <div className="flex items-center bg-blue-50 px-4 py-2 rounded-lg">
+                      <div className="flex items-center bg-white/5 border border-white/10 px-4 py-2 rounded-xl">
                         <img 
-                          src={selectedMovie.poster_URL || 'https://via.placeholder.com/300x450?text=No+Image'} 
+                          src={selectedMovie.poster_URL || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=200&auto=format&fit=crop&q=60'} 
                           alt={selectedMovie.title}
-                          className="w-8 h-8 rounded-full object-cover mr-2 border border-blue-200"
+                          className="w-8 h-8 rounded-full object-cover mr-2.5 border border-white/10"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=100&auto=format&fit=crop&q=60';
+                          }}
                         />
-                        <span className="text-sm font-medium text-blue-700 truncate max-w-[150px]">
-                          {selectedMovie.title}
+                        <span className="text-sm font-medium text-white truncate max-w-[150px]">
+                          {selectedMovie.title || selectedMovie.movie_Name}
                         </span>
                       </div>
                     )}
@@ -1568,12 +1572,12 @@ useEffect(() => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {loading ? (
                       <div className="col-span-full text-center py-10">
-                        <div className="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-                        <p className="text-gray-600">Đang tải danh sách phòng...</p>
+                        <div className="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-red-500 mb-4"></div>
+                        <p className="text-gray-400">Đang tải danh sách phòng...</p>
                       </div>
                     ) : cinemaRooms.length === 0 ? (
-                      <div className="col-span-full text-center py-10 bg-gray-50 rounded-lg">
-                        <p className="text-gray-600">Không có phòng chiếu nào.</p>
+                      <div className="col-span-full text-center py-10 bg-white/5 rounded-xl border border-white/10">
+                        <p className="text-gray-400">Không có phòng chiếu nào.</p>
                       </div>
                     ) : (
                       cinemaRooms.map(room => {
@@ -1584,38 +1588,34 @@ useEffect(() => {
                           <div 
                             key={room.cinema_Room_ID}
                             onClick={() => !isBusy && setSelectedRoom(room)}
-                            className={`cursor-pointer p-4 rounded-lg border transition-all ${
+                            className={`cursor-pointer p-4 rounded-xl border transition-all ${
                               isSelected 
-                                ? 'border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-200' 
+                                ? 'border-red-500 bg-red-500/10 ring-2 ring-red-500 shadow-md' 
                                 : isBusy 
-                                  ? 'border-red-300 bg-red-50 opacity-60 cursor-not-allowed' 
-                                  : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50 hover:shadow-sm'
+                                  ? 'border-red-500/20 bg-red-500/5 opacity-50 cursor-not-allowed' 
+                                  : 'border-white/10 bg-[#1E2738] hover:border-white/25'
                             }`}
                           >
                             <div className="flex justify-between items-start">
                               <div>
-                                <h5 className="font-medium text-gray-800 text-lg">{room.room_Name}</h5>
-                                <span className={`inline-block px-2 py-1 text-xs rounded-full mt-1 ${
-                                  room.room_Type === '3D' 
-                                  ? 'bg-yellow-100 text-yellow-700' 
-                                  : 'bg-blue-100 text-blue-700'
-                                }`}>
+                                <h5 className="font-semibold text-white text-lg">{room.room_Name}</h5>
+                                <span className="inline-block px-2.5 py-0.5 text-xs font-semibold rounded bg-white/10 text-white border border-white/10 mt-1">
                                   {room.room_Type}
                                 </span>
                               </div>
                               
-                              <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                                room.status === 'active' 
-                                  ? 'bg-green-100 text-green-700' 
-                                  : 'bg-red-100 text-red-700'
+                              <span className={`inline-block px-2 py-0.5 text-[11px] font-semibold rounded-full ${
+                                room.status === 'active' || room.status === 'Active'
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                                  : 'bg-red-500/20 text-red-400 border border-red-500/30'
                               }`}>
                                 {room.status}
                               </span>
                             </div>
                             
                             {isBusy && (
-                              <div className="mt-3 text-sm text-red-600 flex items-center">
-                                <FaExclamationTriangle className="mr-1" />
+                              <div className="mt-3 text-sm text-amber-400 flex items-center font-medium">
+                                <FaExclamationTriangle className="mr-1.5" />
                                 Phòng đang bận
                               </div>
                             )}
@@ -1623,25 +1623,25 @@ useEffect(() => {
                             {/* Hiển thị thông tin phim đã được assign cho phòng */}
                             {room.upcomingShowtimes && room.upcomingShowtimes.$values && room.upcomingShowtimes.$values.length > 0 && (
                               <div className="mt-3 group relative">
-                                <p className="text-xs text-gray-500 mb-1 flex items-center">
-                                  <FaInfoCircle className="mr-1" /> 
-                                  Lịch chiếu sắp tới: <span className="ml-1 text-blue-500 underline cursor-pointer">
+                                <p className="text-xs text-gray-400 mb-1 flex items-center">
+                                  <FaInfoCircle className="mr-1 text-red-400" /> 
+                                  Lịch chiếu sắp tới: <span className="ml-1 text-red-400 underline cursor-pointer">
                                     {room.upcomingShowtimes.$values.length} lịch
                                   </span>
                                 </p>
                                 
                                 {/* Tooltip hiển thị chi tiết khi hover */}
-                                <div className="absolute left-0 bottom-full mb-2 w-64 bg-white shadow-lg rounded-lg p-3 border border-gray-200 z-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                                  <h6 className="font-medium text-gray-800 mb-2 border-b pb-1">Chi tiết lịch chiếu</h6>
+                                <div className="absolute left-0 bottom-full mb-2 w-64 bg-[#161D2F] shadow-2xl rounded-xl p-3 border border-white/15 z-20 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                                  <h6 className="font-semibold text-white mb-2 border-b border-white/10 pb-1 text-xs">Chi tiết lịch chiếu</h6>
                                   <div className="max-h-48 overflow-y-auto space-y-2">
                                     {room.upcomingShowtimes.$values.map((showtime, idx) => (
-                                      <div key={idx} className="text-xs bg-gray-50 p-2 rounded border border-gray-100">
-                                        <div className="flex justify-between">
+                                      <div key={idx} className="text-xs bg-[#1E2738] p-2 rounded-lg border border-white/10">
+                                        <div className="flex justify-between text-gray-200">
                                           <span className="font-medium">{formatDate(showtime.show_Date)}</span>
                                           <span>{showtime.start_Time} - {showtime.end_Time}</span>
                                         </div>
-                                        <div className="truncate text-gray-600 mt-0.5 flex items-center">
-                                          <FaFilm className="mr-1 text-blue-500" size={10} />
+                                        <div className="truncate text-gray-400 mt-0.5 flex items-center">
+                                          <FaFilm className="mr-1 text-red-400" size={10} />
                                           {showtime.movie_Name}
                                         </div>
                                       </div>
@@ -1652,22 +1652,16 @@ useEffect(() => {
                                 {/* Preview của 2 lịch chiếu đầu tiên */}
                                 <div className="space-y-1">
                                   {room.upcomingShowtimes.$values.slice(0, 2).map((showtime, idx) => (
-                                    <div key={idx} className="text-xs bg-gray-100 p-1.5 rounded">
-                                      <div className="flex justify-between">
+                                    <div key={idx} className="text-xs bg-white/5 p-1.5 rounded-lg border border-white/5">
+                                      <div className="flex justify-between text-gray-300">
                                         <span className="font-medium">{formatDate(showtime.show_Date)}</span>
                                         <span>{showtime.start_Time} - {showtime.end_Time}</span>
                                       </div>
-                                      <div className="truncate text-gray-600 mt-0.5">
+                                      <div className="truncate text-gray-400 mt-0.5">
                                         {showtime.movie_Name}
                                       </div>
                                     </div>
                                   ))}
-                                  
-                                  {room.upcomingShowtimes.$values.length > 2 && (
-                                    <p className="text-xs text-gray-500 italic">
-                                      + {room.upcomingShowtimes.$values.length - 2} lịch chiếu khác
-                                    </p>
-                                  )}
                                 </div>
                               </div>
                             )}
@@ -1678,18 +1672,12 @@ useEffect(() => {
                   </div>
                   
                   {selectedRoom && (
-                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                      <p className="text-blue-700 flex items-center">
-                        <FaCheck className="mr-2 text-green-500" />
-                        Đã chọn: <span className="font-semibold ml-1">{selectedRoom.room_Name}</span> 
-                        <span className={`ml-2 text-sm px-2 py-0.5 rounded-full ${
-                          selectedRoom.room_Type === '3D' 
-                            ? 'bg-purple-100 text-purple-700' 
-                            : selectedRoom.room_Type === 'IMAX' 
-                              ? 'bg-yellow-100 text-yellow-700' 
-                              : 'bg-blue-100 text-blue-700'
-                        }`}>
-                          {selectedRoom.room_Type}
+                    <div className="mt-6 p-4 bg-red-500/10 rounded-xl border border-red-500/30">
+                      <p className="text-red-400 flex items-center font-medium">
+                        <FaCheck className="mr-2 text-emerald-400" />
+                        Đã chọn: <span className="font-semibold text-white ml-1">{selectedRoom.room_Name}</span> 
+                        <span className="ml-2 text-xs bg-white/10 text-white px-2 py-0.5 rounded-full border border-white/10">
+                          {selectedRoom.room_Type} ({selectedRoom.seat_Quantity} ghế)
                         </span>
                       </p>
                     </div>
@@ -1705,30 +1693,33 @@ useEffect(() => {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.3 }}
-                  className="bg-white rounded-xl"
+                  className="rounded-xl"
                 >
                   <div className="flex items-center justify-between mb-6">
-                    <h4 className="text-lg font-medium text-gray-800 flex items-center">
-                      <FaCalendarAlt className="mr-2 text-blue-500" />
+                    <h4 className="text-lg font-bold text-white flex items-center">
+                      <FaCalendarAlt className="mr-2 text-red-400" />
                       Bước 3: Chọn ngày chiếu
                     </h4>
                     
                     {selectedMovie && selectedRoom && (
                       <div className="flex items-center space-x-2">
-                        <div className="flex items-center bg-blue-50 px-3 py-1.5 rounded-lg">
+                        <div className="flex items-center bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl">
                           <img 
-                            src={selectedMovie.poster_URL || 'https://via.placeholder.com/300x450?text=No+Image'} 
+                            src={selectedMovie.poster_URL || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=100&auto=format&fit=crop&q=60'} 
                             alt={selectedMovie.title}
-                            className="w-6 h-6 rounded-full object-cover mr-2 border border-blue-200"
+                            className="w-6 h-6 rounded-full object-cover mr-2 border border-white/10"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=100&auto=format&fit=crop&q=60';
+                            }}
                           />
-                          <span className="text-xs font-medium text-blue-700 truncate max-w-[100px]">
-                            {selectedMovie.title}
+                          <span className="text-xs font-medium text-white truncate max-w-[100px]">
+                            {selectedMovie.title || selectedMovie.movie_Name}
                           </span>
                         </div>
                         
-                        <div className="flex items-center bg-green-50 px-3 py-1.5 rounded-lg">
-                          <FaDoorOpen className="text-green-600 mr-1" size={12} />
-                          <span className="text-xs font-medium text-green-700">
+                        <div className="flex items-center bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl">
+                          <FaDoorOpen className="text-red-400 mr-1.5" size={12} />
+                          <span className="text-xs font-medium text-white">
                             {selectedRoom.room_Name}
                           </span>
                         </div>
@@ -1737,34 +1728,34 @@ useEffect(() => {
                   </div>
                   
                   <div className="mb-6">
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div className="bg-[#1E2738] rounded-xl border border-white/10 overflow-hidden text-white">
                       {/* Calendar header */}
-                      <div className="flex items-center justify-between p-4 border-b">
+                      <div className="flex items-center justify-between p-4 border-b border-white/10">
                         <button 
                           onClick={() => changeMonth(-1)} 
-                          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                          className="p-2 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
                         >
                           <FaChevronLeft />
                         </button>
                         
-                        <h4 className="font-medium text-gray-800">
+                        <h4 className="font-bold text-white text-base">
                           {calendarMonth.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' })}
                         </h4>
                         
                         <button 
                           onClick={() => changeMonth(1)} 
-                          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                          className="p-2 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
                         >
                           <FaChevronRight />
                         </button>
                       </div>
                       
                       {/* Calendar weekday headers */}
-                      <div className="grid grid-cols-7 text-center py-2 border-b bg-gray-50">
+                      <div className="grid grid-cols-7 text-center py-2.5 border-b border-white/10 bg-white/5">
                         {['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'].map((day, index) => (
                           <div 
                             key={index} 
-                            className={`text-sm font-medium ${index === 0 || index === 6 ? 'text-red-500' : 'text-gray-600'}`}
+                            className={`text-xs font-semibold ${index === 0 || index === 6 ? 'text-red-400' : 'text-gray-400'}`}
                           >
                             {day}
                           </div>
@@ -1772,7 +1763,7 @@ useEffect(() => {
                       </div>
                       
                       {/* Calendar days */}
-                      <div className="grid grid-cols-7 gap-1 p-4">
+                      <div className="grid grid-cols-7 gap-1.5 p-4">
                         {calendarDays.map((date, index) => {
                           const isCurrentMonthDay = isCurrentMonth(date);
                           const isSelectedDayValue = isSelectedDay(date);
@@ -1786,19 +1777,19 @@ useEffect(() => {
                               key={index}
                               onClick={() => !isPastDay && handleSelectDate(date)}
                               className={`
-                                aspect-square flex items-center justify-center rounded-lg text-sm relative
-                                ${isCurrentMonthDay ? '' : 'opacity-30'}
-                                ${isPastDay ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-blue-50'}
-                                ${isSelectedDayValue ? 'bg-blue-500 text-white hover:bg-blue-600' : ''}
-                                ${isTodayValue && !isSelectedDayValue ? 'border-2 border-blue-400' : ''}
-                                ${isWeekendValue && !isSelectedDayValue ? 'text-red-500' : ''}
-                                ${isHolidayValue && !isSelectedDayValue ? 'text-purple-500 font-bold' : ''}
+                                aspect-square flex items-center justify-center rounded-xl text-sm relative font-medium transition-all
+                                ${isCurrentMonthDay ? 'text-white' : 'text-gray-600 opacity-40'}
+                                ${isPastDay ? 'cursor-not-allowed opacity-30' : 'cursor-pointer hover:bg-white/10'}
+                                ${isSelectedDayValue ? 'bg-red-600 text-white font-bold shadow-lg shadow-red-600/30 hover:bg-red-700' : ''}
+                                ${isTodayValue && !isSelectedDayValue ? 'border border-red-500 text-red-400' : ''}
+                                ${isWeekendValue && !isSelectedDayValue && !isPastDay ? 'text-red-400' : ''}
+                                ${isHolidayValue && !isSelectedDayValue ? 'text-purple-400 font-bold' : ''}
                               `}
                             >
                               {date.getDate()}
                               
                               {isHolidayValue && (
-                                <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full"></div>
+                                <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
                               )}
                             </div>
                           );
@@ -1806,41 +1797,39 @@ useEffect(() => {
                       </div>
                       
                       {/* Calendar legend */}
-                      <div className="border-t p-3 flex flex-wrap gap-3 text-xs">
+                      <div className="border-t border-white/10 p-3.5 flex flex-wrap gap-4 text-xs text-gray-400">
                         <div className="flex items-center">
-                          <div className="w-3 h-3 bg-blue-500 rounded-full mr-1"></div>
+                          <div className="w-3 h-3 bg-red-600 rounded-full mr-1.5"></div>
                           <span>Ngày đã chọn</span>
                         </div>
                         <div className="flex items-center">
-                          <div className="w-3 h-3 border-2 border-blue-400 rounded-full mr-1"></div>
+                          <div className="w-3 h-3 border border-red-500 rounded-full mr-1.5"></div>
                           <span>Hôm nay</span>
                         </div>
                         <div className="flex items-center">
-                          <div className="w-3 h-3 bg-red-100 rounded-full mr-1"></div>
+                          <div className="w-3 h-3 bg-red-400/40 rounded-full mr-1.5"></div>
                           <span>Cuối tuần</span>
                         </div>
                         <div className="flex items-center">
-                          <div className="w-3 h-3 bg-purple-100 rounded-full mr-1"></div>
+                          <div className="w-3 h-3 bg-purple-400 rounded-full mr-1.5"></div>
                           <span>Ngày lễ</span>
                         </div>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Loại bỏ ô nhập trực tiếp ngày theo yêu cầu */}
-                  
                   {selectedDate && (
-                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                      <p className="text-blue-700 flex items-center">
-                        <FaCheck className="mr-2 text-green-500" />
-                        Ngày chiếu: <span className="font-semibold ml-1">{formatDate(selectedDate)}</span>
+                    <div className="mt-6 p-4 bg-red-500/10 rounded-xl border border-red-500/30">
+                      <p className="text-red-400 flex items-center font-medium">
+                        <FaCheck className="mr-2 text-emerald-400" />
+                        Ngày chiếu: <span className="font-semibold text-white ml-1">{formatDate(selectedDate)}</span>
                         {isHoliday(selectedDate) && (
-                          <span className="ml-2 text-sm bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                          <span className="ml-2 text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full">
                             Ngày lễ
                           </span>
                         )}
                         {isWeekend(new Date(selectedDate)) && (
-                          <span className="ml-2 text-sm bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                          <span className="ml-2 text-xs bg-red-500/20 text-red-300 border border-red-500/30 px-2 py-0.5 rounded-full">
                             Cuối tuần
                           </span>
                         )}
@@ -1858,36 +1847,39 @@ useEffect(() => {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.3 }}
-                  className="bg-white rounded-xl"
+                  className="rounded-xl"
                 >
                   <div className="flex items-center justify-between mb-6">
-                    <h4 className="text-lg font-medium text-gray-800 flex items-center">
-                      <FaClock className="mr-2 text-blue-500" />
+                    <h4 className="text-lg font-bold text-white flex items-center">
+                      <FaClock className="mr-2 text-red-400" />
                       Bước 4: Chọn giờ chiếu
                     </h4>
                     
                     <div className="flex items-center space-x-2">
-                      <div className="flex items-center bg-blue-50 px-3 py-1.5 rounded-lg">
+                      <div className="flex items-center bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl">
                         <img 
-                          src={selectedMovie?.poster_URL || 'https://via.placeholder.com/300x450?text=No+Image'} 
+                          src={selectedMovie?.poster_URL || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=100&auto=format&fit=crop&q=60'} 
                           alt={selectedMovie?.title}
-                          className="w-6 h-6 rounded-full object-cover mr-2 border border-blue-200"
+                          className="w-6 h-6 rounded-full object-cover mr-2 border border-white/10"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=100&auto=format&fit=crop&q=60';
+                          }}
                         />
-                        <span className="text-xs font-medium text-blue-700 truncate max-w-[100px]">
-                          {selectedMovie?.title}
+                        <span className="text-xs font-medium text-white truncate max-w-[100px]">
+                          {selectedMovie?.title || selectedMovie?.movie_Name}
                         </span>
                       </div>
                       
-                      <div className="flex items-center bg-green-50 px-3 py-1.5 rounded-lg">
-                        <FaDoorOpen className="text-green-600 mr-1" size={12} />
-                        <span className="text-xs font-medium text-green-700">
+                      <div className="flex items-center bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl">
+                        <FaDoorOpen className="text-red-400 mr-1.5" size={12} />
+                        <span className="text-xs font-medium text-white">
                           {selectedRoom?.room_Name}
                         </span>
                       </div>
                       
-                      <div className="flex items-center bg-purple-50 px-3 py-1.5 rounded-lg">
-                        <FaCalendarAlt className="text-purple-600 mr-1" size={12} />
-                        <span className="text-xs font-medium text-purple-700">
+                      <div className="flex items-center bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl">
+                        <FaCalendarAlt className="text-purple-400 mr-1.5" size={12} />
+                        <span className="text-xs font-medium text-white">
                           {formatDate(selectedDate)}
                         </span>
                       </div>
@@ -1895,16 +1887,16 @@ useEffect(() => {
                   </div>
                   
                   <div className="mb-6">
-                    <h5 className="text-sm font-medium text-gray-700 mb-3">Chọn giờ bắt đầu:</h5>
-                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                    <h5 className="text-sm font-semibold text-gray-300 mb-3">Chọn giờ bắt đầu:</h5>
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2.5">
                       {TIME_SLOTS.map(time => (
                         <button
                           key={time}
                           onClick={() => setSelectedTimeSlot(time)}
-                          className={`py-2 rounded-lg text-center transition-all ${
+                          className={`py-2.5 rounded-xl text-center font-medium transition-all text-sm ${
                             selectedTimeSlot === time 
-                              ? 'bg-blue-500 text-white ring-2 ring-blue-300' 
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              ? 'bg-red-600 text-white shadow-lg shadow-red-600/30' 
+                              : 'bg-[#1E2738] border border-white/10 text-gray-300 hover:border-white/20'
                           }`}
                         >
                           {time}
@@ -1915,42 +1907,46 @@ useEffect(() => {
                   
                   {selectedTimeSlot && selectedMovie && (
                     <div className="mb-6">
-                      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <h5 className="text-sm font-medium text-gray-700 mb-3">Thông tin giờ chiếu:</h5>
+                      <div className="p-4 bg-[#1E2738] rounded-xl border border-white/10">
+                        <h5 className="text-sm font-semibold text-white mb-3">Thông tin giờ chiếu:</h5>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="flex items-center">
-                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                              <FaClock className="text-blue-500" />
+                          <div className="flex items-center bg-white/5 p-3 rounded-xl border border-white/5">
+                            <div className="w-10 h-10 rounded-xl bg-red-500/20 text-red-500 flex items-center justify-center mr-3">
+                              <FaClock />
                             </div>
                             <div>
-                              <p className="text-sm text-gray-500">Giờ bắt đầu</p>
-                              <p className="font-medium text-gray-800">{selectedTimeSlot}</p>
+                              <p className="text-xs text-gray-400">Giờ bắt đầu</p>
+                              <p className="font-semibold text-white text-base">{selectedTimeSlot}</p>
                             </div>
                           </div>
                           
-                          <div className="flex items-center">
-                            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                              <FaClock className="text-green-500" />
+                          <div className="flex items-center bg-white/5 p-3 rounded-xl border border-white/5">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mr-3">
+                              <FaClock />
                             </div>
                             <div>
-                              <p className="text-sm text-gray-500">Giờ kết thúc (dự kiến)</p>
-                              <p className="font-medium text-gray-800">{newShowtime.end_Time}</p>
+                              <p className="text-xs text-gray-400">Giờ kết thúc (dự kiến)</p>
+                              <p className="font-semibold text-white text-base">{newShowtime.end_Time}</p>
                             </div>
                           </div>
                           
-                          <div className="flex items-center">
-                            <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
-                              <FaFilm className="text-yellow-500" />
+                          <div className="flex items-center bg-white/5 p-3 rounded-xl border border-white/5">
+                            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center mr-3">
+                              <FaFilm />
                             </div>
                             <div>
-                              <p className="text-sm text-gray-500">Thời lượng phim</p>
-                              <p className="font-medium text-gray-800">{selectedMovie.duration} phút</p>
+                              <p className="text-xs text-gray-400">Thời lượng phim</p>
+                              <p className="font-semibold text-white text-base">{selectedMovie.duration} phút</p>
                             </div>
                           </div>
                           
-                          <div className="flex items-center">
-                            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
-                              <FaMoneyBillWave className="text-purple-500" />
+                          <div className="flex items-center bg-white/5 p-3 rounded-xl border border-white/5">
+                            <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center mr-3">
+                              <FaDoorOpen />
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-400">Phòng chiếu</p>
+                              <p className="font-semibold text-white text-base">{selectedRoom?.room_Name} ({selectedRoom?.seat_Quantity} ghế)</p>
                             </div>
                           </div>
                         </div>
@@ -1959,62 +1955,52 @@ useEffect(() => {
                   )}
                   
                   {/* Tóm tắt thông tin lịch chiếu */}
-                  <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                    <h5 className="font-medium text-gray-800 mb-4 flex items-center">
-                      <FaInfoCircle className="mr-2 text-blue-500" />
+                  <div className="mt-8 p-4 bg-white/5 rounded-xl border border-white/10">
+                    <h5 className="font-semibold text-white mb-4 flex items-center">
+                      <FaInfoCircle className="mr-2 text-red-400" />
                       Tóm tắt thông tin lịch chiếu
                     </h5>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="flex">
-                        <div className="mr-3 text-blue-500"><FaFilm /></div>
+                      <div className="flex items-center bg-[#1E2738] p-3 rounded-xl border border-white/10">
+                        <div className="mr-3 text-red-400 text-lg"><FaFilm /></div>
                         <div>
-                          <p className="text-sm text-gray-500">Phim</p>
-                          <p className="font-medium text-gray-800">{selectedMovie?.title || 'Chưa chọn'}</p>
+                          <p className="text-xs text-gray-400">Phim</p>
+                          <p className="font-semibold text-white">{selectedMovie?.title || selectedMovie?.movie_Name || 'Chưa chọn'}</p>
                         </div>
                       </div>
                       
-                      <div className="flex">
-                        <div className="mr-3 text-blue-500"><FaDoorOpen /></div>
+                      <div className="flex items-center bg-[#1E2738] p-3 rounded-xl border border-white/10">
+                        <div className="mr-3 text-red-400 text-lg"><FaDoorOpen /></div>
                         <div>
-                          <p className="text-sm text-gray-500">Phòng chiếu</p>
-                          <p className="font-medium text-gray-800">
+                          <p className="text-xs text-gray-400">Phòng chiếu</p>
+                          <p className="font-semibold text-white">
                             {selectedRoom?.room_Name || 'Chưa chọn'}
                             {selectedRoom?.room_Type && (
-                              <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
-                                selectedRoom.room_Type === '3D' 
-                                  ? 'bg-purple-100 text-purple-700' 
-                                  : selectedRoom.room_Type === 'IMAX' 
-                                    ? 'bg-yellow-100 text-yellow-700' 
-                                    : 'bg-blue-100 text-blue-700'
-                              }`}>
+                              <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-white/10 text-white border border-white/10">
                                 {selectedRoom.room_Type}
                               </span>
                             )}
-                                                    </p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex">
-                        <div className="mr-3 text-blue-500"><FaCalendarAlt /></div>
-                        <div>
-                          <p className="text-sm text-gray-500">Ngày chiếu</p>
-                          <p className="font-medium text-gray-800">{formatDate(selectedDate) || 'Chưa chọn'}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex">
-                        <div className="mr-3 text-blue-500"><FaClock /></div>
-                        <div>
-                          <p className="text-sm text-gray-500">Giờ chiếu</p>
-                          <p className="font-medium text-gray-800">
-                            {selectedTimeSlot ? `${selectedTimeSlot} - ${newShowtime.end_Time}` : 'Chưa chọn'}
                           </p>
                         </div>
                       </div>
                       
-                      <div className="flex">
-                        <div className="mr-3 text-blue-500"><FaMoneyBillWave /></div>
+                      <div className="flex items-center bg-[#1E2738] p-3 rounded-xl border border-white/10">
+                        <div className="mr-3 text-red-400 text-lg"><FaCalendarAlt /></div>
+                        <div>
+                          <p className="text-xs text-gray-400">Ngày chiếu</p>
+                          <p className="font-semibold text-white">{formatDate(selectedDate) || 'Chưa chọn'}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center bg-[#1E2738] p-3 rounded-xl border border-white/10">
+                        <div className="mr-3 text-red-400 text-lg"><FaClock /></div>
+                        <div>
+                          <p className="text-xs text-gray-400">Giờ chiếu</p>
+                          <p className="font-semibold text-white">
+                            {selectedTimeSlot ? `${selectedTimeSlot} - ${newShowtime.end_Time}` : 'Chưa chọn'}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2022,11 +2008,11 @@ useEffect(() => {
               )}
             </AnimatePresence>
 
-            <div className="flex justify-between mt-8">
+            <div className="flex justify-between mt-8 pt-4 border-t border-white/10">
               {currentStep > 1 ? (
                 <button 
                   onClick={goToPreviousStep} 
-                  className="px-6 py-2.5 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors shadow-sm flex items-center"
+                  className="px-6 py-2.5 bg-white/10 text-gray-200 rounded-xl hover:bg-white/20 transition-colors font-medium flex items-center"
                 >
                   <FaArrowLeft className="mr-2" />
                   Quay lại
@@ -2038,7 +2024,7 @@ useEffect(() => {
               {currentStep < 4 ? (
                 <button 
                   onClick={goToNextStep} 
-                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center"
+                  className="px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-red-600/30 font-medium flex items-center"
                 >
                   Tiếp tục
                   <FaArrowRight className="ml-2" />
@@ -2047,10 +2033,10 @@ useEffect(() => {
                 <button 
                   onClick={handleCreateShowtime} 
                   disabled={loading || !selectedMovie || !selectedRoom || !selectedDate || !selectedTimeSlot}
-                  className={`px-6 py-2.5 rounded-lg transition-colors shadow-sm flex items-center ${
+                  className={`px-6 py-2.5 rounded-xl transition-all shadow-lg flex items-center font-medium ${
                     loading || !selectedMovie || !selectedRoom || !selectedDate || !selectedTimeSlot
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-green-600 text-white hover:bg-green-700'
+                      ? 'bg-white/10 text-gray-500 cursor-not-allowed border border-white/5'
+                      : 'bg-red-600 text-white hover:bg-red-700 shadow-red-600/30'
                   }`}
                 >
                   {loading ? 'Đang tạo...' : (
@@ -2073,89 +2059,89 @@ useEffect(() => {
               animate={{ opacity: 1, height: 'auto' }} 
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="bg-white p-6 rounded-xl shadow-lg mb-8 overflow-hidden"
+              className="bg-[#161D2F] border border-white/10 p-6 rounded-2xl shadow-xl mb-8 overflow-hidden text-white"
             >
               <div className="flex items-center mb-6">
-                <div className="bg-indigo-100 p-3 rounded-full mr-4">
-                  <FaFilter className="text-indigo-600 text-xl" />
+                <div className="bg-red-500/20 text-red-500 p-3 rounded-xl mr-4">
+                  <FaFilter className="text-red-500 text-xl" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-800">Bộ lọc nâng cao</h3>
+                <h3 className="text-xl font-bold text-white">Bộ lọc nâng cao</h3>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tên phim</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Tên phim</label>
                   <input 
                     type="text" 
                     placeholder="Nhập tên phim..." 
                     value={filters.movieTitle} 
                     onChange={(e) => setFilters({...filters, movieTitle: e.target.value})} 
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors" 
+                    className="w-full px-4 py-2.5 bg-[#0B0F19] border border-white/15 text-white rounded-xl placeholder-gray-500 focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all text-sm" 
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tên phòng</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Tên phòng</label>
                   <input 
                     type="text" 
                     placeholder="Nhập tên phòng..." 
                     value={filters.roomName} 
                     onChange={(e) => setFilters({...filters, roomName: e.target.value})} 
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors" 
+                    className="w-full px-4 py-2.5 bg-[#0B0F19] border border-white/15 text-white rounded-xl placeholder-gray-500 focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all text-sm" 
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Ngày chiếu</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Ngày chiếu</label>
                   <input 
                     type="date" 
                     value={filters.showDate} 
                     onChange={(e) => setFilters({...filters, showDate: e.target.value})} 
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors" 
+                    className="w-full px-4 py-2.5 bg-[#0B0F19] border border-white/15 text-white rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all [color-scheme:dark] text-sm" 
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Loại phòng</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Loại phòng</label>
                   <select 
                     value={filters.roomType} 
                     onChange={(e) => setFilters({...filters, roomType: e.target.value})} 
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors"
+                    className="w-full px-4 py-2.5 bg-[#0B0F19] border border-white/15 text-white rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all text-sm"
                   >
-                    <option value="">Tất cả</option>
+                    <option value="" className="bg-[#161D2F] text-white">Tất cả</option>
                     {ROOM_TYPES.map(type => (
-                      <option key={type} value={type}>{type}</option>
+                      <option key={type} value={type} className="bg-[#161D2F] text-white">{type}</option>
                     ))}
                   </select>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Trạng thái</label>
                   <select 
                     value={filters.status} 
                     onChange={(e) => setFilters({...filters, status: e.target.value})} 
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors"
+                    className="w-full px-4 py-2.5 bg-[#0B0F19] border border-white/15 text-white rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all text-sm"
                   >
-                    <option value="">Tất cả</option>
-                    <option value="active">Đang hoạt động</option>
-                    <option value="inactive">Không hoạt động</option>
-                    <option value="scheduled">Đã lên lịch</option>
-                    <option value="hidden">Đã ẩn</option>
+                    <option value="" className="bg-[#161D2F] text-white">Tất cả</option>
+                    <option value="active" className="bg-[#161D2F] text-white">Đang hoạt động</option>
+                    <option value="inactive" className="bg-[#161D2F] text-white">Không hoạt động</option>
+                    <option value="scheduled" className="bg-[#161D2F] text-white">Đã lên lịch</option>
+                    <option value="hidden" className="bg-[#161D2F] text-white">Đã ẩn</option>
                   </select>
                 </div>
               </div>
               
-              <div className="flex justify-end mt-6">
+              <div className="flex justify-end mt-6 pt-4 border-t border-white/10">
                 <button 
                   onClick={resetFilters} 
-                  className="px-6 py-2.5 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors shadow-sm flex items-center mr-3"
+                  className="px-6 py-2.5 bg-white/10 text-gray-200 rounded-xl hover:bg-white/20 transition-colors font-medium flex items-center mr-3"
                 >
                   <FaTimes className="mr-2" />
                   Xóa bộ lọc
                 </button>
                 <button 
                   onClick={() => setShowFilters(false)} 
-                  className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm flex items-center"
+                  className="px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-red-600/30 font-medium flex items-center"
                 >
                   <FaCheck className="mr-2" />
                   Áp dụng
@@ -2469,19 +2455,19 @@ useEffect(() => {
 
     {/* View Showtime Modal */}
     {viewingShowtime && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
         <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }} 
+          initial={{ opacity: 0, scale: 0.95 }} 
           animate={{ opacity: 1, scale: 1 }} 
-          className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+          className="bg-[#161D2F] border border-white/10 text-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
         >
-          <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
-            <h3 className="text-xl font-semibold text-gray-800">Chi tiết lịch chiếu</h3>
+          <div className="p-6 border-b border-white/10 flex justify-between items-center sticky top-0 bg-[#161D2F] z-10">
+            <h3 className="text-xl font-bold text-white">Chi tiết lịch chiếu</h3>
             <button 
               onClick={() => setViewingShowtime(null)}
-              className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors"
+              className="text-gray-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors"
             >
-              <FaTimes size={20} />
+              <FaTimes size={18} />
             </button>
           </div>
           
@@ -2489,34 +2475,37 @@ useEffect(() => {
             <div className="flex flex-col md:flex-row gap-6">
               {/* Movie poster and info */}
               <div className="md:w-1/3">
-                <div className="bg-gray-100 rounded-lg overflow-hidden mb-4">
+                <div className="bg-[#1E2738] rounded-xl overflow-hidden mb-4 border border-white/10 aspect-w-2 aspect-h-3 flex items-center justify-center">
                   {viewingShowtime.movie_Poster ? (
                     <img 
                       src={viewingShowtime.movie_Poster} 
                       alt={viewingShowtime.movie_Title} 
-                      className="w-full h-auto object-cover"
+                      className="w-full h-auto object-cover max-h-72 rounded-xl"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=60';
+                      }}
                     />
                   ) : (
-                    <div className="w-full h-64 bg-gray-200 flex items-center justify-center">
-                      <FaFilm className="text-gray-400 text-4xl" />
+                    <div className="w-full h-64 bg-white/5 flex items-center justify-center">
+                      <FaFilm className="text-gray-500 text-4xl" />
                     </div>
                   )}
                 </div>
                 
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-lg text-gray-800 mb-2">{viewingShowtime.movie_Title}</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center">
-                      <FaClock className="text-gray-500 mr-2" />
-                      <span>{viewingShowtime.movie_Duration} phút</span>
+                <div className="bg-[#1E2738] p-4 rounded-xl border border-white/10">
+                  <h4 className="font-bold text-base text-white mb-3 line-clamp-2">{viewingShowtime.movie_Title}</h4>
+                  <div className="space-y-2.5 text-sm text-gray-300">
+                    <div className="flex items-center text-gray-300">
+                      <FaClock className="text-red-400 mr-2.5 flex-shrink-0" />
+                      <span className="text-gray-200">{viewingShowtime.movie_Duration} phút</span>
                     </div>
-                    <div className="flex items-center">
-                      <FaGlobe className="text-gray-500 mr-2" />
-                      <span>{viewingShowtime.movie_Language || 'Không có thông tin'}</span>
+                    <div className="flex items-center text-gray-300">
+                      <FaGlobe className="text-blue-400 mr-2.5 flex-shrink-0" />
+                      <span className="text-gray-200">{viewingShowtime.movie_Language || 'Không có thông tin'}</span>
                     </div>
-                    <div className="flex items-center">
-                      <FaStar className="text-yellow-500 mr-2" />
-                      <span>{viewingShowtime.movie_Rating || 'Chưa có đánh giá'}</span>
+                    <div className="flex items-center text-gray-300">
+                      <FaStar className="text-amber-400 mr-2.5 flex-shrink-0" />
+                      <span className="text-gray-200">{viewingShowtime.movie_Rating || 'Chưa có đánh giá'}</span>
                     </div>
                   </div>
                 </div>
@@ -2524,100 +2513,90 @@ useEffect(() => {
               
               {/* Showtime details */}
               <div className="md:w-2/3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-1">
-                    <label className="block text-sm font-medium text-gray-500">ID lịch chiếu</label>
-                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                      <span className="text-gray-800 font-mono">{viewingShowtime.showtime_ID}</span>
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-[#1E2738] p-3.5 rounded-xl border border-white/10">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">ID lịch chiếu</label>
+                    <span className="text-white font-mono text-base font-medium">{viewingShowtime.showtime_ID}</span>
                   </div>
                   
-                  <div className="space-y-1">
-                    <label className="block text-sm font-medium text-gray-500">Trạng thái</label>
-                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                      <span className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusColor(viewingShowtime.status)}`}>
-                        {viewingShowtime.status}
-                      </span>
-                    </div>
+                  <div className="bg-[#1E2738] p-3.5 rounded-xl border border-white/10">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Trạng thái</label>
+                    <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full ${
+                      viewingShowtime.status === 'Active' || viewingShowtime.status === 'Scheduled'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    }`}>
+                      {viewingShowtime.status}
+                    </span>
                   </div>
                   
-                  <div className="space-y-1">
-                    <label className="block text-sm font-medium text-gray-500">Phòng chiếu</label>
-                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 flex justify-between items-center">
-                      <span className="text-gray-800 font-medium">
+                  <div className="bg-[#1E2738] p-3.5 rounded-xl border border-white/10">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Phòng chiếu</label>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white font-semibold">
                         {viewingShowtime.room_Name || `Phòng ${viewingShowtime.cinema_Room_ID}`}
                       </span>
-                      <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${getRoomTypeColor(viewingShowtime.room_Type)}`}>
+                      <span className="inline-block px-2 py-0.5 text-xs font-bold rounded bg-white/10 text-white border border-white/10">
                         {viewingShowtime.room_Type || '2D'}
                       </span>
                     </div>
                   </div>
                   
-                  <div className="space-y-1">
-                  <label className="block text-sm font-medium text-gray-500">Ngày chiếu</label>
-                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                      <div className="text-gray-800">{formatDate(viewingShowtime.show_Date)}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {isWeekend(new Date(viewingShowtime.show_Date)) && (
-                          <span className="text-red-600 font-medium">Cuối tuần</span>
-                        )}
-                        {isHoliday(viewingShowtime.show_Date) && (
-                          <span className="text-purple-600 font-medium ml-1">(Ngày lễ)</span>
-                        )}
-                      </div>
+                  <div className="bg-[#1E2738] p-3.5 rounded-xl border border-white/10">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Ngày chiếu</label>
+                    <div className="text-white font-medium">{formatDate(viewingShowtime.show_Date)}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      {isWeekend(new Date(viewingShowtime.show_Date)) && (
+                        <span className="text-red-400 font-medium">Cuối tuần</span>
+                      )}
+                      {isHoliday(viewingShowtime.show_Date) && (
+                        <span className="text-purple-400 font-medium ml-1">(Ngày lễ)</span>
+                      )}
                     </div>
                   </div>
                   
-                  <div className="space-y-1">
-                    <label className="block text-sm font-medium text-gray-500">Giờ bắt đầu</label>
-                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                    <span className="text-gray-800">{viewingShowtime.start_Time}</span>
-                    </div>
+                  <div className="bg-[#1E2738] p-3.5 rounded-xl border border-white/10">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Giờ bắt đầu</label>
+                    <span className="text-white font-semibold text-base">{viewingShowtime.start_Time}</span>
                   </div>
                   
-                  <div className="space-y-1">
-                    <label className="block text-sm font-medium text-gray-500">Giờ kết thúc</label>
-                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                      <span className="text-gray-800">{viewingShowtime.end_Time}</span>
-                    </div>
+                  <div className="bg-[#1E2738] p-3.5 rounded-xl border border-white/10">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Giờ kết thúc</label>
+                    <span className="text-white font-semibold text-base">{viewingShowtime.end_Time}</span>
                   </div>
                   
-                  <div className="space-y-1">
-                    <label className="block text-sm font-medium text-gray-500">Thời lượng</label>
-                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                      <span className="text-gray-800">
-                        {calculateDuration(viewingShowtime.start_Time, viewingShowtime.end_Time)}
+                  <div className="bg-[#1E2738] p-3.5 rounded-xl border border-white/10">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Thời lượng</label>
+                    <span className="text-white font-medium">
+                      {calculateDuration(viewingShowtime.start_Time, viewingShowtime.end_Time)}
+                    </span>
+                  </div>
+                  
+                  <div className="bg-[#1E2738] p-3.5 rounded-xl border border-white/10 md:col-span-2">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Số ghế còn trống</label>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-white font-semibold">
+                        {viewingShowtime.capacity_Available || 'Không có thông tin'} ghế
                       </span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-1 md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-500">Số ghế còn trống</label>
-                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-800 font-medium">
-                          {viewingShowtime.capacity_Available || 'Không có thông tin'} ghế
-                        </span>
-                        <div className="w-32 bg-gray-200 rounded-full h-2.5">
-                          <div 
-                            className="bg-green-500 h-2.5 rounded-full" 
-                            style={{ width: `${((viewingShowtime.capacity_Available || 0) / 100) * 100}%` }}
-                          ></div>
-                        </div>
+                      <div className="w-32 bg-white/10 rounded-full h-2">
+                        <div 
+                          className="bg-emerald-500 h-2 rounded-full" 
+                          style={{ width: `${Math.min(100, ((viewingShowtime.capacity_Available || 0) / 100) * 100)}%` }}
+                        ></div>
                       </div>
                     </div>
                   </div>
                 </div>
                 
-                <div className="mt-8 border-t border-gray-200 pt-6">
-                  <h4 className="font-medium text-gray-800 mb-4">Thao tác</h4>
+                <div className="mt-8 border-t border-white/10 pt-6">
+                  <h4 className="font-semibold text-white mb-4">Thao tác</h4>
                   <div className="flex flex-wrap gap-3">
                     <button 
                       onClick={() => {
                         handleEditShowtime(viewingShowtime);
                         setViewingShowtime(null);
                       }}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center"
+                      className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all shadow-md flex items-center font-medium"
                     >
                       <FaEdit className="mr-2" />
                       Chỉnh sửa
@@ -2628,7 +2607,7 @@ useEffect(() => {
                         handleDeleteShowtime(viewingShowtime.showtime_ID);
                         setViewingShowtime(null);
                       }}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm flex items-center"
+                      className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all shadow-md flex items-center font-medium"
                     >
                       <FaTrash className="mr-2" />
                       Xóa
@@ -2636,7 +2615,7 @@ useEffect(() => {
                     
                     <button 
                       onClick={() => setViewingShowtime(null)}
-                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors shadow-sm flex items-center"
+                      className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-gray-200 rounded-xl transition-colors flex items-center font-medium"
                     >
                       <FaTimes className="mr-2" />
                       Đóng

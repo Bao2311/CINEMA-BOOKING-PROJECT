@@ -514,7 +514,7 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
       {/* Button to open modal */}
       <button 
         onClick={() => setIsOpen(true)} 
-        className="px-4 py-2.5 bg-green-600 text-white rounded-full flex items-center font-medium transition-all shadow-sm hover:bg-green-700"
+        className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl flex items-center font-semibold text-sm transition-all shadow-lg shadow-emerald-600/20"
       >
         <FaPlus className="mr-2" />
         Tạo nhiều suất chiếu
@@ -522,25 +522,28 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
       
       {/* Modal */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
-              <h3 className="text-xl font-semibold text-gray-800">Tạo nhiều suất chiếu cùng lúc</h3>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#161D2F] border border-white/10 text-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-white/10 flex justify-between items-center sticky top-0 bg-[#161D2F]/95 backdrop-blur-md z-10">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <span className="w-2.5 h-6 bg-red-600 rounded-full inline-block"></span>
+                Tạo nhiều suất chiếu cùng lúc
+              </h3>
               <button 
                 onClick={() => setIsOpen(false)}
-                className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                className="text-gray-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors"
               >
-                <FaTimes size={20} />
+                <FaTimes size={18} />
               </button>
             </div>
             
             {/* Stepper */}
             <div className="px-6 pt-6">
-              <div className="flex items-center justify-between mb-8 relative">
+              <div className="flex items-center justify-between mb-8 relative max-w-2xl mx-auto">
                 {/* Progress bar underneath */}
-                <div className="absolute h-1 bg-gray-200 left-0 right-0 top-6 -z-10">
+                <div className="absolute h-0.5 bg-white/10 left-6 right-6 top-6 -z-0">
                   <div 
-                    className="h-full bg-blue-500 transition-all duration-300"
+                    className="h-full bg-gradient-to-r from-red-600 to-rose-600 transition-all duration-300"
                     style={{ width: `${(currentStep - 1) * 50}%` }}
                   ></div>
                 </div>
@@ -548,22 +551,22 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
                 {[1, 2, 3].map(step => (
                   <div key={step} className="flex flex-col items-center relative z-10">
                     <div 
-                      className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all ${
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-2 transition-all font-semibold ${
                         currentStep === step 
-                          ? 'bg-blue-600 text-white shadow-md scale-110' 
+                          ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-600/30 scale-110 border border-red-400/30' 
                           : currentStep > step 
-                            ? 'bg-green-500 text-white' 
-                            : 'bg-gray-200 text-gray-600'
+                            ? 'bg-emerald-600 text-white' 
+                            : 'bg-[#1E2738] text-gray-400 border border-white/10'
                       }`}
                     >
-                      {currentStep > step ? <FaCheck className="text-lg" /> : (
+                      {currentStep > step ? <FaCheck className="text-base" /> : (
                         step === 1 ? <FaFilm /> : step === 2 ? <FaDoorOpen /> : <FaCalendarAlt />
                       )}
                     </div>
-                    <div className="text-sm font-medium text-center max-w-[100px]">
-                      {step === 1 && "Chọn phim"}
-                      {step === 2 && "Chọn phòng"}
-                      {step === 3 && "Chọn ngày"}
+                    <div className={`text-xs font-medium text-center ${currentStep === step ? 'text-white font-semibold' : 'text-gray-400'}`}>
+                      {step === 1 && "1. Chọn phim"}
+                      {step === 2 && "2. Chọn phòng"}
+                      {step === 3 && "3. Chọn ngày & Tạo"}
                     </div>
                   </div>
                 ))}
@@ -576,114 +579,122 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
                 {currentStep === 1 && (
                   <motion.div
                     key="step1"
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.25 }}
                   >
-                    <h4 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
-                      <FaFilm className="mr-2 text-blue-500" />
-                      Bước 1: Chọn phim đang chiếu
-                    </h4>
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <FaFilm className="text-red-500" />
+                        Bước 1: Chọn phim đang chiếu
+                      </h4>
+                      <span className="text-xs text-gray-400">Đã chọn: {selectedMovies.length} phim</span>
+                    </div>
                     
                     {validationErrors.movies && (
-                      <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
-                        <div className="flex items-center">
-                          <FaExclamationTriangle className="mr-2" />
-                          <span>{validationErrors.movies}</span>
-                        </div>
+                      <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-300 rounded-xl flex items-center gap-2 text-sm">
+                        <FaExclamationTriangle className="text-red-400 shrink-0" />
+                        <span>{validationErrors.movies}</span>
                       </div>
                     )}
                     
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
-                      {movies.map(movie => (
-                        <div 
-                          key={movie.movie_ID}
-                          onClick={() => toggleMovieSelection(movie)}
-                          className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
-                            isMovieSelected(movie.movie_ID) 
-                              ? 'border-blue-500 shadow-lg ring-2 ring-blue-100' 
-                              : 'border-gray-200 hover:border-blue-300'
-                          }`}
-                        >
-                          <div className="relative pb-[140%]">
-                            <img 
-                              src={movie.poster_URL || 'https://via.placeholder.com/300x450?text=No+Image'} 
-                              alt={movie.title}
-                              className="absolute inset-0 w-full h-full object-cover"
-                            />
-                            {isMovieSelected(movie.movie_ID) && (
-                              <div className="absolute inset-0 bg-blue-500 bg-opacity-10 flex items-center justify-center">
-                                <div className="absolute top-2 right-2 bg-blue-500 text-white p-2 rounded-full">
-                                  <FaCheck />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          <div className="p-3 bg-white">
-                            <h5 className="font-medium text-gray-800 truncate">{movie.title}</h5>
-                            <div className="flex justify-between items-center mt-2">
-                              <span className="text-xs text-gray-500">{movie.duration} phút</span>
-                              {isMovieSelected(movie.movie_ID) && (
-                                <div className="flex items-center">
-                                  <button 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const currentCount = getShowtimeCount(movie.movie_ID);
-                                      if (currentCount > 1) {
-                                        updateShowtimeCount(movie.movie_ID, currentCount - 1);
-                                      }
-                                    }}
-                                    className="w-6 h-6 flex items-center justify-center bg-gray-200 rounded-full text-gray-700 hover:bg-gray-300"
-                                  >
-                                    -
-                                  </button>
-                                  <span className="mx-2 text-sm font-medium">
-                                    {getShowtimeCount(movie.movie_ID)}
-                                  </span>
-                                  <button 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const currentCount = getShowtimeCount(movie.movie_ID);
-                                      if (currentCount < 10) {
-                                        updateShowtimeCount(movie.movie_ID, currentCount + 1);
-                                      }
-                                    }}
-                                    className="w-6 h-6 flex items-center justify-center bg-gray-200 rounded-full text-gray-700 hover:bg-gray-300"
-                                  >
-                                    +
-                                  </button>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+                      {movies.map(movie => {
+                        const isSelected = isMovieSelected(movie.movie_ID);
+                        return (
+                          <div 
+                            key={movie.movie_ID}
+                            onClick={() => toggleMovieSelection(movie)}
+                            className={`cursor-pointer rounded-xl overflow-hidden border transition-all bg-[#1E2738] ${
+                              isSelected 
+                                ? 'border-red-500 ring-2 ring-red-500/30 shadow-lg shadow-red-600/20' 
+                                : 'border-white/10 hover:border-red-500/40 hover:bg-[#1E2738]/80'
+                            }`}
+                          >
+                            <div className="relative pb-[135%] bg-black/40">
+                              <img 
+                                src={movie.poster_URL || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80'} 
+                                alt={movie.title}
+                                className="absolute inset-0 w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80';
+                                }}
+                              />
+                              {isSelected && (
+                                <div className="absolute inset-0 bg-red-600/20 backdrop-blur-[1px] flex items-center justify-center">
+                                  <div className="absolute top-2 right-2 bg-red-600 text-white p-1.5 rounded-lg shadow-md">
+                                    <FaCheck size={12} />
+                                  </div>
                                 </div>
                               )}
                             </div>
+                            <div className="p-3">
+                              <h5 className="font-semibold text-white truncate text-sm" title={movie.title}>{movie.title}</h5>
+                              <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5">
+                                <span className="text-xs text-gray-400">{movie.duration} phút</span>
+                                {isSelected && (
+                                  <div className="flex items-center gap-1 bg-[#0B0F19] px-1.5 py-0.5 rounded-lg border border-white/10" onClick={(e) => e.stopPropagation()}>
+                                    <button 
+                                      onClick={() => {
+                                        const currentCount = getShowtimeCount(movie.movie_ID);
+                                        if (currentCount > 1) {
+                                          updateShowtimeCount(movie.movie_ID, currentCount - 1);
+                                        }
+                                      }}
+                                      className="w-5 h-5 flex items-center justify-center bg-white/5 rounded text-gray-300 hover:text-white hover:bg-white/15 text-xs"
+                                    >
+                                      -
+                                    </button>
+                                    <span className="mx-1 text-xs font-bold text-white min-w-[14px] text-center">
+                                      {getShowtimeCount(movie.movie_ID)}
+                                    </span>
+                                    <button 
+                                      onClick={() => {
+                                        const currentCount = getShowtimeCount(movie.movie_ID);
+                                        if (currentCount < 10) {
+                                          updateShowtimeCount(movie.movie_ID, currentCount + 1);
+                                        }
+                                      }}
+                                      className="w-5 h-5 flex items-center justify-center bg-white/5 rounded text-gray-300 hover:text-white hover:bg-white/15 text-xs"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     
                     {selectedMovies.length > 0 && (
-                      <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                        <h5 className="font-medium text-blue-800 mb-3">Phim đã chọn</h5>
+                      <div className="mt-4 p-4 bg-[#0B0F19]/60 rounded-xl border border-white/10">
+                        <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Phim đã chọn ({selectedMovies.length})</h5>
                         <div className="flex flex-wrap gap-2">
                           {selectedMovies.map(movie => (
                             <div 
                               key={movie.movie_ID} 
-                              className="flex items-center bg-white px-3 py-2 rounded-lg border border-blue-200"
+                              className="flex items-center bg-[#1E2738] px-3 py-1.5 rounded-lg border border-white/10"
                             >
                               <img 
-                                src={movie.poster_URL || 'https://via.placeholder.com/300x450?text=No+Image'} 
+                                src={movie.poster_URL || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80'} 
                                 alt={movie.title}
-                                className="w-8 h-8 rounded object-cover mr-2"
+                                className="w-6 h-8 rounded object-cover mr-2"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80';
+                                }}
                               />
-                              <span className="text-sm font-medium mr-2">{movie.title}</span>
-                              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                              <span className="text-xs font-medium text-white mr-2 truncate max-w-[160px]">{movie.title}</span>
+                              <span className="bg-red-500/20 text-red-300 border border-red-500/30 text-[11px] px-2 py-0.5 rounded-full font-semibold">
                                 {getShowtimeCount(movie.movie_ID)} suất
                               </span>
                               <button 
                                 onClick={() => toggleMovieSelection(movie)}
-                                className="ml-2 text-red-500 hover:text-red-700"
+                                className="ml-2 text-gray-400 hover:text-red-400"
                               >
-                                <FaTimes size={12} />
+                                <FaTimes size={10} />
                               </button>
                             </div>
                           ))}
@@ -697,93 +708,93 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
                 {currentStep === 2 && (
                   <motion.div
                     key="step2"
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.25 }}
                   >
-                    <h4 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
-                      <FaDoorOpen className="mr-2 text-blue-500" />
+                    <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                      <FaDoorOpen className="text-red-500" />
                       Bước 2: Chọn phòng chiếu
                     </h4>
                     
                     {validationErrors.cinemaRoomId && (
-                      <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
-                        <div className="flex items-center">
-                          <FaExclamationTriangle className="mr-2" />
-                          <span>{validationErrors.cinemaRoomId}</span>
-                        </div>
+                      <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-300 rounded-xl flex items-center gap-2 text-sm">
+                        <FaExclamationTriangle className="text-red-400 shrink-0" />
+                        <span>{validationErrors.cinemaRoomId}</span>
                       </div>
                     )}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                      {cinemaRooms.map(room => (
-                        <div 
-                          key={room.cinema_Room_ID}
-                          onClick={() => selectRoom(room)}
-                          className={`cursor-pointer p-4 rounded-lg border-2 transition-all ${
-                            selectedRoom?.cinema_Room_ID === room.cinema_Room_ID 
-                              ? 'border-blue-500 bg-blue-50 shadow-md' 
-                              : 'border-gray-200 hover:border-blue-300 bg-white'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <h5 className="font-medium text-gray-800 text-lg">{room.room_Name}</h5>
-                            {selectedRoom?.cinema_Room_ID === room.cinema_Room_ID && (
-                              <div className="bg-blue-500 text-white p-1 rounded-full">
-                                <FaCheck size={12} />
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              room.room_Type === '2D' 
-                                ? 'bg-green-100 text-green-800' 
-                                : room.room_Type === '3D' 
-                                  ? 'bg-purple-100 text-purple-800' 
-                                  : 'bg-blue-100 text-blue-800'
-                            }`}>
-                              {room.room_Type}
-                            </span>
-                            <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-800">
-                              {room.seats_Count} chỗ ngồi
-                            </span>
-                          </div>
-                          
-                          <div className="mt-3 text-sm text-gray-600">
-                            <div className="flex items-center">
-                              <span className="w-24">Trạng thái:</span>
-                              <span className={`px-2 py-0.5 rounded-full text-xs ${
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                      {cinemaRooms.map(room => {
+                        const isSelected = selectedRoom?.cinema_Room_ID === room.cinema_Room_ID;
+                        return (
+                          <div 
+                            key={room.cinema_Room_ID}
+                            onClick={() => selectRoom(room)}
+                            className={`cursor-pointer p-4 rounded-xl border transition-all ${
+                              isSelected 
+                                ? 'border-red-500 bg-red-500/10 ring-2 ring-red-500/20 shadow-lg shadow-red-600/10' 
+                                : 'border-white/10 hover:border-red-500/40 bg-[#1E2738]'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <h5 className="font-semibold text-white text-base">{room.room_Name}</h5>
+                              {isSelected && (
+                                <div className="bg-red-600 text-white p-1 rounded-md shadow-sm">
+                                  <FaCheck size={11} />
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="mt-2.5 flex flex-wrap gap-2">
+                              <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
+                                room.room_Type === '2D' 
+                                  ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' 
+                                  : room.room_Type === '3D' 
+                                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' 
+                                    : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              }`}>
+                                {room.room_Type}
+                              </span>
+                              <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">
+                                {room.seats_Count} ghế
+                              </span>
+                            </div>
+                            
+                            <div className="mt-3 pt-3 border-t border-white/5 text-xs text-gray-400 flex items-center justify-between">
+                              <span>Trạng thái:</span>
+                              <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
                                 room.status === 'Active' 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-red-100 text-red-800'
+                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+                                  : 'bg-red-500/20 text-red-300 border border-red-500/30'
                               }`}>
                                 {room.status === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
                               </span>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     
                     {selectedRoom && (
-                      <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                        <h5 className="font-medium text-blue-800 mb-2">Phòng đã chọn</h5>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium">{selectedRoom.room_Name}</p>
-                            <p className="text-xs text-gray-600">Loại phòng: {selectedRoom.room_Type} | Số ghế: {selectedRoom.seats_Count}</p>
-                          </div>
-                          <button 
-                            onClick={() => {
-                              setSelectedRoom(null);
-                              setCinemaRoomId('');
-                            }}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <FaTimes size={16} />
-                          </button>
+                      <div className="mt-4 p-4 bg-[#0B0F19]/60 rounded-xl border border-white/10 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-white flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            {selectedRoom.room_Name}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-0.5">Loại: {selectedRoom.room_Type} • Sức chứa: {selectedRoom.seats_Count} chỗ</p>
                         </div>
+                        <button 
+                          onClick={() => {
+                            setSelectedRoom(null);
+                            setCinemaRoomId('');
+                          }}
+                          className="text-gray-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+                        >
+                          <FaTimes size={14} />
+                        </button>
                       </div>
                     )}
                   </motion.div>
@@ -793,77 +804,76 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
                 {currentStep === 3 && (
                   <motion.div
                     key="step3"
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.25 }}
                   >
-                    <h4 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
-                      <FaCalendarAlt className="mr-2 text-blue-500" />
-                      Bước 3: Chọn ngày chiếu
+                    <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                      <FaCalendarAlt className="text-red-500" />
+                      Bước 3: Chọn ngày chiếu & xem trước
                     </h4>
                     
                     {validationErrors.showDate && (
-                      <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
-                        <div className="flex items-center">
-                          <FaExclamationTriangle className="mr-2" />
-                          <span>{validationErrors.showDate}</span>
-                        </div>
+                      <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-300 rounded-xl flex items-center gap-2 text-sm">
+                        <FaExclamationTriangle className="text-red-400 shrink-0" />
+                        <span>{validationErrors.showDate}</span>
                       </div>
                     )}
                     
                     <div className="mb-6">
                       <div className="flex items-center justify-between mb-3">
-                        <h5 className="text-sm font-medium text-gray-700">Chọn ngày chiếu</h5>
+                        <h5 className="text-sm font-medium text-gray-300">Chọn nhanh ngày chiếu</h5>
                         <div className="flex space-x-2">
                           <button 
                             onClick={scrollDatesLeft}
-                            className="p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                            className="p-1.5 rounded-lg bg-[#1E2738] hover:bg-white/10 text-gray-300 border border-white/10 transition-colors"
                           >
-                            <FaChevronLeft size={14} />
+                            <FaChevronLeft size={12} />
                           </button>
                           <button 
                             onClick={scrollDatesRight}
-                            className="p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                            className="p-1.5 rounded-lg bg-[#1E2738] hover:bg-white/10 text-gray-300 border border-white/10 transition-colors"
                           >
-                            <FaChevronRight size={14} />
+                            <FaChevronRight size={12} />
                           </button>
                         </div>
                       </div>
                       
                       <div className="flex overflow-x-auto pb-2 hide-scrollbar">
-                        <div className="flex space-x-2">
-                          {visibleDates.map((date, index) => (
-                            <div 
-                              key={index}
-                              onClick={() => selectDate(date)}
-                              className={`flex-shrink-0 w-20 p-2 rounded-lg cursor-pointer border transition-all ${
-                                isDateSelected(date) 
-                                  ? 'border-blue-500 bg-blue-50 shadow-md' 
-                                  : 'border-gray-200 hover:border-blue-300 bg-white'
-                              }`}
-                            >
-                              <div className="text-center">
+                        <div className="flex space-x-2.5">
+                          {visibleDates.map((date, index) => {
+                            const isSelected = isDateSelected(date);
+                            return (
+                              <div 
+                                key={index}
+                                onClick={() => selectDate(date)}
+                                className={`flex-shrink-0 w-24 p-3 rounded-xl cursor-pointer border transition-all text-center ${
+                                  isSelected 
+                                    ? 'border-red-500 bg-red-500/15 ring-2 ring-red-500/20 shadow-lg shadow-red-600/10' 
+                                    : 'border-white/10 hover:border-red-500/40 bg-[#1E2738]'
+                                }`}
+                              >
                                 <p className={`text-xs mb-1 font-medium ${
-                                  isToday(date) ? 'text-blue-600' : 'text-gray-500'
+                                  isToday(date) ? 'text-red-400 font-bold' : 'text-gray-400'
                                 }`}>
                                   {isToday(date) ? 'Hôm nay' : formatDayOfWeek(date)}
                                 </p>
-                                <p className="text-lg font-bold text-gray-800">{formatDayMonth(date)}</p>
+                                <p className="text-base font-bold text-white">{formatDayMonth(date)}</p>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                       
                       <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Hoặc chọn ngày cụ thể</label>
+                        <label className="block text-sm font-medium text-gray-300 mb-1.5">Hoặc chọn ngày cụ thể từ lịch</label>
                         <input 
                           type="date" 
                           value={showDate} 
                           onChange={(e) => setShowDate(e.target.value)}
                           min={new Date().toISOString().split('T')[0]}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors" 
+                          className="w-full px-4 py-2.5 bg-[#0B0F19] border border-white/15 rounded-xl text-white focus:outline-none focus:border-red-500 [color-scheme:dark]" 
                         />
                       </div>
                     </div>
@@ -871,20 +881,20 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
                     {/* Saved configurations */}
                     {savedConfigurations.length > 0 && (
                       <div className="mb-6">
-                        <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                          <FaCopy className="mr-2 text-blue-500" />
+                        <h4 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                          <FaCopy className="text-red-400" />
                           Cấu hình đã lưu gần đây
                         </h4>
                         <div className="space-y-2">
                           {savedConfigurations.map(config => (
-                            <div key={config.id} className="p-3 border border-gray-200 rounded-lg bg-gray-50 flex justify-between items-center">
+                            <div key={config.id} className="p-3 border border-white/10 rounded-xl bg-[#1E2738] flex justify-between items-center">
                               <div>
-                                <div className="text-sm font-medium">{formatDate(config.showDate)} - {getRoomName(config.cinemaRoomId)}</div>
-                                <div className="text-xs text-gray-500 flex flex-wrap gap-1 mt-1">
+                                <div className="text-sm font-semibold text-white">{formatDate(config.showDate)} - {getRoomName(config.cinemaRoomId)}</div>
+                                <div className="text-xs text-gray-400 flex flex-wrap gap-1.5 mt-1.5">
                                   {config.movies.map((movie, idx) => (
-                                    <span key={idx} className="inline-flex items-center bg-white px-2 py-1 rounded border border-gray-200">
+                                    <span key={idx} className="inline-flex items-center bg-[#0B0F19] px-2 py-0.5 rounded border border-white/10 text-gray-300">
                                       {getMovieName(movie.movieId)} 
-                                      <span className="ml-1 bg-blue-100 text-blue-800 text-xs px-1.5 rounded-full">
+                                      <span className="ml-1.5 bg-red-500/20 text-red-300 text-[11px] px-1.5 rounded-full font-semibold">
                                         {movie.showtimeCount}
                                       </span>
                                     </span>
@@ -893,9 +903,9 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
                               </div>
                               <button 
                                 onClick={() => applySavedConfig(config)}
-                                className="px-3 py-1 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 transition-colors flex items-center text-sm"
+                                className="px-3 py-1.5 bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition-colors flex items-center text-xs font-semibold"
                               >
-                                <FaCopy className="mr-1" size={12} />
+                                <FaCopy className="mr-1.5" size={11} />
                                 Áp dụng
                               </button>
                             </div>
@@ -905,29 +915,32 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
                     )}
                     
                     {/* Summary */}
-                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                      <h5 className="font-medium text-blue-800 mb-3">Tóm tắt lịch chiếu</h5>
-                      <div className="space-y-3">
-                        <div className="flex">
-                          <span className="w-24 text-sm text-gray-600">Ngày chiếu:</span>
-                          <span className="text-sm font-medium">{showDate ? formatDate(showDate) : 'Chưa chọn'}</span>
+                    <div className="mt-6 p-4 bg-[#0B0F19]/60 rounded-xl border border-white/10">
+                      <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Tóm tắt cấu hình</h5>
+                      <div className="space-y-2.5 text-sm">
+                        <div className="flex items-center">
+                          <span className="w-28 text-gray-400">Ngày chiếu:</span>
+                          <span className="font-semibold text-white">{showDate ? formatDate(showDate) : 'Chưa chọn'}</span>
                         </div>
-                        <div className="flex">
-                          <span className="w-24 text-sm text-gray-600">Phòng chiếu:</span>
-                          <span className="text-sm font-medium">{selectedRoom ? selectedRoom.room_Name : 'Chưa chọn'}</span>
+                        <div className="flex items-center">
+                          <span className="w-28 text-gray-400">Phòng chiếu:</span>
+                          <span className="font-semibold text-white">{selectedRoom ? selectedRoom.room_Name : 'Chưa chọn'}</span>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm text-gray-600 mb-1">Phim đã chọn:</span>
-                          <div className="flex flex-wrap gap-2 mt-1">
+                        <div className="flex flex-col sm:flex-row sm:items-start">
+                          <span className="w-28 text-gray-400 shrink-0 mb-1 sm:mb-0">Phim ({selectedMovies.length}):</span>
+                          <div className="flex flex-wrap gap-2">
                             {selectedMovies.map(movie => (
-                              <div key={movie.movie_ID} className="flex items-center bg-white px-2 py-1 rounded border border-gray-200">
+                              <div key={movie.movie_ID} className="flex items-center bg-[#1E2738] px-2.5 py-1 rounded-lg border border-white/10">
                                 <img 
-                                  src={movie.poster_URL || 'https://via.placeholder.com/300x450?text=No+Image'} 
+                                  src={movie.poster_URL || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80'} 
                                   alt={movie.title}
-                                  className="w-6 h-6 rounded object-cover mr-1"
+                                  className="w-5 h-7 rounded object-cover mr-2"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80';
+                                  }}
                                 />
-                                <span className="text-xs font-medium">{movie.title}</span>
-                                <span className="ml-1 bg-blue-100 text-blue-800 text-xs px-1.5 rounded-full">
+                                <span className="text-xs font-medium text-white mr-1.5">{movie.title}</span>
+                                <span className="bg-red-500/20 text-red-300 text-[10px] px-1.5 py-0.2 rounded-full font-bold">
                                   {getShowtimeCount(movie.movie_ID)}
                                 </span>
                               </div>
@@ -942,7 +955,7 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
                       <button 
                         onClick={previewShowtimes} 
                         disabled={isPreviewLoading}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center"
+                        className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-500 hover:to-rose-500 transition-all shadow-lg shadow-red-600/20 font-semibold flex items-center text-sm disabled:opacity-50"
                       >
                         {isPreviewLoading ? (
                           <>
@@ -952,7 +965,7 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
                         ) : (
                           <>
                             <FaEye className="mr-2" />
-                            Xem trước lịch chiếu
+                            Xem trước lịch chiếu tự động
                           </>
                         )}
                       </button>
@@ -960,103 +973,89 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
                     
                     {/* Preview section */}
                     {previewData && (
-                      <div className="mt-6 border border-blue-200 rounded-lg bg-blue-50 overflow-hidden">
-                        <div className="p-4 bg-blue-100 border-b border-blue-200">
-                          <h4 className="text-md font-medium text-blue-800 flex items-center">
-                            <FaEye className="mr-2" />
-                            Xem trước lịch chiếu
+                      <div className="mt-6 border border-white/10 rounded-xl bg-[#1E2738] overflow-hidden">
+                        <div className="p-4 bg-[#0B0F19]/80 border-b border-white/10">
+                          <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+                            <FaEye className="text-red-500" />
+                            Xem trước lịch chiếu dự kiến ({previewData.showtimes?.$values?.length || 0} suất)
                           </h4>
                           
-                          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="flex items-center">
-                              <FaCalendarAlt className="text-blue-600 mr-2" />
-                              <div>
-                                <span className="text-xs text-blue-600 block">Ngày chiếu</span>
-                                <span className="font-medium">{formatDate(previewData.date)}</span>
-                              </div>
+                          <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                            <div className="flex items-center text-gray-300">
+                              <FaCalendarAlt className="text-red-400 mr-2 shrink-0" />
+                              <span>Ngày: <strong className="text-white">{formatDate(previewData.date)}</strong></span>
                             </div>
-                            <div className="flex items-center">
-                              <FaDoorOpen className="text-blue-600 mr-2" />
-                              <div>
-                                <span className="text-xs text-blue-600 block">Phòng chiếu</span>
-                                <span className="font-medium">{previewData.roomName}</span>
-                              </div>
+                            <div className="flex items-center text-gray-300">
+                              <FaDoorOpen className="text-red-400 mr-2 shrink-0" />
+                              <span>Phòng: <strong className="text-white">{previewData.roomName}</strong></span>
                             </div>
                           </div>
                         </div>
                         
-                        <div className="p-4">
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-blue-200">
-                              <thead className="bg-blue-50">
-                                <tr>
-                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
-                                    Phim
-                                  </th>
-                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
-                                    Giờ bắt đầu
-                                  </th>
-                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
-                                    Giờ kết thúc
-                                  </th>
-                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
-                                    Loại Phòng 
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-blue-100">
-                                {previewData.showtimes.$values.map((showtime, index) => {
-                                  const movie = movies.find(m => m.title === showtime.movieName);
-                                  
-                                  return (
-                                    <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
-                                      <td className="px-4 py-3">
-                                        <div className="flex items-center">
+                        <div className="p-2 sm:p-4 overflow-x-auto">
+                          <table className="min-w-full divide-y divide-white/10">
+                            <thead>
+                              <tr className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                                <th scope="col" className="px-3 py-2.5">Phim</th>
+                                <th scope="col" className="px-3 py-2.5">Bắt đầu</th>
+                                <th scope="col" className="px-3 py-2.5">Kết thúc</th>
+                                <th scope="col" className="px-3 py-2.5">Loại giá</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5 text-sm">
+                              {previewData.showtimes.$values.map((showtime, index) => {
+                                const movie = movies.find(m => m.title === showtime.movieName);
+                                return (
+                                  <tr key={index} className="hover:bg-white/5 transition-colors">
+                                    <td className="px-3 py-2.5">
+                                      <div className="flex items-center">
+                                        {movie && (
+                                          <img 
+                                            src={movie.poster_URL || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80'} 
+                                            alt={showtime.movieName}
+                                            className="w-8 h-11 object-cover rounded mr-2.5 shrink-0"
+                                            onError={(e) => {
+                                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80';
+                                            }}
+                                          />
+                                        )}
+                                        <div>
+                                          <div className="font-semibold text-white text-xs sm:text-sm">{showtime.movieName}</div>
                                           {movie && (
-                                            <img 
-                                              src={movie.poster_URL || 'https://via.placeholder.com/300x450?text=No+Image'} 
-                                              alt={showtime.movieName}
-                                              className="w-10 h-14 object-cover rounded mr-3"
-                                            />
+                                            <div className="text-[11px] text-gray-400">{movie.duration} phút</div>
                                           )}
-                                          <div>
-                                            <div className="font-medium text-gray-900">{showtime.movieName}</div>
-                                            {movie && (
-                                              <div className="text-xs text-gray-500">{movie.duration} phút</div>
-                                            )}
-                                          </div>
                                         </div>
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <div className="flex items-center">
-                                          <FaClock className="text-green-500 mr-2" />
-                                          <span className="text-sm font-medium">{showtime.startTime}</span>
-                                        </div>
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <div className="flex items-center">
-                                          <FaClock className="text-red-500 mr-2" />
-                                          <span className="text-sm font-medium">{showtime.endTime}</span>
-                                        </div>
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                          showtime.priceTier === 'Normal' 
-                                            ? 'bg-green-100 text-green-800' 
-                                            : showtime.priceTier === 'Weekend' 
-                                              ? 'bg-orange-100 text-orange-800' 
-                                              : 'bg-blue-100 text-blue-800'
-                                        }`}>
-                                          {showtime.priceTier === 'Normal' ? 'Thường' : 
-                                           showtime.priceTier === 'Weekend' ? 'Cuối tuần' : showtime.priceTier}
-                                        </span>
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          </div>
+                                      </div>
+                                    </td>
+                                    <td className="px-3 py-2.5">
+                                      <div className="flex items-center text-emerald-400 font-semibold text-xs sm:text-sm">
+                                        <FaClock className="mr-1.5 shrink-0" />
+                                        <span>{showtime.startTime}</span>
+                                      </div>
+                                    </td>
+                                    <td className="px-3 py-2.5">
+                                      <div className="flex items-center text-rose-400 font-semibold text-xs sm:text-sm">
+                                        <FaClock className="mr-1.5 shrink-0" />
+                                        <span>{showtime.endTime}</span>
+                                      </div>
+                                    </td>
+                                    <td className="px-3 py-2.5">
+                                      <span className={`px-2 py-0.5 inline-flex text-[11px] font-semibold rounded-full ${
+                                        showtime.priceTier === 'Normal' 
+                                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+                                          : showtime.priceTier === 'Weekend' 
+                                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
+                                            : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                                      }`}>
+                                        {showtime.priceTier === 'Normal' ? 'Thường' : 
+                                         showtime.priceTier === 'Weekend' ? 'Cuối tuần' : showtime.priceTier}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     )}
@@ -1065,24 +1064,24 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
               </AnimatePresence>
               
               {/* Navigation buttons */}
-              <div className="flex justify-between mt-8">
+              <div className="flex justify-between items-center mt-8 pt-6 border-t border-white/10">
                 <button 
                   onClick={currentStep > 1 ? goToPreviousStep : () => setIsOpen(false)} 
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors shadow-sm flex items-center"
+                  className="px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded-xl border border-white/10 transition-colors flex items-center text-sm font-medium"
                 >
                   {currentStep > 1 ? (
                     <>
                       <FaChevronLeft className="mr-2" />
                       Quay lại
                     </>
-                  ) : 'Hủy'}
+                  ) : 'Đóng'}
                 </button>
                 
                 <div className="flex space-x-3">
                   {currentStep < 3 ? (
                     <button 
                       onClick={goToNextStep} 
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center"
+                      className="px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-500 hover:to-rose-500 transition-all shadow-lg shadow-red-600/20 font-semibold flex items-center text-sm"
                     >
                       Tiếp tục
                       <FaArrowRight className="ml-2" />
@@ -1091,10 +1090,10 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
                     <button 
                       onClick={createShowtimes} 
                       disabled={isLoading || !previewData}
-                      className={`px-4 py-2 rounded-lg transition-colors shadow-sm flex items-center ${
+                      className={`px-6 py-2.5 rounded-xl transition-all shadow-lg font-semibold flex items-center text-sm ${
                         isLoading || !previewData
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-green-600 text-white hover:bg-green-700'
+                          ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-white/5'
+                          : 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-500 hover:to-teal-500 shadow-emerald-600/20'
                       }`}
                     >
                       {isLoading ? (
@@ -1105,7 +1104,7 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
                       ) : (
                         <>
                           <FaCheck className="mr-2" />
-                          Tạo lịch chiếu
+                          Xác nhận tạo {previewData?.showtimes?.$values?.length || ''} suất
                         </>
                       )}
                     </button>
@@ -1121,6 +1120,3 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
 };
 
 export default BulkShowtimeCreator;
-
-                    
-

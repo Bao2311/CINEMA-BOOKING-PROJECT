@@ -137,19 +137,21 @@ const RowLabel = styled.div`
   height: 40px;
   text-align: center;
   font-weight: 600;
-  color: #374151;
+  color: #e2e8f0;
   font-size: 1rem;
   cursor: pointer;
   padding: 0.75rem;
   border-radius: 6px;
-  background: #e5e7eb;
+  background: #1E2738;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
 
   &:hover {
-    background: #d1d5db;
+    background: rgba(229, 9, 20, 0.2);
+    border-color: rgba(229, 9, 20, 0.4);
     transform: scale(1.05);
   }
 `;
@@ -177,19 +179,21 @@ const ColumnLabel = styled.div`
   height: 40px;
   text-align: center;
   font-weight: 600;
-  color: #374151;
+  color: #e2e8f0;
   font-size: 0.9rem;
   cursor: pointer;
   padding: 0.75rem;
   border-radius: 6px;
-  background: #e5e7eb;
+  background: #1E2738;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
 
   &:hover {
-    background: #d1d5db;
+    background: rgba(229, 9, 20, 0.2);
+    border-color: rgba(229, 9, 20, 0.4);
     transform: scale(1.05);
   }
 `;
@@ -316,10 +320,11 @@ const BulkActions = styled.div`
   margin-bottom: 1.5rem;
   align-items: center;
   flex-wrap: wrap;
-  background: #ffffff;
+  background: #1E2738;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 1rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 `;
 
 const BulkSelectButton = styled.button`
@@ -344,41 +349,41 @@ const BulkSelectButton = styled.button`
 `;
 
 const BulkActionSelect = styled.select`
-  padding: 0.75rem;
+  padding: 0.6rem 1rem;
   border-radius: 8px;
-  border: 1px solid #d1d5db;
-  background-color: #ffffff;
-  color: #374151;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background-color: #0B0F19;
+  color: #ffffff;
   font-size: 0.9rem;
   font-weight: 500;
   transition: all 0.3s ease;
 
   &:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: #E50914;
+    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2);
   }
 `;
 
 const BulkActionButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  background-color: #10b981;
+  padding: 0.6rem 1.25rem;
+  background: linear-gradient(to right, #10b981, #059669);
   color: #ffffff;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 0.9rem;
   transition: all 0.3s ease;
 
   &:hover {
-    background-color: #059669;
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
   }
 
   &:disabled {
-    background-color: #9ca3af;
+    background: #374151;
+    color: #9ca3af;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
@@ -388,22 +393,24 @@ const ScrollableSeatingArea = styled.div`
   max-height: 500px; /* Set a fixed height for the scrollable area */
   overflow-y: auto; /* Enable vertical scrolling */
   width: 100%;
-  border: 1px solid #d1d5db;
-  border-radius: 12px;
-  background: #f9fafb;
-  padding: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: #0B0F19;
+  padding: 1.5rem;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
 `;
 const ModalContent = styled.div`
   max-height: 80vh; /* Set max height for the modal */
   overflow-y: auto; /* Enable vertical scrolling */
   padding: 1rem; /* Add padding inside the modal */
+  color: #ffffff;
 `;
 const PriceModalContent = styled.div`
   padding: 2rem;
   text-align: center;
-  background: #ffffff;
-  border-radius: 12px;
+  background: #161D2F;
+  border-radius: 16px;
+  color: #ffffff;
 `;
 
 const PriceDisplay = styled.div`
@@ -412,9 +419,9 @@ const PriceDisplay = styled.div`
   justify-content: center;
   gap: 0.75rem;
   font-size: 1.5rem;
-  color: #1f2937;
+  color: #ef4444;
   margin-bottom: 1.5rem;
-  font-weight: 600;
+  font-weight: 700;
 `;
 
 const ActionButtons = styled.div`
@@ -1974,43 +1981,44 @@ const ManageCinemaRoomPage: React.FC = () => {
       {/* Add/Edit Room Modal */}
       <Modal isOpen={isAddingRoom || isUpdatingRoom} onClose={handleCloseModal}>
         <div className="p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            {isUpdatingRoom ? "Update Cinema Room" : "Add New Cinema Room"}
+          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <span className="w-2.5 h-6 bg-red-600 rounded-full inline-block"></span>
+            {isUpdatingRoom ? "Cập nhật phòng chiếu" : "Thêm phòng chiếu mới"}
           </h2>
           <form onSubmit={isUpdatingRoom ? handleUpdateRoom : handleCreateRoom}>
             {/* Create Mode Selection (only for new rooms) */}
             {!isUpdatingRoom && (
-              <div className="mb-6">
-                <label className="block text-gray-700 text-sm font-medium mb-2">
-                  Creation Method
+              <div className="mb-5">
+                <label className="block text-gray-300 text-sm font-medium mb-2">
+                  Phương thức tạo
                 </label>
-                <div className="flex gap-4">
+                <div className="flex gap-3">
                   <button
                     type="button"
-                    className={`flex-1 py-3 px-4 rounded-lg border ${
+                    className={`flex-1 py-3 px-4 rounded-xl border transition-all text-sm font-semibold ${
                       createMode === "manual"
-                        ? "bg-blue-50 border-blue-500 text-blue-700"
-                        : "bg-white border-gray-300 text-gray-700"
+                        ? "bg-red-500/15 border-red-500 text-white shadow-md shadow-red-500/10"
+                        : "bg-[#0B0F19] border-white/10 text-gray-400 hover:border-white/20 hover:text-white"
                     }`}
                     onClick={() => setCreateMode("manual")}
                   >
                     <div className="flex items-center justify-center gap-2">
-                      <FiEdit2 className="h-5 w-5" />
-                      <span>Manual Setup</span>
+                      <FiEdit2 className="h-4 w-4" />
+                      <span>Thủ công (Manual)</span>
                     </div>
                   </button>
                   <button
                     type="button"
-                    className={`flex-1 py-3 px-4 rounded-lg border ${
+                    className={`flex-1 py-3 px-4 rounded-xl border transition-all text-sm font-semibold ${
                       createMode === "template"
-                        ? "bg-blue-50 border-blue-500 text-blue-700"
-                        : "bg-white border-gray-300 text-gray-700"
+                        ? "bg-red-500/15 border-red-500 text-white shadow-md shadow-red-500/10"
+                        : "bg-[#0B0F19] border-white/10 text-gray-400 hover:border-white/20 hover:text-white"
                     }`}
                     onClick={() => setCreateMode("template")}
                   >
                     <div className="flex items-center justify-center gap-2">
-                      <FiLayout className="h-5 w-5" />
-                      <span>From Template</span>
+                      <FiLayout className="h-4 w-4" />
+                      <span>Theo mẫu (Template)</span>
                     </div>
                   </button>
                 </div>
@@ -2019,24 +2027,24 @@ const ManageCinemaRoomPage: React.FC = () => {
 
             {/* Template Selection (only for template mode) */}
             {!isUpdatingRoom && createMode === "template" && (
-              <div className="mb-6">
-                <label className="block text-gray-700 text-sm font-medium mb-2">
-                  Select Template Room
+              <div className="mb-5">
+                <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                  Chọn phòng mẫu
                 </label>
                 <select
                   value={selectedTemplateRoomId?.toString() || ""}
                   onChange={handleTemplateRoomChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full p-2.5 bg-[#0B0F19] text-white border border-white/15 rounded-xl focus:outline-none focus:border-red-500 text-sm"
                   required
                 >
-                  <option value="">-- Select a room template --</option>
+                  <option value="">-- Chọn phòng mẫu có sẵn --</option>
                   {rooms.map((room) => (
                     <option
                       key={room.cinema_Room_ID}
                       value={room.cinema_Room_ID}
                     >
                       {room.room_Name} ({room.room_Type}, {room.seat_Quantity}{" "}
-                      seats)
+                      ghế)
                     </option>
                   ))}
                 </select>
@@ -2045,18 +2053,18 @@ const ManageCinemaRoomPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={viewTemplateLayout}
-                      className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                      className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 font-semibold"
                     >
-                      <FiEye className="h-4 w-4" /> View template layout
+                      <FiEye className="h-3.5 w-3.5" /> Xem trước sơ đồ mẫu
                     </button>
                   </div>
                 )}
               </div>
             )}
 
-            <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Room Name <span className="text-red-500">*</span>
+            <div className="mb-5">
+              <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                Tên phòng chiếu <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -2064,35 +2072,35 @@ const ManageCinemaRoomPage: React.FC = () => {
                 onChange={(e) =>
                   setNewRoom({ ...newRoom, room_Name: e.target.value })
                 }
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="Enter room name"
+                className="w-full p-2.5 bg-[#0B0F19] text-white border border-white/15 rounded-xl focus:outline-none focus:border-red-500 placeholder-gray-500 text-sm"
+                placeholder="VD: Phòng 1 - Standard, Phòng VIP 2"
                 required
               />
             </div>
 
-            <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Room Type <span className="text-red-500">*</span>
+            <div className="mb-5">
+              <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                Loại phòng <span className="text-red-500">*</span>
               </label>
               <select
                 value={newRoom.room_Type}
                 onChange={(e) =>
                   setNewRoom({ ...newRoom, room_Type: e.target.value })
                 }
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full p-2.5 bg-[#0B0F19] text-white border border-white/15 rounded-xl focus:outline-none focus:border-red-500 text-sm"
                 required
               >
-                <option value="2D">2D</option>
-                <option value="3D">3D</option>
+                <option value="2D">2D Standard</option>
+                <option value="3D">3D Special</option>
                 <option value="IMAX">IMAX</option>
               </select>
             </div>
 
             {/* Seat Quantity (only for manual mode) */}
             {(isUpdatingRoom || createMode === "manual") && (
-              <div className="mb-6">
-                <label className="block text-gray-700 text-sm font-medium mb-2">
-                  Seat Quantity <span className="text-red-500">*</span>
+              <div className="mb-5">
+                <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                  Số lượng ghế <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -2103,76 +2111,75 @@ const ManageCinemaRoomPage: React.FC = () => {
                       seat_Quantity: parseInt(e.target.value) || 0,
                     })
                   }
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full p-2.5 bg-[#0B0F19] text-white border border-white/15 rounded-xl focus:outline-none focus:border-red-500 placeholder-gray-500 text-sm"
                   min="1"
                   required
                 />
               </div>
             )}
             {!isUpdatingRoom && createMode === "template" && (
-              <div className="mb-6">
-                <label className="block text-gray-700 text-sm font-medium mb-2">
-                  Seat Quantity <span className="text-red-500">*</span>
+              <div className="mb-5">
+                <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                  Số lượng ghế <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
                   value={newRoom.seat_Quantity}
-                  className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                  className="w-full p-2.5 bg-white/5 border border-white/10 rounded-xl text-gray-400 cursor-not-allowed text-sm"
                   readOnly
                   disabled
                 />
-                <p className="mt-1 text-sm text-gray-500">
-                  Seat quantity is automatically set based on the selected
-                  template.
+                <p className="mt-1 text-xs text-gray-400">
+                  Số lượng ghế tự động đồng bộ theo phòng mẫu được chọn.
                 </p>
               </div>
             )}
-            <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Status <span className="text-red-500">*</span>
+            <div className="mb-5">
+              <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                Trạng thái hoạt động <span className="text-red-500">*</span>
               </label>
               <select
                 value={newRoom.status}
                 onChange={(e) =>
                   setNewRoom({ ...newRoom, status: e.target.value })
                 }
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full p-2.5 bg-[#0B0F19] text-white border border-white/15 rounded-xl focus:outline-none focus:border-red-500 text-sm"
                 required
               >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Maintenance">Maintenance</option>
+                <option value="Active">Hoạt động (Active)</option>
+                <option value="Inactive">Ngừng hoạt động (Inactive)</option>
+                <option value="Maintenance">Bảo trì (Maintenance)</option>
               </select>
             </div>
 
             <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Notes
+              <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                Ghi chú
               </label>
               <textarea
                 value={newRoom.notes}
                 onChange={(e) =>
                   setNewRoom({ ...newRoom, notes: e.target.value })
                 }
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full p-2.5 bg-[#0B0F19] text-white border border-white/15 rounded-xl focus:outline-none focus:border-red-500 placeholder-gray-500 text-sm"
                 rows={3}
-                placeholder="Optional notes about this room"
+                placeholder="Ghi chú về thiết bị âm thanh, máy chiếu..."
               ></textarea>
             </div>
 
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 pt-2 border-t border-white/10">
               <button
                 type="button"
                 onClick={handleCloseModal}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 transition-colors text-sm font-medium"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-5 py-2 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-500 hover:to-rose-500 transition-all shadow-lg shadow-red-600/20 text-sm font-semibold"
               >
-                {isUpdatingRoom ? "Update Room" : "Create Room"}
+                {isUpdatingRoom ? "Lưu thay đổi" : "Tạo phòng chiếu"}
               </button>
             </div>
           </form>
@@ -2185,30 +2192,31 @@ const ManageCinemaRoomPage: React.FC = () => {
         onClose={() => setIsCreatingSeatLayout(false)}
       >
         <div className="p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            Create Seat Layout
+          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <span className="w-2.5 h-6 bg-red-600 rounded-full inline-block"></span>
+            Thiết lập sơ đồ ghế phòng chiếu
           </h2>
           <form onSubmit={handleCreateSeatLayout}>
-            <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Row Labels (e.g., A-Z)<span className="text-red-500">*</span>
+            <div className="mb-5">
+              <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                Dãy hàng ghế (VD: A-J)<span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={rowsInput}
                 onChange={(e) => setRowsInput(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="Enter row range (e.g., A-Z)"
+                className="w-full p-2.5 bg-[#0B0F19] text-white border border-white/15 rounded-xl focus:outline-none focus:border-red-500 placeholder-gray-500 text-sm font-mono"
+                placeholder="Nhập phạm vi hàng (VD: A-J)"
                 required
               />
-              <p className="mt-1 text-sm text-gray-500">
-                Enter row labels separated in format "A-Z"
+              <p className="mt-1 text-xs text-gray-400">
+                Định dạng hàng chữ cái từ bắt đầu đến kết thúc: "A-J"
               </p>
             </div>
 
-            <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Columns Per Row <span className="text-red-500">*</span>
+            <div className="mb-5">
+              <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                Số ghế trên mỗi hàng <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -2216,91 +2224,88 @@ const ManageCinemaRoomPage: React.FC = () => {
                 onChange={(e) =>
                   setColumnsPerRow(parseInt(e.target.value) || 0)
                 }
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="Enter number of columns"
+                className="w-full p-2.5 bg-[#0B0F19] text-white border border-white/15 rounded-xl focus:outline-none focus:border-red-500 placeholder-gray-500 text-sm font-mono"
+                placeholder="Nhập số cột ghế"
                 min="1"
                 required
               />
             </div>
 
-            <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Default Seat Type
+            <div className="mb-5">
+              <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                Loại ghế mặc định
               </label>
               <select
                 value={seatType}
                 onChange={(e) => setSeatType(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full p-2.5 bg-[#0B0F19] text-white border border-white/15 rounded-xl focus:outline-none focus:border-red-500 text-sm"
               >
-                <option value="Regular">Regular</option>
-                <option value="VIP">VIP</option>
+                <option value="Regular">Ghế thường (Regular)</option>
+                <option value="VIP">Ghế VIP</option>
               </select>
             </div>
 
-            <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Empty Columns (Optional)
+            <div className="mb-5">
+              <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                Cột để trống lối đi (Tùy chọn)
               </label>
               <input
                 type="text"
                 value={emptyColumnsInput}
                 onChange={(e) => setEmptyColumnsInput(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="e.g., 0,2,5"
+                className="w-full p-2.5 bg-[#0B0F19] text-white border border-white/15 rounded-xl focus:outline-none focus:border-red-500 placeholder-gray-500 text-sm font-mono"
+                placeholder="VD: 0, 5"
               />
-              <p className="mt-1 text-sm text-gray-500">
-                Enter column numbers to leave empty, separated by commas "e.g.,
-                0,2,5"
+              <p className="mt-1 text-xs text-gray-400">
+                Nhập số thứ tự cột ghế muốn để trống, cách nhau bằng dấu phẩy "VD: 0, 5"
               </p>
             </div>
-            <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Overwrite Existing Layout Status
+            <div className="mb-5">
+              <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                Trạng thái ghi đè sơ đồ cũ
               </label>
               <div
-                className={`w-full p-3 rounded-lg font-medium text-white text-center ${
-                  overwriteExisting ? "bg-green-500" : "bg-red-500"
+                className={`w-full p-2.5 rounded-xl font-semibold text-sm text-center border ${
+                  overwriteExisting 
+                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" 
+                    : "bg-red-500/20 text-red-300 border-red-500/30"
                 }`}
               >
                 {overwriteExisting
-                  ? "Enabled (Overwrite Existing Layout)"
-                  : "Disabled (Create New Layout)"}
+                  ? "Bật (Ghi đè sơ đồ ghế hiện có)"
+                  : "Tắt (Chỉ tạo nếu chưa có sơ đồ)"}
               </div>
             </div>
 
             <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Change Overwrite Existing Layout
+              <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                Thay đổi tùy chọn ghi đè
               </label>
               <button
                 type="button"
                 onClick={() => setOverwriteExisting(!overwriteExisting)}
-                className="w-full p-3 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors"
+                className="w-full p-2.5 rounded-xl bg-[#1E2738] hover:bg-white/10 text-white font-medium text-sm border border-white/10 transition-colors"
               >
-                {overwriteExisting ? "Disable Overwrite" : "Enable Overwrite"}
+                {overwriteExisting ? "Tắt ghi đè sơ đồ" : "Bật ghi đè sơ đồ"}
               </button>
-              <p className="mt-1 text-sm text-gray-500">
-                Click this button to toggle the overwrite option.
-              </p>
             </div>
 
             <SeatLayoutInfoDisplay />
 
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 pt-2 border-t border-white/10">
               <button
                 type="button"
                 onClick={() => setIsCreatingSeatLayout(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 text-sm font-medium transition-colors flex items-center"
               >
-                {" "}
-                <FiX className="mr-2" />
-                Cancel
+                <FiX className="mr-1.5" />
+                Hủy
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-5 py-2 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-500 hover:to-rose-500 transition-all shadow-lg shadow-red-600/20 text-sm font-semibold flex items-center"
               >
-                <FiCheck className="mr-2" /> Create Layout
+                <FiCheck className="mr-1.5" /> Tạo sơ đồ ghế
               </button>
             </div>
           </form>
@@ -2312,31 +2317,30 @@ const ManageCinemaRoomPage: React.FC = () => {
         isOpen={confirmDeleteId !== null}
         onClose={() => setConfirmDeleteId(null)}
       >
-        <div className="p-6">
-          <div className="flex items-center justify-center mb-4 text-red-500">
-            <FiAlertTriangle className="h-12 w-12" />
+        <div className="p-6 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-4 text-red-400">
+            <FiAlertTriangle className="h-7 w-7" />
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2 text-center">
-            Confirm Deletion
+          <h2 className="text-xl font-bold text-white mb-2">
+            Xác nhận xóa phòng chiếu
           </h2>
-          <p className="text-gray-600 mb-6 text-center">
-            Are you sure you want to delete this cinema room? This action cannot
-            be undone.
+          <p className="text-gray-300 text-sm mb-6 max-w-sm mx-auto leading-relaxed">
+            Bạn có chắc chắn muốn xóa phòng chiếu này không? Hành động này sẽ xóa toàn bộ sơ đồ ghế liên quan và không thể hoàn tác.
           </p>
           <div className="flex justify-center gap-3">
             <button
               onClick={() => setConfirmDeleteId(null)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 text-sm font-medium transition-colors"
             >
-              Cancel
+              Hủy
             </button>
             <button
               onClick={() =>
                 confirmDeleteId && handleDeleteRoom(confirmDeleteId)
               }
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              className="px-5 py-2 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-500 hover:to-rose-500 transition-all shadow-lg shadow-red-600/20 text-sm font-semibold"
             >
-              Delete
+              Xác nhận xóa
             </button>
           </div>
         </div>
@@ -2351,10 +2355,11 @@ const ManageCinemaRoomPage: React.FC = () => {
         <ModalContent>
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <span className="w-2.5 h-6 bg-red-600 rounded-full inline-block"></span>
                 {isViewingTemplateLayout
-                  ? `${seatLayout?.cinema_room.room_Name} - Template Layout (View Only)`
-                  : `${seatLayout?.cinema_room.room_Name} - Seat Layout`}
+                  ? `${seatLayout?.cinema_room.room_Name} - Sơ đồ mẫu (Chỉ xem)`
+                  : `${seatLayout?.cinema_room.room_Name} - Sơ đồ ghế`}
               </h2>
               <div className="flex gap-2">
                 {/* Chỉ hiển thị các nút tương tác khi KHÔNG phải đang xem template */}
@@ -2362,36 +2367,36 @@ const ManageCinemaRoomPage: React.FC = () => {
                   <>
                     <button
                       onClick={() => setIsBulkSelecting(!isBulkSelecting)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
                         isBulkSelecting
-                          ? "bg-blue-100 text-blue-700 border border-blue-300"
-                          : "bg-gray-100 text-gray-700 border border-gray-300"
+                          ? "bg-red-500/20 text-red-300 border border-red-500/30 shadow-sm"
+                          : "bg-[#1E2738] text-gray-300 border border-white/10 hover:border-white/20 hover:text-white"
                       }`}
                     >
                       {isBulkSelecting ? (
                         <>
                           <FiCheckSquare className="h-4 w-4" />
-                          Exit Selection
+                          Thoát chọn nhiều
                         </>
                       ) : (
                         <>
                           <FiSquare className="h-4 w-4" />
-                          Bulk Select
+                          Chọn nhiều ghế
                         </>
                       )}
                     </button>
                     <button
                       onClick={handleDeleteSeatLayout}
-                      className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium border border-red-300 flex items-center gap-1.5"
+                      className="px-3 py-1.5 bg-red-500/10 text-red-400 rounded-xl text-xs font-semibold border border-red-500/30 hover:bg-red-500/20 flex items-center gap-1.5 transition-colors"
                     >
                       <FiTrash2 className="h-4 w-4" />
-                      Delete Layout
+                      Xóa sơ đồ ghế
                     </button>
                   </>
                 )}
                 <button
                   onClick={handleCloseSeatLayoutModal}
-                  className="p-1.5 text-gray-500 hover:text-gray-700"
+                  className="p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
                 >
                   <FiX className="h-5 w-5" />
                 </button>
@@ -2400,8 +2405,8 @@ const ManageCinemaRoomPage: React.FC = () => {
 
             {isLoadingSeatLayout ? (
               <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading seat layout...</p>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500 mx-auto mb-4"></div>
+                <p className="text-gray-400 text-sm">Đang tải sơ đồ ghế...</p>
               </div>
             ) : seatLayout ? (
               <>
@@ -2409,37 +2414,37 @@ const ManageCinemaRoomPage: React.FC = () => {
                 {isBulkSelecting && !isViewingTemplateLayout && (
                   <BulkActions>
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-700 font-medium">
-                        {selectedSeats.length} seats selected
+                      <span className="text-white font-semibold text-sm">
+                        Đã chọn: <strong className="text-red-400">{selectedSeats.length}</strong> ghế
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-700">Type:</span>
+                      <span className="text-xs font-semibold uppercase text-gray-400">Loại:</span>
                       <BulkActionSelect
                         value={bulkSeatType}
                         onChange={(e) => setBulkSeatType(e.target.value)}
                       >
-                        <option value="Regular">Regular</option>
+                        <option value="Regular">Thường (Regular)</option>
                         <option value="VIP">VIP</option>
                       </BulkActionSelect>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-700">Status:</span>
+                      <span className="text-xs font-semibold uppercase text-gray-400">Trạng thái:</span>
                       <BulkActionSelect
                         value={bulkIsActive.toString()}
                         onChange={(e) =>
                           setBulkIsActive(e.target.value === "true")
                         }
                       >
-                        <option value="true">Active</option>
-                        <option value="false">Inactive</option>
+                        <option value="true">Hoạt động (Active)</option>
+                        <option value="false">Khóa (Inactive)</option>
                       </BulkActionSelect>
                     </div>
                     <BulkActionButton
                       onClick={bulkUpdateSeats}
                       disabled={selectedSeats.length === 0}
                     >
-                      Update Seats
+                      Cập nhật hàng loạt
                     </BulkActionButton>
                   </BulkActions>
                 )}
@@ -2726,30 +2731,30 @@ const ManageCinemaRoomPage: React.FC = () => {
                   </SeatLegend>
 
                   {/* Room Stats */}
-                  <div className="mt-6 bg-gray-50 p-4 rounded-lg w-full max-w-md">
-                    <h3 className="text-lg font-medium text-gray-900 mb-3">
-                      Room Statistics
+                  <div className="mt-6 bg-[#1E2738] border border-white/10 p-5 rounded-2xl w-full max-w-md shadow-xl">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4 flex items-center gap-2">
+                      <FiGrid className="text-red-500" />
+                      Thống kê sơ đồ phòng chiếu
                     </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Total Seats</p>
-                        <p className="text-lg font-semibold text-gray-900">
+                    <div className="grid grid-cols-2 gap-3.5">
+                      <div className="p-3 bg-[#0B0F19]/60 rounded-xl border border-white/5">
+                        <p className="text-xs text-gray-400">Tổng số ghế</p>
+                        <p className="text-lg font-bold text-white mt-0.5">
                           {seatLayout.stats.total_seats}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Dimensions</p>
-                        <p className="text-lg font-semibold text-gray-900">
-                          {seatLayout.dimensions.rows} ×{" "}
-                          {seatLayout.dimensions.columns}
+                      <div className="p-3 bg-[#0B0F19]/60 rounded-xl border border-white/5">
+                        <p className="text-xs text-gray-400">Kích thước</p>
+                        <p className="text-lg font-bold text-white mt-0.5">
+                          {seatLayout.dimensions.rows} × {seatLayout.dimensions.columns}
                         </p>
                       </div>
                       {seatLayout.stats.seat_types.$values.map((type) => (
-                        <div key={type.seatType}>
-                          <p className="text-sm text-gray-500">
-                            {type.seatType} Seats
+                        <div key={type.seatType} className="p-3 bg-[#0B0F19]/60 rounded-xl border border-white/5">
+                          <p className="text-xs text-gray-400">
+                            Ghế {type.seatType}
                           </p>
-                          <p className="text-lg font-semibold text-gray-900">
+                          <p className="text-lg font-bold text-red-400 mt-0.5">
                             {type.count}
                           </p>
                         </div>
@@ -2759,27 +2764,23 @@ const ManageCinemaRoomPage: React.FC = () => {
 
                   {/* Thông báo khi đang xem template */}
                   {isViewingTemplateLayout && (
-                    <div className="mt-4 p-3 bg-blue-50 text-blue-700 rounded-md border border-blue-200 w-full max-w-md">
-                      <div className="flex items-center">
-                        <FiInfo className="h-5 w-5 mr-2" />
-                        <p>
-                          This is a template view only. You cannot modify or
-                          delete this layout.
-                        </p>
-                      </div>
+                    <div className="mt-4 p-3.5 bg-blue-500/10 text-blue-300 rounded-xl border border-blue-500/30 w-full max-w-md text-xs leading-relaxed flex items-center">
+                      <FiInfo className="h-5 w-5 mr-2.5 shrink-0 text-blue-400" />
+                      <p>
+                        Đây là chế độ xem sơ đồ mẫu. Bạn không thể chỉnh sửa hoặc xóa sơ đồ này.
+                      </p>
                     </div>
                   )}
                 </div>
               </>
             ) : (
               <div className="text-center py-12">
-                <FiAlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-1">
-                  No seat layout found
+                <FiAlertCircle className="h-12 w-12 text-amber-400 mx-auto mb-3" />
+                <h3 className="text-lg font-bold text-white mb-1">
+                  Chưa có sơ đồ ghế
                 </h3>
-                <p className="text-gray-500">
-                  This room doesn't have a seat layout yet. Create one to get
-                  started.
+                <p className="text-gray-400 text-sm">
+                  Phòng chiếu này chưa được tạo sơ đồ ghế. Hãy tạo mới để bắt đầu xếp lịch chiếu.
                 </p>
               </div>
             )}
@@ -2796,42 +2797,39 @@ const ManageCinemaRoomPage: React.FC = () => {
         <PriceModalContent>
           {selectedSeat && (
             <>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                Seat {selectedSeat.row_Label}
-                {selectedSeat.column_Number}
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center justify-center gap-2">
+                <span className="w-2 h-5 bg-red-600 rounded-full inline-block"></span>
+                Ghế {selectedSeat.row_Label}{selectedSeat.column_Number}
               </h3>
 
-              <div className="mb-4 text-left">
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-gray-600">Type:</span>
-                  <span className="font-medium">{selectedSeat.seat_Type}</span>
+              <div className="mb-5 text-left p-3.5 bg-[#0B0F19]/60 rounded-xl border border-white/10 space-y-2.5 text-sm">
+                <div className="flex justify-between py-1 border-b border-white/5">
+                  <span className="text-gray-400">Loại ghế:</span>
+                  <span className="font-semibold text-white">{selectedSeat.seat_Type}</span>
                 </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-gray-600">Status:</span>
+                <div className="flex justify-between py-1 border-b border-white/5">
+                  <span className="text-gray-400">Trạng thái:</span>
                   <span
-                    className={`font-medium ${
-                      selectedSeat.is_Active ? "text-green-600" : "text-red-600"
+                    className={`font-semibold ${
+                      selectedSeat.is_Active ? "text-emerald-400" : "text-rose-400"
                     }`}
                   >
-                    {selectedSeat.is_Active ? "Active" : "Inactive"}
+                    {selectedSeat.is_Active ? "Đang hoạt động" : "Khóa / Không dùng"}
                   </span>
                 </div>
-                <div className="flex justify-between py-2">
-                  <span className="text-gray-600">Price:</span>
-                  <PriceDisplay>
-                    <FiDollarSign className="h-5 w-5 text-gray-500" />
-                    <span>
-                      {seatPrice !== null
-                        ? `${seatPrice.toLocaleString("vi-VN")} VND`
-                        : "N/A"}
-                    </span>
-                  </PriceDisplay>
+                <div className="flex justify-between py-1 items-center">
+                  <span className="text-gray-400">Giá cơ sở:</span>
+                  <div className="font-bold text-red-400">
+                    {seatPrice !== null
+                      ? `${seatPrice.toLocaleString("vi-VN")} VND`
+                      : "Chưa cấu hình"}
+                  </div>
                 </div>
               </div>
 
               <ActionButtons>
-                <CancelButton onClick={() => setIsPriceModalOpen(false)}>
-                  Close
+                <CancelButton onClick={() => setIsPriceModalOpen(false)} className="rounded-xl">
+                  Đóng
                 </CancelButton>
                 <ConfirmButton
                   onClick={() => {
@@ -2841,8 +2839,9 @@ const ManageCinemaRoomPage: React.FC = () => {
                     );
                     setIsPriceModalOpen(false);
                   }}
+                  className="rounded-xl"
                 >
-                  {selectedSeat.is_Active ? "Deactivate" : "Activate"} Seat
+                  {selectedSeat.is_Active ? "Khóa ghế này" : "Mở khóa ghế"}
                 </ConfirmButton>
               </ActionButtons>
             </>
