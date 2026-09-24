@@ -47,14 +47,30 @@ const Navbar: React.FC = () => {
     const token = localStorage.getItem("token");
     if (token) {
       try {
-        const decoded = jwtDecode<{ id: string; role: string; exp: number }>(token);
-        if (decoded.exp * 1000 < Date.now()) {
+        const decoded = jwtDecode<any>(token);
+        const exp = decoded.exp ? decoded.exp * 1000 : 0;
+        if (exp > 0 && exp < Date.now()) {
           localStorage.removeItem("token");
           setIsAuthenticated(false);
         } else {
-          setUserRole(decoded.role);
+          const role =
+            decoded.role ||
+            decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+            localStorage.getItem("role");
+          const userId =
+            decoded.id ||
+            decoded.userId ||
+            decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ||
+            localStorage.getItem("userId");
+
+          setUserRole(role);
           setIsAuthenticated(true);
-          fetchUserProfile(decoded.id);
+          const cachedName = localStorage.getItem("fullName");
+          if (cachedName) setFullName(cachedName);
+
+          if (userId && userId !== "undefined" && userId !== "null") {
+            fetchUserProfile(userId);
+          }
         }
       } catch {
         setIsAuthenticated(false);
@@ -81,13 +97,17 @@ const Navbar: React.FC = () => {
   }, []);
 
   const fetchUserProfile = async (userId: string) => {
+    if (!userId || userId === "undefined" || userId === "null") return;
     try {
       const token = localStorage.getItem("token");
+      if (!token) return;
       const res = await fetch(`http://localhost:5204/api/User/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
-      setFullName(data.full_Name || data.fullName || "User");
+      if (res.ok) {
+        const data = await res.json();
+        setFullName(data.full_Name || data.fullName || "User");
+      }
     } catch {}
   };
 

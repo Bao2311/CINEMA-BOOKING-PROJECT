@@ -30,13 +30,12 @@ const ShowtimesPage: React.FC = () => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
+        const headers: Record<string, string> = {};
+        if (token) headers.Authorization = `Bearer ${token}`;
+
         const [stRes, mvRes] = await Promise.all([
-          axios.get('http://localhost:5204/api/Showtimes', {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get('http://localhost:5204/api/Movie', {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
+          axios.get('http://localhost:5204/api/Showtimes', { headers }),
+          axios.get('http://localhost:5204/api/Movie', { headers }),
         ]);
 
         const stData = stRes.data?.$values || stRes.data || [];
@@ -56,7 +55,9 @@ const ShowtimesPage: React.FC = () => {
   const validShowtimes = showtimes.filter((st) => {
     if (!st.show_Date) return false;
     const d = new Date(st.show_Date);
-    const dateMatch = isSameDay(d, selectedDate);
+    const dateMatch =
+      isSameDay(d, selectedDate) ||
+      format(d, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
     const statusMatch = st.status !== 'Hidden' && st.status !== 'Cancelled';
     const movieMatch = movieId ? st.movie_ID === parseInt(movieId) : true;
     return dateMatch && statusMatch && movieMatch;

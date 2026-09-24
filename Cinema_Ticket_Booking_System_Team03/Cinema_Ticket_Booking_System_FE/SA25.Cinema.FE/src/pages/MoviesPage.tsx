@@ -63,8 +63,10 @@ const MoviesPage: React.FC = () => {
   const filteredMovies = movies
     .filter((m) => {
       // Tab filter
-      if (activeTab === 'now' && m.status !== 'Now Showing') return false;
-      if (activeTab === 'coming' && m.status !== 'Coming Soon') return false;
+      const isNow = m.status === 'Now Showing' || m.status === 'NowShowing';
+      const isComing = m.status === 'Coming Soon' || m.status === 'ComingSoon';
+      if (activeTab === 'now' && !isNow) return false;
+      if (activeTab === 'coming' && !isComing) return false;
 
       // Genre filter
       if (

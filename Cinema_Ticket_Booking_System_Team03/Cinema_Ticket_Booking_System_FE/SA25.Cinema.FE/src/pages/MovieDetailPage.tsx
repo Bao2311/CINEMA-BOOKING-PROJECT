@@ -35,14 +35,14 @@ const MovieDetailPage: React.FC = () => {
   useEffect(() => {
     const fetchDetails = async () => {
       const token = localStorage.getItem('token');
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+
       try {
         const [movieRes, showtimeRes] = await Promise.all([
-          axios.get(`http://localhost:5204/api/Movie/${id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`http://localhost:5204/api/Showtimes/movie/${id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }).catch(() => ({ data: { $values: [] } })),
+          axios.get(`http://localhost:5204/api/Movie/${id}`, { headers }),
+          axios.get(`http://localhost:5204/api/Showtimes/movie/${id}`, { headers })
+            .catch(() => ({ data: { dates: { $values: [] } } })),
         ]);
 
         setMovie(movieRes.data);
@@ -86,7 +86,10 @@ const MovieDetailPage: React.FC = () => {
   const selectedDateShowtimes = showtimes.filter((st) => {
     if (!st.show_Date) return false;
     const d = new Date(st.show_Date);
-    return isSameDay(d, selectedDate) && st.status !== 'Hidden' && st.status !== 'Cancelled';
+    const dateMatches =
+      isSameDay(d, selectedDate) ||
+      format(d, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+    return dateMatches && st.status !== 'Hidden' && st.status !== 'Cancelled';
   });
 
   // Group by room

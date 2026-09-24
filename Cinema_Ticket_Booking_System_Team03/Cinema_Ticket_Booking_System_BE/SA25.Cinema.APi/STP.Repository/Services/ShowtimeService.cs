@@ -1,4 +1,4 @@
-﻿    using System;
+    using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using System.Linq;
@@ -838,7 +838,7 @@
 
                 var today = DateTime.Today;
                 var showtimes = await _context.Showtimes
-                    .Where(s => s.Movie_ID == movieId && s.Show_Date.Date >= today && s.Status == "Scheduled")
+                    .Where(s => s.Movie_ID == movieId && s.Show_Date.Date >= today && (s.Status == "Scheduled" || s.Status == "Active"))
                     .Include(s => s.CinemaRoom)
                     .OrderBy(s => s.Show_Date)
                     .ThenBy(s => s.Start_Time)
@@ -855,6 +855,7 @@
                         Showtimes = g.Select(s => new
                         {
                             s.Showtime_ID,
+                            s.Status,
                             s.Start_Time,
                             s.End_Time,
                             s.Price_Tier,

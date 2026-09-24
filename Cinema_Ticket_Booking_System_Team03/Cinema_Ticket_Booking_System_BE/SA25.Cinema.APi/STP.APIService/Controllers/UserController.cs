@@ -82,7 +82,7 @@ namespace STP.APIService.Controllers
         /// Trả về thông tin chi tiết của một người dùng cụ thể
         /// </summary>
         [HttpGet("{userId}")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize]
         public async Task<IActionResult> GetUserById(int userId)
         {
             try

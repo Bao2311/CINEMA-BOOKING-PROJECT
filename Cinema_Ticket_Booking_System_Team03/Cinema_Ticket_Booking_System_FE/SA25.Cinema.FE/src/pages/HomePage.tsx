@@ -135,12 +135,12 @@ const HeroSlide: React.FC<HeroSlideProps> = ({ movie, isActive, onTrailer }) => 
                 TRENDING NOW
               </div>
               <div className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold backdrop-blur-md border ${
-                movie.status === 'Now Showing'
+                movie.status === 'Now Showing' || movie.status === 'NowShowing'
                   ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
                   : 'bg-amber-500/20 border-amber-500/30 text-amber-400'
               }`}>
-                <span className={`w-2 h-2 rounded-full ${movie.status === 'Now Showing' ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
-                {movie.status === 'Now Showing' ? 'ĐANG CHIẾU' : 'SẮP CHIẾU'}
+                <span className={`w-2 h-2 rounded-full ${movie.status === 'Now Showing' || movie.status === 'NowShowing' ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
+                {movie.status === 'Now Showing' || movie.status === 'NowShowing' ? 'ĐANG CHIẾU' : 'SẮP CHIẾU'}
               </div>
             </div>
 
@@ -181,7 +181,7 @@ const HeroSlide: React.FC<HeroSlideProps> = ({ movie, isActive, onTrailer }) => 
 
             {/* CTA Buttons */}
             <div className="flex flex-wrap items-center gap-4">
-              {movie.status === 'Now Showing' ? (
+              {movie.status === 'Now Showing' || movie.status === 'NowShowing' ? (
                 <button
                   onClick={() => navigate(`/movie/${movie.movie_ID}`)}
                   className="flex items-center gap-2.5 px-8 py-3.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-2xl transition-all shadow-xl shadow-red-500/40 hover:shadow-red-500/60 hover:-translate-y-0.5"
@@ -228,7 +228,7 @@ const HeroSlide: React.FC<HeroSlideProps> = ({ movie, isActive, onTrailer }) => 
                 
                 {/* Floating Tags */}
                 <div className="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-md shadow-lg shadow-red-500/40">
-                  {movie.status === 'Now Showing' ? '● ĐANG CHIẾU' : '⏳ SẮP CHIẾU'}
+                  {movie.status === 'Now Showing' || movie.status === 'NowShowing' ? '● ĐANG CHIẾU' : '⏳ SẮP CHIẾU'}
                 </div>
 
                 <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-sm border border-white/20 text-amber-400 text-xs font-black px-2.5 py-1 rounded-md flex items-center gap-1">
@@ -280,16 +280,26 @@ const HomePage: React.FC = () => {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const navigate = useNavigate();
 
+  const isNowShowing = (s?: string) => s === 'Now Showing' || s === 'NowShowing';
+  const isComingSoon = (s?: string) => s === 'Coming Soon' || s === 'ComingSoon';
+
   // Fetch movies from API
   useEffect(() => {
     const fetchMovies = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:5204/api/Movie', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.data && Array.isArray(res.data.$values)) {
-          const movies: Movie[] = res.data.$values;
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+        const res = await axios.get('http://localhost:5204/api/Movie', { headers });
+        let movies: Movie[] = [];
+        if (Array.isArray(res.data)) {
+          movies = res.data;
+        } else if (res.data && Array.isArray(res.data.$values)) {
+          movies = res.data.$values;
+        }
+        if (movies.length > 0) {
           setAllMovies(movies);
           const hero = [...movies]
             .sort((a, b) => parseFloat(b.rating || '0') - parseFloat(a.rating || '0'))
@@ -330,7 +340,7 @@ const HomePage: React.FC = () => {
   const filteredMovies = allMovies
     .filter((m) => {
       const tabMatch =
-        activeTab === 'now' ? m.status === 'Now Showing' : m.status === 'Coming Soon';
+        activeTab === 'now' ? isNowShowing(m.status) : isComingSoon(m.status);
       const genreMatch =
         activeGenre === 'Tất cả' || (m.genre || '').toLowerCase().includes(activeGenre.toLowerCase());
       const searchMatch =

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -398,7 +398,10 @@ namespace STP.Repository.Services
                         new Claim(ClaimTypes.NameIdentifier, user.User_ID.ToString()),
                         new Claim(ClaimTypes.Name, user.Full_Name ?? ""),
                         new Claim(ClaimTypes.Email, user.Email ?? ""),
-                        new Claim(ClaimTypes.Role, user.Role ?? "Customer")
+                        new Claim(ClaimTypes.Role, user.Role ?? "Customer"),
+                        new Claim("id", user.User_ID.ToString()),
+                        new Claim("userId", user.User_ID.ToString()),
+                        new Claim("role", user.Role ?? "Customer")
                 }),
                 Expires = DateTime.UtcNow.AddDays(1), // Token hết hạn sau 1 ngày
                 SigningCredentials = new SigningCredentials(
