@@ -618,7 +618,7 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
                                 alt={movie.title}
                                 className="absolute inset-0 w-full h-full object-cover"
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80';
+                                  e.target.src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80';
                                 }}
                               />
                               {isSelected && (
@@ -683,7 +683,7 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
                                 alt={movie.title}
                                 className="w-6 h-8 rounded object-cover mr-2"
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80';
+                                  e.target.src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80';
                                 }}
                               />
                               <span className="text-xs font-medium text-white mr-2 truncate max-w-[160px]">{movie.title}</span>
@@ -936,7 +936,7 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
                                   alt={movie.title}
                                   className="w-5 h-7 rounded object-cover mr-2"
                                   onError={(e) => {
-                                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80';
+                                    e.target.src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80';
                                   }}
                                 />
                                 <span className="text-xs font-medium text-white mr-1.5">{movie.title}</span>
@@ -1015,7 +1015,7 @@ const BulkShowtimeCreator = ({ token, movies, cinemaRooms, onShowtimesCreated })
                                             alt={showtime.movieName}
                                             className="w-8 h-11 object-cover rounded mr-2.5 shrink-0"
                                             onError={(e) => {
-                                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80';
+                                              e.target.src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80';
                                             }}
                                           />
                                         )}
