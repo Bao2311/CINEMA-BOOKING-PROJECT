@@ -11,6 +11,11 @@ namespace STP.Repository.Data
     /// </summary>
     public class CinemaDbContext : DbContext
     {
+        static CinemaDbContext()
+        {
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+        }
+
         /// <summary>
         /// Khởi tạo một instance mới của CinemaDbContext với các tùy chọn được cung cấp.
         /// </summary>
@@ -42,18 +47,58 @@ namespace STP.Repository.Data
         public DbSet<PointsEarning> PointsEarnings { get; set; }
 
         /// <summary>
-        /// Lấy chuỗi kết nối từ tệp cấu hình appsettings.json
+        public static string ConvertPostgresConnectionString(string connStr)
+        {
+            if (string.IsNullOrWhiteSpace(connStr)) return connStr;
+            if (connStr.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) || 
+                connStr.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var uri = new Uri(connStr);
+                    var userInfo = uri.UserInfo.Split(':');
+                    var username = userInfo.Length > 0 ? Uri.UnescapeDataString(userInfo[0]) : "";
+                    var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+                    var host = uri.Host;
+                    var port = uri.Port > 0 ? uri.Port : 5432;
+                    var database = uri.AbsolutePath.TrimStart('/');
+                    return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
+                }
+                catch
+                {
+                    return connStr;
+                }
+            }
+            return connStr;
+        }
+
+        /// <summary>
+        /// Lấy chuỗi kết nối từ biến môi trường hoặc tệp cấu hình appsettings.json
         /// </summary>
         /// <param name="connectionStringName">Tên của chuỗi kết nối cần lấy</param>
         /// <returns>Chuỗi kết nối đến cơ sở dữ liệu</returns>
         public static string GetConnectionString(string connectionStringName)
         {
+            var envDbUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+            if (!string.IsNullOrWhiteSpace(envDbUrl))
+            {
+                return envDbUrl;
+            }
+
+            var envConn = Environment.GetEnvironmentVariable($"ConnectionStrings__{connectionStringName}")
+                ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+            if (!string.IsNullOrWhiteSpace(envConn))
+            {
+                return envConn;
+            }
+
             var config = new ConfigurationBuilder()
                 .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-                .AddJsonFile("appsettings.json")
+                .AddJsonFile("appsettings.json", optional: true)
+                .AddEnvironmentVariables()
                 .Build();
 
-            return config.GetConnectionString(connectionStringName);
+            return config.GetConnectionString(connectionStringName) ?? string.Empty;
         }
 
         /// <summary>
@@ -65,16 +110,24 @@ namespace STP.Repository.Data
             if (!optionsBuilder.IsConfigured)
             {
                 var connectionString = GetConnectionString("DefaultConnection");
-                var config = new ConfigurationBuilder()
-                    .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-                    .AddJsonFile("appsettings.json", optional: true)
-                    .AddEnvironmentVariables()
-                    .Build();
-                var dbProvider = config["DATABASE_PROVIDER"] ?? "SqlServer";
+                var dbProvider = Environment.GetEnvironmentVariable("DATABASE_PROVIDER");
+                if (string.IsNullOrWhiteSpace(dbProvider))
+                {
+                    var config = new ConfigurationBuilder()
+                        .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+                        .AddJsonFile("appsettings.json", optional: true)
+                        .Build();
+                    dbProvider = config["DATABASE_PROVIDER"];
+                }
+                if (string.IsNullOrWhiteSpace(dbProvider))
+                {
+                    dbProvider = (!string.IsNullOrWhiteSpace(connectionString) && (connectionString.StartsWith("postgres") || connectionString.Contains("Host=")))
+                        ? "PostgreSQL" : "SqlServer";
+                }
 
                 if (dbProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
                 {
-                    optionsBuilder.UseNpgsql(connectionString);
+                    optionsBuilder.UseNpgsql(ConvertPostgresConnectionString(connectionString));
                 }
                 else
                 {

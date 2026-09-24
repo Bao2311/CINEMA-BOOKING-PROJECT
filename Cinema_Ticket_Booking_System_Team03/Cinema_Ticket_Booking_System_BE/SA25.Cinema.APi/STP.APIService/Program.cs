@@ -22,6 +22,9 @@ namespace STP.APIService
     {
         public static void Main(string[] args)
         {
+            // Cho phép Npgsql xử lý DateTime linh hoạt (hỗ trợ cả Local và UTC như SQL Server)
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
             // Khởi tạo builder cho ứng dụng web
             var builder = WebApplication.CreateBuilder(args);
 
@@ -46,14 +49,19 @@ namespace STP.APIService
 
             // Đăng ký DbContext với chuỗi kết nối từ cấu hình
             // Hỗ trợ cả SQL Server (local dev) và PostgreSQL (production/Neon)
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-            var dbProvider = builder.Configuration["DATABASE_PROVIDER"] ?? "SqlServer";
+            var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
+                ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+                ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
+            var dbProvider = Environment.GetEnvironmentVariable("DATABASE_PROVIDER")
+                ?? builder.Configuration["DATABASE_PROVIDER"] 
+                ?? (!string.IsNullOrWhiteSpace(connectionString) && (connectionString.StartsWith("postgres") || connectionString.Contains("Host=")) ? "PostgreSQL" : "SqlServer");
 
             builder.Services.AddDbContext<CinemaDbContext>(options =>
             {
                 if (dbProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
                 {
-                    options.UseNpgsql(connectionString);
+                    options.UseNpgsql(CinemaDbContext.ConvertPostgresConnectionString(connectionString ?? ""));
                 }
                 else
                 {
@@ -203,6 +211,21 @@ namespace STP.APIService
 
             // Cấu hình routing cho controllers
             app.MapControllers();
+
+            // Tự động seed dữ liệu ban đầu nếu database trống
+            using (var scope = app.Services.CreateScope())
+            {
+                try
+                {
+                    var dbContext = scope.ServiceProvider.GetRequiredService<CinemaDbContext>();
+                    DbSeeder.SeedAsync(dbContext).GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                    logger.LogError(ex, "Lỗi xảy ra trong quá trình seed database.");
+                }
+            }
 
             // Khởi động ứng dụng
             app.Run();

@@ -1,12 +1,13 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace STP.Repository.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialPostgreSql : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -15,13 +16,13 @@ namespace STP.Repository.Migrations
                 name: "Cinema_Rooms",
                 columns: table => new
                 {
-                    Cinema_Room_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Room_Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Seat_Quantity = table.Column<int>(type: "int", nullable: false),
-                    Room_Type = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Notes = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Cinema_Room_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Room_Name = table.Column<string>(type: "text", nullable: true),
+                    Seat_Quantity = table.Column<int>(type: "integer", nullable: false),
+                    Room_Type = table.Column<string>(type: "text", nullable: true),
+                    Status = table.Column<string>(type: "text", nullable: true),
+                    Notes = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -32,12 +33,12 @@ namespace STP.Repository.Migrations
                 name: "FailedLogins",
                 columns: table => new
                 {
-                    FailedLogin_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    User_ID = table.Column<int>(type: "int", nullable: false),
-                    IP_Address = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    UserAgent = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    AttemptTime = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    FailedLogin_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    User_ID = table.Column<int>(type: "integer", nullable: false),
+                    IP_Address = table.Column<string>(type: "text", nullable: false),
+                    UserAgent = table.Column<string>(type: "text", nullable: false),
+                    AttemptTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -48,14 +49,14 @@ namespace STP.Repository.Migrations
                 name: "Ticket_Pricing",
                 columns: table => new
                 {
-                    Price_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Room_Type = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Seat_Type = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Base_Price = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Created_Date = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Last_Updated = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Price_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Room_Type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Seat_Type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Base_Price = table.Column<decimal>(type: "numeric(10,2)", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    Created_Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Last_Updated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -66,21 +67,21 @@ namespace STP.Repository.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    User_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Full_Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(450)", nullable: true),
-                    Password = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Role = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Department = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Hire_Date = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Date_Of_Birth = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Sex = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Phone_Number = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Address = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Account_Status = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Created_At = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Last_Login = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    User_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Full_Name = table.Column<string>(type: "text", nullable: true),
+                    Email = table.Column<string>(type: "text", nullable: true),
+                    Password = table.Column<string>(type: "text", nullable: true),
+                    Role = table.Column<string>(type: "text", nullable: true),
+                    Department = table.Column<string>(type: "text", nullable: true),
+                    Hire_Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Date_Of_Birth = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Sex = table.Column<string>(type: "text", nullable: true),
+                    Phone_Number = table.Column<string>(type: "text", nullable: true),
+                    Address = table.Column<string>(type: "text", nullable: true),
+                    Account_Status = table.Column<string>(type: "text", nullable: true),
+                    Created_At = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Last_Login = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -91,13 +92,13 @@ namespace STP.Repository.Migrations
                 name: "Seat_Layout",
                 columns: table => new
                 {
-                    Layout_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Cinema_Room_ID = table.Column<int>(type: "int", nullable: false),
-                    Row_Label = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Column_Number = table.Column<int>(type: "int", nullable: false),
-                    Seat_Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Is_Active = table.Column<bool>(type: "bit", nullable: false)
+                    Layout_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Cinema_Room_ID = table.Column<int>(type: "integer", nullable: false),
+                    Row_Label = table.Column<string>(type: "text", nullable: false),
+                    Column_Number = table.Column<int>(type: "integer", nullable: false),
+                    Seat_Type = table.Column<string>(type: "text", nullable: false),
+                    Is_Active = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -114,26 +115,26 @@ namespace STP.Repository.Migrations
                 name: "Movies",
                 columns: table => new
                 {
-                    Movie_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Movie_Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Release_Date = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    End_Date = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Production_Company = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Director = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cast = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Duration = table.Column<int>(type: "int", nullable: false),
-                    Genre = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Rating = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Language = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Country = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Synopsis = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Poster_URL = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Trailer_Link = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Created_By = table.Column<int>(type: "int", nullable: false),
-                    Created_At = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Updated_At = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Movie_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Movie_Name = table.Column<string>(type: "text", nullable: false),
+                    Release_Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    End_Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Production_Company = table.Column<string>(type: "text", nullable: false),
+                    Director = table.Column<string>(type: "text", nullable: false),
+                    Cast = table.Column<string>(type: "text", nullable: false),
+                    Duration = table.Column<int>(type: "integer", nullable: false),
+                    Genre = table.Column<string>(type: "text", nullable: false),
+                    Rating = table.Column<string>(type: "text", nullable: false),
+                    Language = table.Column<string>(type: "text", nullable: false),
+                    Country = table.Column<string>(type: "text", nullable: false),
+                    Synopsis = table.Column<string>(type: "text", nullable: false),
+                    Poster_URL = table.Column<string>(type: "text", nullable: false),
+                    Trailer_Link = table.Column<string>(type: "text", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    Created_By = table.Column<int>(type: "integer", nullable: false),
+                    Created_At = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Updated_At = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -150,13 +151,13 @@ namespace STP.Repository.Migrations
                 name: "Points_Redemption",
                 columns: table => new
                 {
-                    Redemption_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    User_ID = table.Column<int>(type: "int", nullable: false),
-                    Points_Redeemed = table.Column<int>(type: "int", nullable: false),
-                    Date = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Note = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Redemption_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    User_ID = table.Column<int>(type: "integer", nullable: false),
+                    Points_Redeemed = table.Column<int>(type: "integer", nullable: false),
+                    Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    Note = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -173,23 +174,23 @@ namespace STP.Repository.Migrations
                 name: "Promotions",
                 columns: table => new
                 {
-                    Promotion_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Promotion_Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Start_Date = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    End_Date = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Discount_Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Discount_Value = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Minimum_Purchase = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Maximum_Discount = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    Applicable_For = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Usage_Limit = table.Column<int>(type: "int", nullable: true),
-                    Current_Usage = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Promotion_Detail = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Created_By = table.Column<int>(type: "int", nullable: false),
-                    Created_At = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Promotion_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Promotion_Code = table.Column<string>(type: "text", nullable: false),
+                    Start_Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    End_Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Discount_Type = table.Column<string>(type: "text", nullable: false),
+                    Discount_Value = table.Column<decimal>(type: "numeric", nullable: false),
+                    Minimum_Purchase = table.Column<decimal>(type: "numeric", nullable: false),
+                    Maximum_Discount = table.Column<decimal>(type: "numeric", nullable: true),
+                    Applicable_For = table.Column<string>(type: "text", nullable: false),
+                    Usage_Limit = table.Column<int>(type: "integer", nullable: true),
+                    Current_Usage = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    Promotion_Detail = table.Column<string>(type: "text", nullable: false),
+                    Created_By = table.Column<int>(type: "integer", nullable: false),
+                    Created_At = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -206,12 +207,12 @@ namespace STP.Repository.Migrations
                 name: "Scores",
                 columns: table => new
                 {
-                    Score_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    User_ID = table.Column<int>(type: "int", nullable: false),
-                    Points_Added = table.Column<int>(type: "int", nullable: false),
-                    Points_Used = table.Column<int>(type: "int", nullable: false),
-                    Date = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Score_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    User_ID = table.Column<int>(type: "integer", nullable: false),
+                    Points_Added = table.Column<int>(type: "integer", nullable: false),
+                    Points_Used = table.Column<int>(type: "integer", nullable: false),
+                    Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -228,11 +229,11 @@ namespace STP.Repository.Migrations
                 name: "User_Points",
                 columns: table => new
                 {
-                    UserPoints_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    User_ID = table.Column<int>(type: "int", nullable: false),
-                    Total_Points = table.Column<int>(type: "int", nullable: false),
-                    Last_Updated = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    UserPoints_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    User_ID = table.Column<int>(type: "integer", nullable: false),
+                    Total_Points = table.Column<int>(type: "integer", nullable: false),
+                    Last_Updated = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -249,14 +250,14 @@ namespace STP.Repository.Migrations
                 name: "Movie_Ratings",
                 columns: table => new
                 {
-                    Rating_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Movie_ID = table.Column<int>(type: "int", nullable: false),
-                    User_ID = table.Column<int>(type: "int", nullable: false),
-                    Rating = table.Column<int>(type: "int", nullable: false),
-                    Comment = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Rating_Date = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Is_Verified = table.Column<bool>(type: "bit", nullable: false)
+                    Rating_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Movie_ID = table.Column<int>(type: "integer", nullable: false),
+                    User_ID = table.Column<int>(type: "integer", nullable: false),
+                    Rating = table.Column<int>(type: "integer", nullable: false),
+                    Comment = table.Column<string>(type: "text", nullable: false),
+                    Rating_Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Is_Verified = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -279,20 +280,20 @@ namespace STP.Repository.Migrations
                 name: "Showtimes",
                 columns: table => new
                 {
-                    Showtime_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Movie_ID = table.Column<int>(type: "int", nullable: false),
-                    Cinema_Room_ID = table.Column<int>(type: "int", nullable: false),
-                    Show_Date = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Start_Time = table.Column<TimeSpan>(type: "time", nullable: false),
-                    End_Time = table.Column<TimeSpan>(type: "time", nullable: false),
-                    Price_Tier = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Base_Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Capacity_Available = table.Column<int>(type: "int", nullable: false),
-                    Created_By = table.Column<int>(type: "int", nullable: false),
-                    Created_At = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Updated_At = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Showtime_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Movie_ID = table.Column<int>(type: "integer", nullable: false),
+                    Cinema_Room_ID = table.Column<int>(type: "integer", nullable: false),
+                    Show_Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Start_Time = table.Column<TimeSpan>(type: "interval", nullable: false),
+                    End_Time = table.Column<TimeSpan>(type: "interval", nullable: false),
+                    Price_Tier = table.Column<string>(type: "text", nullable: false),
+                    Base_Price = table.Column<decimal>(type: "numeric", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    Capacity_Available = table.Column<int>(type: "integer", nullable: false),
+                    Created_By = table.Column<int>(type: "integer", nullable: false),
+                    Created_At = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Updated_At = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -321,18 +322,18 @@ namespace STP.Repository.Migrations
                 name: "Ticket_Bookings",
                 columns: table => new
                 {
-                    Booking_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    User_ID = table.Column<int>(type: "int", nullable: true),
-                    Showtime_ID = table.Column<int>(type: "int", nullable: false),
-                    Promotion_ID = table.Column<int>(type: "int", nullable: true),
-                    Booking_Date = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Payment_Deadline = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Total_Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Points_Earned = table.Column<int>(type: "int", nullable: false),
-                    Points_Used = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Created_By = table.Column<int>(type: "int", nullable: false)
+                    Booking_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    User_ID = table.Column<int>(type: "integer", nullable: true),
+                    Showtime_ID = table.Column<int>(type: "integer", nullable: false),
+                    Promotion_ID = table.Column<int>(type: "integer", nullable: true),
+                    Booking_Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Payment_Deadline = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Total_Amount = table.Column<decimal>(type: "numeric", nullable: false),
+                    Points_Earned = table.Column<int>(type: "integer", nullable: false),
+                    Points_Used = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    Created_By = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -367,13 +368,13 @@ namespace STP.Repository.Migrations
                 name: "Booking_History",
                 columns: table => new
                 {
-                    Booking_History_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Booking_ID = table.Column<int>(type: "int", nullable: false),
-                    Date = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Notes = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    IsRead = table.Column<bool>(type: "bit", nullable: false)
+                    Booking_History_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Booking_ID = table.Column<int>(type: "integer", nullable: false),
+                    Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    Notes = table.Column<string>(type: "text", nullable: false),
+                    IsRead = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -390,19 +391,19 @@ namespace STP.Repository.Migrations
                 name: "Payments",
                 columns: table => new
                 {
-                    Payment_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Booking_ID = table.Column<int>(type: "int", nullable: false),
-                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Payment_Method = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Payment_Reference = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Transaction_Date = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Payment_Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Processor_Response = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Refund_Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Refund_Date = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Refund_Reason = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Processed_By = table.Column<int>(type: "int", nullable: true)
+                    Payment_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Booking_ID = table.Column<int>(type: "integer", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric", nullable: false),
+                    Payment_Method = table.Column<string>(type: "text", nullable: false),
+                    Payment_Reference = table.Column<string>(type: "text", nullable: false),
+                    Transaction_Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Payment_Status = table.Column<string>(type: "text", nullable: false),
+                    Processor_Response = table.Column<string>(type: "text", nullable: false),
+                    Refund_Amount = table.Column<decimal>(type: "numeric", nullable: false),
+                    Refund_Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Refund_Reason = table.Column<string>(type: "text", nullable: false),
+                    Processed_By = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -425,13 +426,13 @@ namespace STP.Repository.Migrations
                 name: "Points_Earning",
                 columns: table => new
                 {
-                    Earning_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    User_ID = table.Column<int>(type: "int", nullable: false),
-                    Booking_ID = table.Column<int>(type: "int", nullable: false),
-                    Actual_Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Points_Earned = table.Column<int>(type: "int", nullable: false),
-                    Date = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Earning_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    User_ID = table.Column<int>(type: "integer", nullable: false),
+                    Booking_ID = table.Column<int>(type: "integer", nullable: false),
+                    Actual_Amount = table.Column<decimal>(type: "numeric", nullable: false),
+                    Points_Earned = table.Column<int>(type: "integer", nullable: false),
+                    Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -454,14 +455,14 @@ namespace STP.Repository.Migrations
                 name: "Promotion_Usage",
                 columns: table => new
                 {
-                    Usage_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Promotion_ID = table.Column<int>(type: "int", nullable: false),
-                    Booking_ID = table.Column<int>(type: "int", nullable: false),
-                    User_ID = table.Column<int>(type: "int", nullable: false),
-                    Discount_Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Applied_Date = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    HasUsed = table.Column<bool>(type: "bit", nullable: false)
+                    Usage_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Promotion_ID = table.Column<int>(type: "integer", nullable: false),
+                    Booking_ID = table.Column<int>(type: "integer", nullable: false),
+                    User_ID = table.Column<int>(type: "integer", nullable: false),
+                    Discount_Amount = table.Column<decimal>(type: "numeric", nullable: false),
+                    Applied_Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    HasUsed = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -490,13 +491,13 @@ namespace STP.Repository.Migrations
                 name: "Seats",
                 columns: table => new
                 {
-                    Seat_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Layout_ID = table.Column<int>(type: "int", nullable: false),
-                    Booking_ID = table.Column<int>(type: "int", nullable: true),
-                    Seat_Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Last_Updated = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Showtime_ID = table.Column<int>(type: "int", nullable: false)
+                    Seat_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Layout_ID = table.Column<int>(type: "integer", nullable: false),
+                    Booking_ID = table.Column<int>(type: "integer", nullable: true),
+                    Seat_Status = table.Column<string>(type: "text", nullable: false),
+                    Last_Updated = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Showtime_ID = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -525,17 +526,17 @@ namespace STP.Repository.Migrations
                 name: "Tickets",
                 columns: table => new
                 {
-                    Ticket_ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Booking_ID = table.Column<int>(type: "int", nullable: false),
-                    Seat_ID = table.Column<int>(type: "int", nullable: false),
-                    Base_Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Discount_Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Final_Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Ticket_Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Is_Checked_In = table.Column<bool>(type: "bit", nullable: false),
-                    Check_In_Time = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Ticket_ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Booking_ID = table.Column<int>(type: "integer", nullable: false),
+                    Seat_ID = table.Column<int>(type: "integer", nullable: false),
+                    Base_Price = table.Column<decimal>(type: "numeric", nullable: false),
+                    Discount_Amount = table.Column<decimal>(type: "numeric", nullable: false),
+                    Final_Price = table.Column<decimal>(type: "numeric", nullable: false),
+                    Ticket_Code = table.Column<string>(type: "text", nullable: false),
+                    Is_Checked_In = table.Column<bool>(type: "boolean", nullable: false),
+                    Check_In_Time = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Status = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -727,8 +728,7 @@ namespace STP.Repository.Migrations
                 name: "IX_Users_Email",
                 table: "Users",
                 column: "Email",
-                unique: true,
-                filter: "[Email] IS NOT NULL");
+                unique: true);
         }
 
         /// <inheritdoc />
