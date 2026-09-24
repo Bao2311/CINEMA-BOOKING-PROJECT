@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { UserPlus, Mail, Lock, User, Phone, MapPin, Film, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { API_URL } from '../../config/apiUrl';
 
 const RegisterForm: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -55,7 +56,7 @@ const RegisterForm: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:5204/api/Auth/register", {
+      const response = await axios.post(`${API_URL}/Auth/register`, {
         email: formData.email,
         password: formData.password,
         fullName: formData.fullName,

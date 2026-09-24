@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, Settings, Ticket, LogOut, Home, Bell, Phone, Mail, QrCode, Sparkles } from 'lucide-react';
 import { UserProfile } from '../../interfaces/ProfileInterfaces';
 import axios from 'axios';
+import { API_URL } from '../../config/apiUrl';
 
 interface ProfileSidebarProps {
   profile: UserProfile | null;
@@ -28,7 +29,7 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await axios.get('http://localhost:5204/api/Points/my-points', {
+        const response = await axios.get(`${API_URL}/Points/my-points`, {
           headers: {
             Authorization: `Bearer ${token}`
           }

@@ -3,6 +3,7 @@ import { Table, Card, Space, Tag, Button, message, Modal, Tooltip, Select, DateP
 import type { ColumnsType } from 'antd/es/table';
 import { EyeOutlined, DeleteOutlined, SearchOutlined, ExportOutlined, FilterOutlined, ClearOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import { API_URL } from '../config/apiUrl';
 import { useAuth } from '../context/AuthContext';
 import moment from 'moment';
 import { CSVLink } from 'react-csv';
@@ -39,7 +40,7 @@ interface Booking {
   showtime: Showtime;
 }
 
-const API_BASE_URL = 'http://localhost:5204';
+const API_BASE_URL = API_URL.replace('/api', '');
 
 const ManageBooking: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);

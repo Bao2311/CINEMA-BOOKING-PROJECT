@@ -112,7 +112,7 @@
 //   );
 // };
 
-// const API_URL = "http://localhost:5204/api";
+// const API_URL = API_URL;
 
 // const ManageMoviesPage: React.FC = () => {
 //   // State quản lý danh sách phim
@@ -1660,6 +1660,7 @@ import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from '../config/apiUrl';
 
 // Định nghĩa kiểu dữ liệu Movie
 interface Movie {
@@ -1931,7 +1932,7 @@ const CreateMovieSteps: React.FC<{
   );
 };
 
-const API_URL = "http://localhost:5204/api";
+
 
 const ManageMoviesPage: React.FC = () => {
   // State quản lý danh sách phim

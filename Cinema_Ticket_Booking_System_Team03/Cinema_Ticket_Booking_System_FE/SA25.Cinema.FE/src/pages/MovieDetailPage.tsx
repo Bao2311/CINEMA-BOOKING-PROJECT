@@ -10,6 +10,7 @@ import {
 import { Modal } from 'antd';
 import { toast } from 'react-toastify';
 import { Movie, Showtime } from '../types';
+import { API_URL } from '../config/apiUrl';
 
 const getYouTubeId = (url: string) => {
   if (!url) return null;
@@ -40,8 +41,8 @@ const MovieDetailPage: React.FC = () => {
 
       try {
         const [movieRes, showtimeRes] = await Promise.all([
-          axios.get(`http://localhost:5204/api/Movie/${id}`, { headers }),
-          axios.get(`http://localhost:5204/api/Showtimes/movie/${id}`, { headers })
+          axios.get(`${API_URL}/Movie/${id}`, { headers }),
+          axios.get(`${API_URL}/Showtimes/movie/${id}`, { headers })
             .catch(() => ({ data: { dates: { $values: [] } } })),
         ]);
 
@@ -109,7 +110,7 @@ const MovieDetailPage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `http://localhost:5204/api/TicketBookings/${pendingBookingId}/cancel`,
+        `${API_URL}/TicketBookings/${pendingBookingId}/cancel`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

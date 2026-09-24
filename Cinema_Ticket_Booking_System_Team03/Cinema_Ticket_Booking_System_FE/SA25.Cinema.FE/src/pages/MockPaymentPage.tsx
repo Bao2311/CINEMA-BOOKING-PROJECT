@@ -4,8 +4,9 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { QRCodeSVG } from 'qrcode.react';
+import { API_URL } from '../config/apiUrl';
 
-const API_BASE = 'http://localhost:5204/api';
+const API_BASE = API_URL;
 
 interface BookingInfo {
   bookingId: number;

@@ -12,6 +12,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
+import { API_URL } from '../config/apiUrl';
 
 
 // CSS cho tooltip
@@ -298,7 +299,7 @@ useEffect(() => {
   // Hàm cập nhật trạng thái suất chiếu
   const updateShowtimeStatus = async (showtimeId: number, newStatus: string) => {
     try {
-      const response = await fetch(`http://localhost:5204/api/Showtimes/${showtimeId}/status`, {
+      const response = await fetch(`${API_URL}/Showtimes/${showtimeId}/status`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -325,7 +326,7 @@ useEffect(() => {
       setLoading(true);
       setRefreshing(true);
       
-      const response = await fetch('http://localhost:5204/api/Showtimes', {
+      const response = await fetch(`${API_URL}/Showtimes`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -404,7 +405,7 @@ useEffect(() => {
   // Fetch movies đang chiếu
   const fetchNowShowingMovies = async () => {
     try {
-      const response = await fetch('http://localhost:5204/api/Movie', {
+      const response = await fetch(`${API_URL}/Movie`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -428,7 +429,7 @@ useEffect(() => {
   // Fetch cinema rooms
   const fetchCinemaRooms = async () => {
     try {
-      const response = await fetch('http://localhost:5204/api/CinemaRoom', {
+      const response = await fetch(`${API_URL}/CinemaRoom`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -452,7 +453,7 @@ useEffect(() => {
   // Kiểm tra trạng thái phòng chiếu
   const checkRoomStatus = async (roomId) => {
     try {
-      const response = await fetch(`http://localhost:5204/api/CinemaRoom/check-status/${roomId}`, {
+      const response = await fetch(`${API_URL}/CinemaRoom/check-status/${roomId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -664,7 +665,7 @@ useEffect(() => {
         capacity_Available: 100
       };
   
-      const response = await fetch('http://localhost:5204/api/Showtimes', {
+      const response = await fetch(`${API_URL}/Showtimes`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -778,7 +779,7 @@ useEffect(() => {
         price_Tier: 'VIP'  // Add this line to include price_Tier
       };
 
-      const response = await fetch(`http://localhost:5204/api/Showtimes/${editingShowtime.showtime_ID}`, {
+      const response = await fetch(`${API_URL}/Showtimes/${editingShowtime.showtime_ID}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -824,7 +825,7 @@ useEffect(() => {
 
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5204/api/Showtimes/${showtimeToDelete}`, {
+      const response = await fetch(`${API_URL}/Showtimes/${showtimeToDelete}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

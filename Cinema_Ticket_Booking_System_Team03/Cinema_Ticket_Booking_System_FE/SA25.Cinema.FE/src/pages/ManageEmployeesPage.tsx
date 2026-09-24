@@ -21,6 +21,7 @@ import axios from "axios";
 import classNames from "classnames";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { API_URL } from '../config/apiUrl';
 
 interface User {
   $id: string;
@@ -68,7 +69,7 @@ const AlertDialog = ({ open, onOpenChange, children }) => {
   );
 };
 
-const API_BASE_URL = "http://localhost:5204/api";
+const API_BASE_URL = API_URL;
 
 const ManageUsersPage: React.FC = () => {
   const navigate = useNavigate();

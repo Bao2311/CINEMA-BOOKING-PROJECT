@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Cấu hình axios với base URL của API
 const api = axios.create({
-  baseURL: "http://localhost:5204/api/",
+  baseURL: `${import.meta.env.VITE_API_URL || "http://localhost:5204"}/api/`,
 });
 
 // Interceptor để thêm token vào header của request

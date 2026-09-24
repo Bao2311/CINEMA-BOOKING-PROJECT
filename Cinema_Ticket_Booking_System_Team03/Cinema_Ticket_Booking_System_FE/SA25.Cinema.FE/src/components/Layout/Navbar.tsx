@@ -21,6 +21,7 @@ import {
   Clapperboard,
 } from "lucide-react";
 import { jwtDecode } from "jwt-decode";
+import { API_URL } from '../../config/apiUrl';
 
 const Navbar: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -101,7 +102,7 @@ const Navbar: React.FC = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
-      const res = await fetch(`http://localhost:5204/api/User/${userId}`, {
+      const res = await fetch(`${API_URL}/User/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {

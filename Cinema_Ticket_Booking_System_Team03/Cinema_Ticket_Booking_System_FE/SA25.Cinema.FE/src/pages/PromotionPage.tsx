@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Modal } from "antd";
 import { toast } from "react-toastify";
+import { API_URL } from '../config/apiUrl';
 
 interface Promotion {
   promotion_ID: number;
@@ -34,7 +35,7 @@ const UserPromotionsPage: React.FC = () => {
     const fetchPromos = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:5204/api/Promotion", {
+        const res = await fetch(`${API_URL}/Promotion`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();

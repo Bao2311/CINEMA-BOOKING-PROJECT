@@ -30,6 +30,7 @@ import {
 import moment from "moment";
 import * as XLSX from "xlsx";
 import {
+import { API_URL } from '../config/apiUrl';
   FileExcelOutlined,
   BarChartOutlined,
   TeamOutlined,
@@ -117,7 +118,7 @@ const StatisticsPage = () => {
       }
 
       const response = await axios.get(
-        "http://localhost:5204/api/BookingStatistics",
+        `${API_URL}/BookingStatistics`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -160,7 +161,7 @@ const StatisticsPage = () => {
       }
 
       const response = await axios.get(
-        "http://localhost:5204/api/SalesReport",
+        `${API_URL}/SalesReport`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -199,7 +200,7 @@ const StatisticsPage = () => {
       }
 
       const response = await axios.get(
-        "http://localhost:5204/api/StaffPerformance",
+        `${API_URL}/StaffPerformance`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

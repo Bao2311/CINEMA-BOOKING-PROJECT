@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Layout from '../components/Layout/Layout';
+import { API_URL } from '../config/apiUrl';
 
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -18,7 +19,7 @@ const ForgotPassword: React.FC = () => {
     setError('');
     
     try {
-      const response = await axios.post('http://localhost:5204/api/Auth/reset-password', { email }, {
+      const response = await axios.post(`${API_URL}/Auth/reset-password`, { email }, {
         headers: { 'Content-Type': 'application/json' },
       });
 

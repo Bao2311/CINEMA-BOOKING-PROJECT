@@ -7,6 +7,7 @@ import jsQR from "jsqr";
 import { useAuth } from "../context/AuthContext";
 import "react-toastify/dist/ReactToastify.css";
 import { motion } from "framer-motion";
+import { API_URL } from '../config/apiUrl';
 
 // Theme colors
 const theme = {
@@ -701,7 +702,7 @@ const QRCodeScanner = () => {
 
   const navigate = useNavigate();
   const { token } = useAuth();
-  const apiBaseUrl = "http://localhost:5204/api";
+  const apiBaseUrl = API_URL;
 
   const successSound = new Audio("/sounds/success.mp3");
   const errorSound = new Audio("/sounds/error.mp3");

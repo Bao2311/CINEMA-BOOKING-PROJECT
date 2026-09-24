@@ -10,6 +10,7 @@ import {
 import { Modal } from 'antd';
 import { toast } from 'react-toastify';
 import { Movie, Showtime } from '../types';
+import { API_URL } from '../config/apiUrl';
 
 const ShowtimesPage: React.FC = () => {
   const { movieId } = useParams<{ movieId?: string }>();
@@ -34,8 +35,8 @@ const ShowtimesPage: React.FC = () => {
         if (token) headers.Authorization = `Bearer ${token}`;
 
         const [stRes, mvRes] = await Promise.all([
-          axios.get('http://localhost:5204/api/Showtimes', { headers }),
-          axios.get('http://localhost:5204/api/Movie', { headers }),
+          axios.get(`${API_URL}/Showtimes`, { headers }),
+          axios.get(`${API_URL}/Movie`, { headers }),
         ]);
 
         const stData = stRes.data?.$values || stRes.data || [];
@@ -84,7 +85,7 @@ const ShowtimesPage: React.FC = () => {
     const token = localStorage.getItem('token');
     try {
       // Check if user has unpaid bookings
-      const unpaidRes = await axios.get('http://localhost:5204/api/TicketBookings/user/unpaid', {
+      const unpaidRes = await axios.get(`${API_URL}/TicketBookings/user/unpaid`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (unpaidRes.status === 200 && unpaidRes.data && unpaidRes.data.length > 0) {
@@ -104,7 +105,7 @@ const ShowtimesPage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `http://localhost:5204/api/TicketBookings/${pendingBookingId}/cancel`,
+        `${API_URL}/TicketBookings/${pendingBookingId}/cancel`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

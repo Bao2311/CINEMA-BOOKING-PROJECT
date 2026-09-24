@@ -13,6 +13,7 @@ import axios from "axios"; // Thêm Axios để gọi API
 import { Notification } from "../../interfaces/ProfileInterfaces";
 import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
+import { API_URL } from '../../config/apiUrl';
 
 interface NotificationsTabProps {
   notifications: Notification[];
@@ -72,7 +73,7 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
         throw new Error("Không tìm thấy token xác thực.");
       }
 
-      await axios.put("http://localhost:5204/api/notifications/read-all", null, {
+      await axios.put(`${API_URL}/notifications/read-all`, null, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -102,7 +103,7 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
 
       // Gọi API để đánh dấu thông báo đã đọc
       await axios.put(
-        `http://localhost:5204/api/notifications/${notificationId}/read`,
+        `${API_URL}/notifications/${notificationId}/read`,
         null,
         {
           headers: {

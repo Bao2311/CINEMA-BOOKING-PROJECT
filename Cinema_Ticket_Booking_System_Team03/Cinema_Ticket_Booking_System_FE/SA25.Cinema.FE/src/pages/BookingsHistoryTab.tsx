@@ -7,6 +7,7 @@ import { Booking, TicketDetail } from '../interfaces/ProfileInterfaces';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 import BookingStatusBadge from '../components/profile/BookingStatusBadge';
 import TicketDetailModal from '../components/profile/TicketDetailModal';
+import { API_URL } from '../config/apiUrl';
 
 interface ApiBooking {
   booking_ID: number;
@@ -41,7 +42,7 @@ interface AlertState {
 
 const BookingHistoryPage: React.FC = () => {
   const navigate = useNavigate();
-  const apiBaseUrl = 'http://localhost:5204/api';
+  const apiBaseUrl = API_URL;
   
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);

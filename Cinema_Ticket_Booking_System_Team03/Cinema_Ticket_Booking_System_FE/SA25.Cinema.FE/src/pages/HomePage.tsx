@@ -8,6 +8,7 @@ import {
 import MovieCard from '../components/Movies/MovieCard';
 import axios from 'axios';
 import { Movie } from '../types';
+import { API_URL } from '../config/apiUrl';
 
 // ─────────────────────────────────────
 // Skeleton Loader
@@ -292,7 +293,7 @@ const HomePage: React.FC = () => {
         if (token) {
           headers.Authorization = `Bearer ${token}`;
         }
-        const res = await axios.get('http://localhost:5204/api/Movie', { headers });
+        const res = await axios.get(`${API_URL}/Movie`, { headers });
         let movies: Movie[] = [];
         if (Array.isArray(res.data)) {
           movies = res.data;

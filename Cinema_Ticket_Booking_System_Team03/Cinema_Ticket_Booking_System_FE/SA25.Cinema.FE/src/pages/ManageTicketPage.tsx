@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { QRCodeSVG } from 'qrcode.react';
+import { API_URL } from '../config/apiUrl';
 
 interface TicketInfo {
   ticket_id: number;
@@ -99,7 +100,7 @@ const ManageTicketPage: React.FC = () => {
         return;
       }
       
-      const response = await axios.get<TicketResponse>('http://localhost:5204/api/Ticket/all', {
+      const response = await axios.get<TicketResponse>(`${API_URL}/Ticket/all`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -195,7 +196,7 @@ const ManageTicketPage: React.FC = () => {
       
       // Send POST request to check in the ticket using the ticket_code
       const response = await axios.post(
-        `http://localhost:5204/api/Ticket/check-in/${ticket.ticket_code}`,
+        `${API_URL}/Ticket/check-in/${ticket.ticket_code}`,
         {}, // Empty body as we're just using path parameter
         {
           headers: {

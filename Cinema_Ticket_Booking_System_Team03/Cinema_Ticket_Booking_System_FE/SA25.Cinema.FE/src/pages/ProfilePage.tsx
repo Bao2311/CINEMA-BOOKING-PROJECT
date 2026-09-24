@@ -17,6 +17,7 @@ import CheckInsTab from "../components/Profile/CheckInsTab";
 
 // Import các interfaces
 import {
+import { API_URL } from '../config/apiUrl';
   UserProfile,
   Booking,
   Notification,
@@ -38,7 +39,7 @@ interface ProfilePageProps {
 const ProfilePage: React.FC<ProfilePageProps> = ({ defaultTab }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const apiBaseUrl = "http://localhost:5204/api";
+  const apiBaseUrl = API_URL;
   const { user, isAuthenticated, logout, updateUser } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
 

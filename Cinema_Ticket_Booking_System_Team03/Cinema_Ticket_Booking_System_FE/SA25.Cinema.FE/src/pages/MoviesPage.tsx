@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import MovieCard from '../components/Movies/MovieCard';
 import { Movie } from '../types';
+import { API_URL } from '../config/apiUrl';
 
 const GENRES = [
   'Tất cả', 'Action', 'Adventure', 'Sci-Fi', 'Drama', 'Thriller',
@@ -31,7 +32,7 @@ const MoviesPage: React.FC = () => {
     const fetchMovies = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:5204/api/Movie', {
+        const response = await axios.get(`${API_URL}/Movie`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
