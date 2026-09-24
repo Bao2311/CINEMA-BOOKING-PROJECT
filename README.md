@@ -8,7 +8,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?style=for-the-badge&logo=typescript)
 ![SQL Server](https://img.shields.io/badge/SQL%20Server-LocalDB-CC2927?style=for-the-badge&logo=microsoftsqlserver)
 
-**Hệ thống đặt vé xem phim trực tuyến full-stack** được xây dựng bởi Team 03 — SA25.
+**Hệ thống đặt vé xem phim trực tuyến full-stack** được thực hiện bởi **Lê Quốc Bảo** — Dự án thực tập (Internship) tại **FPT Software**, sinh viên **Đại học FPT**.
 
 [🚀 Demo](#demo) · [📖 Tài liệu](#-cài-đặt-và-chạy-project) · [🐛 Báo lỗi](https://github.com/Bao2311/CINEMA-BOOKING-PROJECT/issues)
 
@@ -26,7 +26,7 @@
 - [Cài đặt và chạy project](#-cài-đặt-và-chạy-project)
 - [Cấu hình môi trường](#-cấu-hình-môi-trường)
 - [API Documentation](#-api-documentation)
-- [Thành viên nhóm](#-thành-viên-nhóm)
+- [Thông tin người thực hiện](#-thông-tin-người-thực-hiện)
 
 ---
 
@@ -362,13 +362,16 @@ dotnet build                       # Build project
 
 ---
 
-## 👥 Thành viên nhóm
+## 👤 Thông tin người thực hiện
 
-| Thành viên | Vai trò |
-|------------|---------|
-| Team 03 | Full-stack Development |
+| Thông tin | Chi tiết |
+|-----------|---------|
+| **Họ và tên** | **Lê Quốc Bảo** |
+| **Vai trò** | Full-stack Developer |
+| **Đơn vị thực tập** | Dự án Thực tập (Internship) tại **FPT Software** |
+| **Trường** | **Đại học FPT** (FPT University) |
 
-> Project được thực hiện trong khuôn khổ môn học Capstone Project - SA25, FPT Polytechnic HCM.
+> Dự án được thực hiện bởi **Lê Quốc Bảo** trong khuôn khổ kỳ thực tập tại **FPT Software** — Sinh viên **Đại học FPT**.
 
 ---
 
@@ -380,6 +383,6 @@ Project này được phát triển cho mục đích học tập. Mọi thông t
 
 <div align="center">
 
-Made with ❤️ by **Team 03 - SA25 FPT Polytechnic**
+Made with ❤️ by **Lê Quốc Bảo** — Đại học FPT (FPT Software Intern)
 
 </div>
