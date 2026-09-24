@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using STP.Repository.Models;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -64,7 +64,22 @@ namespace STP.Repository.Data
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer(GetConnectionString("DefaultConnection"));
+                var connectionString = GetConnectionString("DefaultConnection");
+                var config = new ConfigurationBuilder()
+                    .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+                    .AddJsonFile("appsettings.json", optional: true)
+                    .AddEnvironmentVariables()
+                    .Build();
+                var dbProvider = config["DATABASE_PROVIDER"] ?? "SqlServer";
+
+                if (dbProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+                {
+                    optionsBuilder.UseNpgsql(connectionString);
+                }
+                else
+                {
+                    optionsBuilder.UseSqlServer(connectionString);
+                }
                 optionsBuilder.UseLazyLoadingProxies(false); // Vô hiệu hóa lazy loading
             }
         }

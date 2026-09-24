@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using STP.Repository;
 using STP.Repository.Models;
 using STP.Repository.Data;
 using PMS.Repository.Base;
@@ -46,9 +45,21 @@ namespace STP.APIService
                 });
 
             // Đăng ký DbContext với chuỗi kết nối từ cấu hình
+            // Hỗ trợ cả SQL Server (local dev) và PostgreSQL (production/Neon)
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+            var dbProvider = builder.Configuration["DATABASE_PROVIDER"] ?? "SqlServer";
+
             builder.Services.AddDbContext<CinemaDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
-            );
+            {
+                if (dbProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+                {
+                    options.UseNpgsql(connectionString);
+                }
+                else
+                {
+                    options.UseSqlServer(connectionString);
+                }
+            });
 
             // Cấu hình JWT Authentication
             var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]);
