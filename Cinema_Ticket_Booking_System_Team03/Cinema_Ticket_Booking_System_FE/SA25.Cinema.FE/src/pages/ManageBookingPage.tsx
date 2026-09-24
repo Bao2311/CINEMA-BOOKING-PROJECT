@@ -475,131 +475,141 @@ useEffect(() => {
   const activeFiltersCount = getActiveFiltersCount();
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Card title="Manage Booking" bordered={false}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-          <Button 
-            icon={<FilterOutlined />} 
-            onClick={() => {
-              console.log("Filter button clicked, current state:", isFilterVisible);
-              setIsFilterVisible(!isFilterVisible);
-            }}
-            type={isFilterVisible ? 'primary' : 'default'}
-          >
-            Filters {activeFiltersCount > 0 && <Tag color="blue">{activeFiltersCount}</Tag>}
-          </Button>
-          
-          <Space>
-            <Button icon={<ExportOutlined />} onClick={() => handleExport('excel')}>
-              Export Excel
-            </Button>
-            <CSVLink 
-              data={handleExportCSV()} 
-              filename={`bookings-${moment().format('DD-MM-YYYY')}.csv`}
-              className="ant-btn"
+    <div className="min-h-screen bg-[#0B0F19] text-white py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-white/10">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+              <span className="p-2.5 rounded-xl bg-red-600/10 text-red-500 border border-red-500/20">
+                <EyeOutlined className="text-xl" />
+              </span>
+              Quản lý đặt vé
+            </h1>
+            <p className="text-sm text-gray-400 mt-1">
+              Theo dõi và quản lý toàn bộ các giao dịch đặt vé xem phim
+            </p>
+          </div>
+
+          <Space size="middle">
+            <Button
+              icon={<FilterOutlined />}
+              onClick={() => setIsFilterVisible(!isFilterVisible)}
+              type={isFilterVisible ? 'primary' : 'default'}
+              className={isFilterVisible ? 'bg-red-600 border-red-600' : 'bg-[#1E2738] text-gray-200 border-white/10 hover:bg-white/10'}
             >
-              <ExportOutlined /> Export CSV
+              Bộ lọc {activeFiltersCount > 0 && <Tag color="red" className="ml-1">{activeFiltersCount}</Tag>}
+            </Button>
+            <Button 
+              icon={<ExportOutlined />} 
+              onClick={() => handleExport('excel')}
+              className="bg-[#1E2738] text-gray-200 border-white/10 hover:bg-white/10"
+            >
+              Xuất Excel
+            </Button>
+            <CSVLink
+              data={handleExportCSV()}
+              filename={`bookings-${moment().format('DD-MM-YYYY')}.csv`}
+              className="ant-btn bg-[#1E2738] text-gray-200 border border-white/10 hover:bg-white/10 inline-flex items-center"
+            >
+              <ExportOutlined className="mr-1" /> Xuất CSV
             </CSVLink>
           </Space>
         </div>
-        
-        {/* Add a debug message to confirm if condition is being evaluated */}
-        <div style={{ marginBottom: '10px' }}>
-          {console.log("Rendering filter panel, isFilterVisible =", isFilterVisible)}
-          {isFilterVisible ? "Filter panel should be visible" : "Filter panel is hidden"}
-        </div>
-        
+
         {isFilterVisible && (
-          <Card style={{ marginBottom: '16px', backgroundColor: 'rgba(240, 240, 240, 0.5)' }}>
+          <Card 
+            className="border border-white/10 rounded-2xl shadow-xl text-white" 
+            style={{ backgroundColor: '#161D2F', borderColor: 'rgba(255,255,255,0.1)' }}
+          >
             <div style={{ marginBottom: '16px' }}>
               <Row gutter={[16, 16]}>
                 <Col span={8}>
-                  <div style={{ marginBottom: '8px' }}>
-                    <strong>Booking ID:</strong>
+                  <div style={{ marginBottom: '8px', color: '#9CA3AF' }}>
+                    <strong className="text-gray-300">Mã đặt vé (Booking ID):</strong>
                   </div>
-                  <Input 
-                    placeholder="Enter Booking ID" 
-                    value={bookingIdFilter} 
+                  <Input
+                    placeholder="Nhập mã đặt vé"
+                    value={bookingIdFilter}
                     onChange={(e) => setBookingIdFilter(e.target.value)}
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', backgroundColor: '#1E2738', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
                   />
                 </Col>
                 <Col span={16}>
-                  <div style={{ marginBottom: '8px' }}>
-                    <strong>Date Range:</strong>
+                  <div style={{ marginBottom: '8px', color: '#9CA3AF' }}>
+                    <strong className="text-gray-300">Khoảng thời gian:</strong>
                   </div>
-                  <RangePicker 
+                  <RangePicker
                     value={dateRange}
                     onChange={(dates) => setDateRange(dates)}
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', backgroundColor: '#1E2738', borderColor: 'rgba(255,255,255,0.1)' }}
                   />
                 </Col>
               </Row>
             </div>
-            
-            <Divider orientation="left">Movies</Divider>
+
+            <Divider orientation="left" style={{ borderColor: 'rgba(255,255,255,0.1)', color: '#E5E7EB' }}>Phim</Divider>
             <div style={{ marginBottom: '16px' }}>
               {movies.map(movie => (
                 <CheckableTag
                   key={movie.movie_ID}
                   checked={selectedMovies.includes(movie.movie_ID)}
                   onChange={(checked) => handleMovieChange(movie.movie_ID, checked)}
-                  style={{ marginBottom: '8px', fontSize: '14px' }}
+                  style={{ marginBottom: '8px', fontSize: '13px' }}
                 >
                   {movie.movie_Name}
                 </CheckableTag>
               ))}
             </div>
-            
-            <Divider orientation="left">Rooms</Divider>
+
+            <Divider orientation="left" style={{ borderColor: 'rgba(255,255,255,0.1)', color: '#E5E7EB' }}>Phòng chiếu</Divider>
             <div style={{ marginBottom: '16px' }}>
               {rooms.map(room => (
                 <CheckableTag
                   key={room.cinema_Room_ID}
                   checked={selectedRooms.includes(room.cinema_Room_ID)}
                   onChange={(checked) => handleRoomChange(room.cinema_Room_ID, checked)}
-                  style={{ marginBottom: '8px', fontSize: '14px' }}
+                  style={{ marginBottom: '8px', fontSize: '13px' }}
                 >
                   {room.room_Name}
                 </CheckableTag>
               ))}
             </div>
-            
-            <Divider orientation="left">Status</Divider>
+
+            <Divider orientation="left" style={{ borderColor: 'rgba(255,255,255,0.1)', color: '#E5E7EB' }}>Trạng thái</Divider>
             <div style={{ marginBottom: '16px' }}>
               {statusOptions.map(status => (
                 <CheckableTag
                   key={status.value}
                   checked={selectedStatuses.includes(status.value)}
                   onChange={(checked) => handleStatusChange(status.value, checked)}
-                  style={{ marginBottom: '8px', fontSize: '14px' }}
+                  style={{ marginBottom: '8px', fontSize: '13px' }}
                 >
                   <Tag color={status.color} style={{ marginRight: 0 }}>{status.value}</Tag>
                 </CheckableTag>
               ))}
             </div>
-            
-            <Divider orientation="left">Payment Method</Divider>
+
+            <Divider orientation="left" style={{ borderColor: 'rgba(255,255,255,0.1)', color: '#E5E7EB' }}>Phương thức thanh toán</Divider>
             <div style={{ marginBottom: '16px' }}>
               {paymentMethodOptions.map(method => (
                 <CheckableTag
                   key={method.value}
                   checked={selectedPaymentMethods.includes(method.value)}
                   onChange={(checked) => handlePaymentMethodChange(method.value, checked)}
-                  style={{ marginBottom: '8px', fontSize: '14px' }}
+                  style={{ marginBottom: '8px', fontSize: '13px' }}
                 >
                   <Tag color={method.color} style={{ marginRight: 0 }}>{method.value}</Tag>
                 </CheckableTag>
               ))}
             </div>
-            
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
               <Space>
-                <Button icon={<ClearOutlined />} onClick={handleClearFilters}>
-                  Clear Filters
+                <Button icon={<ClearOutlined />} onClick={handleClearFilters} className="bg-white/5 border-white/10 text-gray-300">
+                  Đặt lại bộ lọc
                 </Button>
-                <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
-                  Apply Filters
+                <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch} className="bg-red-600 hover:bg-red-700 border-none">
+                  Áp dụng
                 </Button>
               </Space>
             </div>
@@ -664,14 +674,16 @@ useEffect(() => {
           </div>
         )}
         
-        <Table
-          columns={columns}
-          dataSource={bookings}
-          rowKey="booking_ID"
-          loading={loading}
-          pagination={{ pageSize: 10 }}
-        />
-      </Card>
+        <div className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl p-6 overflow-hidden">
+          <Table
+            columns={columns}
+            dataSource={bookings}
+            rowKey="booking_ID"
+            loading={loading}
+            pagination={{ pageSize: 10 }}
+          />
+        </div>
+      </div>
 
       <Modal
         title="Booking Details"

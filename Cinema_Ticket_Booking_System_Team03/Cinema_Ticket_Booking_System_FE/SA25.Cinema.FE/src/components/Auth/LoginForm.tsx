@@ -166,11 +166,55 @@ const LoginForm: React.FC = () => {
 
       {/* Quick Test Accounts Tooltip */}
       <div className="mb-6 bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-gray-300">
-        <div className="font-semibold text-amber-400 mb-1">🔑 Tài khoản test nhanh:</div>
-        <div className="grid grid-cols-1 gap-1 text-[11px] text-gray-400">
-          <div><span className="text-white">Admin:</span> admin@cinema.com / Admin@123</div>
-          <div><span className="text-white">Staff:</span> staff@cinema.com / Staff@123</div>
-          <div><span className="text-white">Customer:</span> customer@cinema.com / Customer@123</div>
+        <div className="font-semibold text-amber-400 mb-2 flex items-center justify-between">
+          <span>🔑 Tài khoản test nhanh (nhấn để điền):</span>
+        </div>
+        <div className="grid grid-cols-1 gap-1.5 text-[11px]">
+          <button
+            type="button"
+            onClick={() => {
+              setFormData({ email: "admin@cinema.com", password: "Admin@123" });
+              setTouched({ email: true, password: true });
+              setErrors({});
+            }}
+            className="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-red-500/20 hover:border-red-500/40 border border-transparent transition text-left cursor-pointer"
+          >
+            <div>
+              <span className="font-semibold text-white">Admin:</span>{" "}
+              <span className="text-gray-400">admin@cinema.com / Admin@123</span>
+            </div>
+            <span className="text-[10px] uppercase font-bold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">Chọn</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setFormData({ email: "staff@cinema.com", password: "Staff@123" });
+              setTouched({ email: true, password: true });
+              setErrors({});
+            }}
+            className="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-blue-500/20 hover:border-blue-500/40 border border-transparent transition text-left cursor-pointer"
+          >
+            <div>
+              <span className="font-semibold text-white">Staff:</span>{" "}
+              <span className="text-gray-400">staff@cinema.com / Staff@123</span>
+            </div>
+            <span className="text-[10px] uppercase font-bold text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">Chọn</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setFormData({ email: "customer@cinema.com", password: "User@123" });
+              setTouched({ email: true, password: true });
+              setErrors({});
+            }}
+            className="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-emerald-500/20 hover:border-emerald-500/40 border border-transparent transition text-left cursor-pointer"
+          >
+            <div>
+              <span className="font-semibold text-white">Customer:</span>{" "}
+              <span className="text-gray-400">customer@cinema.com / User@123</span>
+            </div>
+            <span className="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Chọn</span>
+          </button>
         </div>
       </div>
 

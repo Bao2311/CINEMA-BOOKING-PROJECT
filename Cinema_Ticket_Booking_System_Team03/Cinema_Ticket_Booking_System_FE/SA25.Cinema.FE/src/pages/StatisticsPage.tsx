@@ -57,24 +57,24 @@ const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
-// Enhanced color palette
+// Enhanced color palette matching dark cinema theme
 const colors = {
-  primary: "#2a6ac9", // Richer blue
-  secondary: "#5a8dee", // Lighter blue
-  success: "#28c76f", // Vibrant green
-  danger: "#ea5455", // Bright red
-  warning: "#ff9f43", // Warm orange
-  purple: "#7367f0", // Bright purple
-  pink: "#f66d9b", // Soft pink
-  teal: "#00cfe8", // Teal accent
-  dark: "#1e2830", // Near black
-  light: "#f8f8f8", // Off-white
-  background: "#f8fbff", // Light blue background
-  cardBg: "#ffffff", // Card background
-  border: "#e8e8e8", // Subtle border
-  text: "#4a4a4a", // Dark text
-  textLight: "#8a8a8a", // Light text
-  hoverShadow: "0 8px 25px rgba(42, 106, 201, 0.15)", // Enhanced shadow
+  primary: "#E50914", // Cinema red
+  secondary: "#DC2626", // Lighter red
+  success: "#10B981", // Vibrant green
+  danger: "#EF4444", // Bright red
+  warning: "#F59E0B", // Warm orange/gold
+  purple: "#8B5CF6", // Bright purple
+  pink: "#EC4899", // Soft pink
+  teal: "#06B6D4", // Teal accent
+  dark: "#0B0F19", // Deep dark
+  light: "#1E2738", // Elevated surface
+  background: "#0B0F19", // Main cinema background
+  cardBg: "#161D2F", // Glass card background
+  border: "rgba(255, 255, 255, 0.1)", // Glass border
+  text: "#FFFFFF", // Crisp white text
+  textLight: "#9CA3AF", // Light gray text
+  hoverShadow: "0 10px 30px rgba(0, 0, 0, 0.5)", // Enhanced shadow
 };
 
 // Chart gradient helpers
@@ -1137,20 +1137,19 @@ const StatisticsPage = () => {
 
   // Enhanced modern styling for components
   const pageStyle = {
-    padding: "40px",
+    padding: "10px",
     maxWidth: "1400px",
-    margin: "80px auto",
-    backgroundColor: colors.background,
+    margin: "0 auto",
+    backgroundColor: "transparent",
     borderRadius: "16px",
-    boxShadow: "0 8px 30px rgba(0, 0, 0, 0.05)",
   };
 
   const titleStyle = {
     textAlign: "center",
     marginBottom: "30px",
-    color: colors.dark,
-    fontFamily: "'Roboto', 'Segoe UI', sans-serif",
-    fontWeight: 600,
+    color: "#FFFFFF",
+    fontFamily: "'Inter', system-ui, sans-serif",
+    fontWeight: 700,
     position: "relative",
     display: "inline-block",
     left: "50%",
@@ -1158,19 +1157,21 @@ const StatisticsPage = () => {
   };
 
   const formStyle = {
-    marginBottom: "40px",
-    padding: "20px",
-    backgroundColor: colors.cardBg,
-    borderRadius: "12px",
-    boxShadow: "0 4px 15px rgba(0, 0, 0, 0.05)",
+    marginBottom: "32px",
+    padding: "24px",
+    backgroundColor: "#161D2F",
+    borderRadius: "16px",
+    border: "1px solid rgba(255, 255, 255, 0.1)",
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.4)",
   };
 
   // Card styles with modern design
   const summaryCardStyle = {
     textAlign: "center",
-    borderRadius: "12px",
-    border: "none",
-    boxShadow: "0 6px 18px rgba(0, 0, 0, 0.06)",
+    borderRadius: "16px",
+    border: "1px solid rgba(255, 255, 255, 0.1)",
+    backgroundColor: "#161D2F",
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.4)",
     overflow: "hidden",
     transition: "transform 0.3s, box-shadow 0.3s",
     height: "100%",
@@ -1182,10 +1183,10 @@ const StatisticsPage = () => {
   };
 
   const chartCardStyle = {
-    borderRadius: "12px",
-    border: "none",
-    boxShadow: "0 6px 18px rgba(0, 0, 0, 0.06)",
-    backgroundColor: colors.cardBg,
+    borderRadius: "16px",
+    border: "1px solid rgba(255, 255, 255, 0.1)",
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.4)",
+    backgroundColor: "#161D2F",
     marginBottom: "20px",
     overflow: "hidden",
     height: "100%",
@@ -1203,28 +1204,24 @@ const StatisticsPage = () => {
 
   // Custom button styles for a modern look
   const primaryButtonStyle = {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: "#E50914",
+    borderColor: "#E50914",
     borderRadius: "8px",
-    fontWeight: 500,
+    fontWeight: 600,
     height: "40px",
     paddingLeft: "16px",
     paddingRight: "16px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0 4px 10px rgba(42, 106, 201, 0.15)",
+    color: "#FFFFFF",
+    boxShadow: "0 4px 14px rgba(229, 9, 20, 0.4)",
     transition: "all 0.3s",
-    ":hover": {
-      backgroundColor: colors.secondary,
-      borderColor: colors.secondary,
-      transform: "translateY(-2px)",
-      boxShadow: "0 6px 15px rgba(42, 106, 201, 0.25)",
-    },
   };
 
   return (
-    <div style={pageStyle}>
+    <div className="min-h-screen bg-[#0B0F19] text-white py-6 px-4 sm:px-6 lg:px-8">
+      <div style={pageStyle}>
       <div style={{ position: "relative", textAlign: "center" }}>
         <Title
           level={2}
@@ -1858,8 +1855,9 @@ const StatisticsPage = () => {
     
           <ToastContainer position="top-right" autoClose={5000} />
         </div>
-      );
-    };
+      </div>
+    );
+  };
     
     export default StatisticsPage;
 

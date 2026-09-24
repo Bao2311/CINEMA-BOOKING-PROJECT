@@ -1067,7 +1067,8 @@ useEffect(() => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 bg-gray-50 min-h-screen">
+    <div className="min-h-screen bg-[#0B0F19] text-white py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
       
       <motion.div 
@@ -1078,20 +1079,20 @@ useEffect(() => {
       >
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2 flex items-center">
-              <FaRegCalendarCheck className="mr-3 text-blue-600" />
+            <h1 className="text-3xl font-bold text-white mb-2 flex items-center">
+              <FaRegCalendarCheck className="mr-3 text-red-500" />
               Quản lý lịch chiếu
             </h1>
-            <p className="text-gray-600">Tạo và quản lý lịch chiếu phim cho rạp của bạn</p>
+            <p className="text-gray-400">Tạo và quản lý lịch chiếu phim cho rạp của bạn</p>
           </div>
           
           <div className="flex flex-wrap gap-3">
   <button 
     onClick={toggleCreateForm} 
-    className={`px-4 py-2.5 rounded-full flex items-center font-medium transition-all shadow-sm ${
+    className={`px-4 py-2.5 rounded-xl flex items-center font-medium transition-all shadow-md cursor-pointer ${
       showCreateForm 
-        ? 'bg-red-100 text-red-600 hover:bg-red-200' 
-        : 'bg-blue-600 text-white hover:bg-blue-700'
+        ? 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30' 
+        : 'bg-red-600 text-white hover:bg-red-700'
     }`}
   >
     {showCreateForm ? (
@@ -1117,10 +1118,10 @@ useEffect(() => {
   
   <button 
     onClick={toggleFilters} 
-    className={`px-4 py-2.5 rounded-full flex items-center font-medium transition-all shadow-sm ${
+    className={`px-4 py-2.5 rounded-xl flex items-center font-medium transition-all border border-white/10 cursor-pointer ${
       showFilters 
-        ? 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200' 
-        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+        ? 'bg-white/20 text-white' 
+        : 'bg-[#1E2738] text-gray-300 hover:bg-white/10'
     }`}
   >
     <FaFilter className="mr-2" />
@@ -1129,7 +1130,7 @@ useEffect(() => {
   
   <button 
     onClick={handleRefresh} 
-    className="px-4 py-2.5 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition-all flex items-center font-medium shadow-sm"
+    className="px-4 py-2.5 bg-[#1E2738] text-gray-300 border border-white/10 rounded-xl hover:bg-white/10 transition-all flex items-center font-medium cursor-pointer"
     disabled={refreshing}
   >
     <FaSync className={`mr-2 ${refreshing ? 'animate-spin' : ''}`} />
@@ -2164,15 +2165,15 @@ useEffect(() => {
           )}
         </AnimatePresence>
 
-        {/* Tabs for filtering - Sửa lỗi filter ngày hoạt động */}
+        {/* Tabs for filtering */}
         <div className="mb-6 overflow-x-auto">
           <div className="flex space-x-2 min-w-max">
             <button 
               onClick={() => handleFilterTab('all')}
-              className={`px-4 py-2 rounded-full transition-all ${
+              className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
                 activeFilterTab === 'all' 
-                  ? 'bg-blue-100 text-blue-700 font-medium' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-red-600 text-white font-semibold shadow-md' 
+                  : 'bg-[#161D2F] text-gray-300 border border-white/10 hover:bg-white/10'
               }`}
             >
               <div className="flex items-center">
@@ -2183,10 +2184,10 @@ useEffect(() => {
             
             <button 
               onClick={() => handleFilterTab('today')}
-              className={`px-4 py-2 rounded-full transition-all ${
+              className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
                 activeFilterTab === 'today' 
-                  ? 'bg-green-100 text-green-700 font-medium' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-emerald-600 text-white font-semibold shadow-md' 
+                  : 'bg-[#161D2F] text-gray-300 border border-white/10 hover:bg-white/10'
               }`}
             >
               <div className="flex items-center">
@@ -2197,10 +2198,10 @@ useEffect(() => {
             
             <button 
               onClick={() => handleFilterTab('tomorrow')}
-              className={`px-4 py-2 rounded-full transition-all ${
+              className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
                 activeFilterTab === 'tomorrow' 
-                  ? 'bg-yellow-100 text-yellow-700 font-medium' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-amber-600 text-white font-semibold shadow-md' 
+                  : 'bg-[#161D2F] text-gray-300 border border-white/10 hover:bg-white/10'
               }`}
             >
               <div className="flex items-center">
@@ -2211,10 +2212,10 @@ useEffect(() => {
             
             <button 
               onClick={() => handleFilterTab('thisWeek')}
-              className={`px-4 py-2 rounded-full transition-all ${
+              className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
                 activeFilterTab === 'thisWeek' 
-                  ? 'bg-purple-100 text-purple-700 font-medium' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-purple-600 text-white font-semibold shadow-md' 
+                  : 'bg-[#161D2F] text-gray-300 border border-white/10 hover:bg-white/10'
               }`}
             >
               <div className="flex items-center">
@@ -2225,10 +2226,10 @@ useEffect(() => {
             
             <button 
               onClick={() => handleFilterTab('active')}
-              className={`px-4 py-2 rounded-full transition-all ${
+              className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
                 activeFilterTab === 'active' 
-                  ? 'bg-teal-100 text-teal-700 font-medium' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-teal-600 text-white font-semibold shadow-md' 
+                  : 'bg-[#161D2F] text-gray-300 border border-white/10 hover:bg-white/10'
               }`}
             >
               <div className="flex items-center">
@@ -2239,10 +2240,10 @@ useEffect(() => {
             
             <button 
               onClick={() => handleFilterTab('scheduled')}
-              className={`px-4 py-2 rounded-full transition-all ${
+              className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
                 activeFilterTab === 'scheduled' 
-                  ? 'bg-indigo-100 text-indigo-700 font-medium' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-blue-600 text-white font-semibold shadow-md' 
+                  : 'bg-[#161D2F] text-gray-300 border border-white/10 hover:bg-white/10'
               }`}
             >
               <div className="flex items-center">
@@ -2254,13 +2255,13 @@ useEffect(() => {
         </div>
 
         {/* Main content - Showtimes List */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="p-6 border-b">
+        <div className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+          <div className="p-6 border-b border-white/10 bg-white/5">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-              <h3 className="text-xl font-semibold text-gray-800 mb-3 md:mb-0">
+              <h3 className="text-xl font-bold text-white mb-3 md:mb-0">
                 Danh sách lịch chiếu
                 {activeFilterTab !== 'all' && (
-                  <span className="ml-2 text-sm bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                  <span className="ml-2 text-xs bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-0.5 rounded-full font-semibold">
                     {activeFilterTab === 'today' && 'Hôm nay'}
                     {activeFilterTab === 'tomorrow' && 'Ngày mai'}
                     {activeFilterTab === 'thisWeek' && 'Tuần này'}
@@ -2277,7 +2278,7 @@ useEffect(() => {
                     placeholder="Tìm kiếm lịch chiếu..."
                     value={searchQuery}
                     onChange={handleSearch}
-                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors w-full md:w-64"
+                    className="pl-10 pr-4 py-2 bg-[#1E2738] border border-white/10 text-white rounded-xl placeholder-gray-500 focus:outline-none focus:border-red-500 transition-colors w-full md:w-64"
                   />
                   <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 </div>
@@ -2287,18 +2288,18 @@ useEffect(() => {
           
           {loading ? (
             <div className="p-10 text-center">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-              <p className="text-gray-600">Đang tải danh sách lịch chiếu...</p>
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500 mb-4"></div>
+              <p className="text-gray-400">Đang tải danh sách lịch chiếu...</p>
             </div>
           ) : filteredShowtimes.length === 0 ? (
-            <div className="p-10 text-center bg-gray-50">
-              <div className="inline-block bg-gray-100 p-5 rounded-full mb-4">
+            <div className="p-10 text-center bg-white/5">
+              <div className="inline-block bg-[#1E2738] p-5 rounded-full mb-4">
                 <FaCalendarTimes className="text-gray-400 text-4xl" />
               </div>
-              <p className="text-gray-600 mb-4">Không tìm thấy lịch chiếu nào.</p>
+              <p className="text-gray-400 mb-4">Không tìm thấy lịch chiếu nào.</p>
               <button 
                 onClick={toggleCreateForm} 
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm inline-flex items-center"
+                className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors shadow-sm inline-flex items-center cursor-pointer font-medium"
               >
                 <FaPlus className="mr-2" />
                 Tạo lịch chiếu mới
@@ -2306,82 +2307,82 @@ useEffect(() => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-white/10">
+                <thead className="bg-white/5">
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       Phim
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       Phòng
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       Ngày chiếu
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       Giờ chiếu
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       Trạng thái
                     </th>
-                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       Thao tác
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="divide-y divide-white/5">
                   {currentShowtimes.map((showtime) => (
-                    <tr key={showtime.showtime_ID} className="hover:bg-gray-50 transition-colors">
+                    <tr key={showtime.showtime_ID} className="hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           {showtime.movie_Poster ? (
                             <img 
                               src={showtime.movie_Poster} 
                               alt={showtime.movie_Title} 
-                              className="w-10 h-14 object-cover rounded mr-3"
+                              className="w-10 h-14 object-cover rounded-lg mr-3 border border-white/10"
                             />
                           ) : (
-                            <div className="w-10 h-14 bg-gray-200 rounded flex items-center justify-center mr-3">
+                            <div className="w-10 h-14 bg-[#1E2738] rounded-lg flex items-center justify-center mr-3 border border-white/10">
                               <FaFilm className="text-gray-400" />
                             </div>
                           )}
                           <div className="max-w-[180px]">
-                            <div className="text-sm font-medium text-gray-900 truncate">
+                            <div className="text-sm font-semibold text-white truncate">
                               {showtime.movie_Title || `Phim ID: ${showtime.movie_ID}`}
                             </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{showtime.room_Name || `Phòng ${showtime.cinema_Room_ID}`}</div>
+                        <div className="text-sm font-medium text-white">{showtime.room_Name || `Phòng ${showtime.cinema_Room_ID}`}</div>
                         <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${getRoomTypeColor(showtime.room_Type)}`}>
                           {showtime.room_Type || '2D'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{formatDate(showtime.show_Date)}</div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-sm text-gray-200">{formatDate(showtime.show_Date)}</div>
+                        <div className="text-xs text-gray-400">
                           {isToday(new Date(showtime.show_Date)) && (
-                            <span className="text-green-600 font-medium">Hôm nay</span>
+                            <span className="text-emerald-400 font-medium">Hôm nay</span>
                           )}
                           {isTomorrow(new Date(showtime.show_Date)) && (
-                            <span className="text-blue-600 font-medium">Ngày mai</span>
+                            <span className="text-blue-400 font-medium">Ngày mai</span>
                           )}
                           {isWeekend(new Date(showtime.show_Date)) && (
-                            <span className="text-red-600 font-medium ml-1">(Cuối tuần)</span>
+                            <span className="text-red-400 font-medium ml-1">(Cuối tuần)</span>
                           )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-white font-medium">
                           {showtime.start_Time} - {showtime.end_Time}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-gray-400">
                           {calculateDuration(showtime.start_Time, showtime.end_Time)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusColor(showtime.status)}`}>
+                        <span className={`inline-block px-2.5 py-1 text-xs rounded-full font-medium ${getStatusColor(showtime.status)}`}>
                           {showtime.status}
                         </span>
                       </td>
@@ -2389,21 +2390,21 @@ useEffect(() => {
                         <div className="flex justify-end space-x-2">
                           <button 
                             onClick={() => handleEditShowtime(showtime)}
-                            className="text-indigo-600 hover:text-indigo-900 p-1 rounded-full hover:bg-indigo-50"
+                            className="text-blue-400 hover:text-blue-300 p-2 rounded-lg hover:bg-white/10 transition cursor-pointer"
                             title="Chỉnh sửa"
                           >
                             <FaEdit />
                           </button>
                           <button 
                             onClick={() => handleViewShowtime(showtime)}
-                            className="text-blue-600 hover:text-blue-900 p-1 rounded-full hover:bg-blue-50"
+                            className="text-emerald-400 hover:text-emerald-300 p-2 rounded-lg hover:bg-white/10 transition cursor-pointer"
                             title="Xem chi tiết"
                           >
                             <FaEye />
                           </button>
                           <button 
                             onClick={() => handleDeleteShowtime(showtime.showtime_ID)}
-                            className="text-red-600 hover:text-red-900 p-1 rounded-full hover:bg-red-50"
+                            className="text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-white/10 transition cursor-pointer"
                             title="Xóa"
                           >
                             <FaTrash />
@@ -2417,19 +2418,19 @@ useEffect(() => {
             </div>
           )}
           
-          {/* Pagination - Sửa lỗi phân trang */}
-          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              Hiển thị {filteredShowtimes.length > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0} - {Math.min(currentPage * itemsPerPage, filteredShowtimes.length)} trên {filteredShowtimes.length} lịch chiếu
+          {/* Pagination */}
+          <div className="px-6 py-4 border-t border-white/10 bg-white/5 flex items-center justify-between">
+            <div className="text-sm text-gray-400">
+              Hiển thị <span className="font-semibold text-white">{filteredShowtimes.length > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0}</span> - <span className="font-semibold text-white">{Math.min(currentPage * itemsPerPage, filteredShowtimes.length)}</span> trên <span className="font-semibold text-white">{filteredShowtimes.length}</span> lịch chiếu
             </div>
-            <div className="flex space-x-1">
+            <div className="flex space-x-1.5">
               <button 
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className={`px-3 py-1 rounded ${
+                className={`p-2 rounded-lg border border-white/10 text-sm ${
                   currentPage === 1 
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-white/5 text-gray-600 cursor-not-allowed' 
+                    : 'bg-[#1E2738] text-gray-300 hover:bg-white/10 cursor-pointer'
                 }`}
               >
                 <FaChevronLeft size={14} />
@@ -2439,10 +2440,10 @@ useEffect(() => {
                 <button 
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1 rounded ${
+                  className={`px-3 py-1.5 rounded-lg border text-sm font-medium cursor-pointer ${
                     currentPage === page 
-                      ? 'bg-blue-600 text-white' 
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      ? 'bg-red-600 border-red-500 text-white font-bold' 
+                      : 'bg-[#1E2738] border-white/10 text-gray-300 hover:bg-white/10'
                   }`}
                 >
                   {page}
@@ -2452,10 +2453,10 @@ useEffect(() => {
               <button 
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages || totalPages === 0}
-                className={`px-3 py-1 rounded ${
+                className={`p-2 rounded-lg border border-white/10 text-sm ${
                   currentPage === totalPages || totalPages === 0
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-white/5 text-gray-600 cursor-not-allowed' 
+                    : 'bg-[#1E2738] text-gray-300 hover:bg-white/10 cursor-pointer'
                 }`}
               >
                 <FaChevronRight size={14} />
@@ -2696,6 +2697,7 @@ useEffect(() => {
 
     {/* Inject tooltip styles */}
     <style dangerouslySetInnerHTML={{ __html: tooltipStyles }} />
+    </div>
   </div>
 );
 };

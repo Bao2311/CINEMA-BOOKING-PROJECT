@@ -364,16 +364,14 @@ const EnhancedDatePicker: React.FC<{
       placeholderText={placeholder}
       minDate={minDate}
       required={required}
-      className={`w-full border ${
-        error ? "border-red-500" : "border-gray-300"
-      } rounded-lg py-2 pl-10 pr-3 focus:outline-none focus:ring-2 ${
-        error ? "focus:ring-red-500" : "focus:ring-indigo-500"
-      }`}
+      className={`w-full bg-[#1E2738] text-white border ${
+        error ? "border-red-500" : "border-white/10"
+      } rounded-xl py-2.5 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-500 text-sm`}
     />
     <div className="absolute left-0 top-0 bottom-0 w-10 flex items-center justify-center pointer-events-none">
       <FaCalendarDay className={error ? "text-red-400" : "text-gray-400"} />
     </div>
-    {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+    {error && <p className="mt-1 text-sm text-red-400">{error}</p>}
   </div>
 );
 
@@ -476,32 +474,32 @@ const PromotionRow: React.FC<{
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className="hover:bg-gray-50"
+      className="hover:bg-white/5 transition-colors"
     >
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-sm font-medium text-gray-900 flex items-center">
+        <div className="text-sm font-medium text-white flex items-center">
           {promotion.name}
         </div>
-        <div className="text-sm text-gray-500 font-mono mt-1">
+        <div className="text-sm text-gray-400 font-mono mt-1">
           {promotion.code}
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center">
           {promotion.discountType === "Percentage" ? (
-            <div className="flex items-center text-sm text-gray-900">
-              <span className="font-medium">{promotion.discountValue}%</span>
+            <div className="flex items-center text-sm text-white">
+              <span className="font-semibold text-red-400">{promotion.discountValue}%</span>
               {promotion.maxDiscount ? (
-                <span className="text-gray-500 ml-1.5">
+                <span className="text-gray-400 ml-1.5 text-xs">
                   (tối đa {formatNumberWithDots(promotion.maxDiscount)}đ)
                 </span>
               ) : null}
             </div>
           ) : (
-            <div className="text-sm font-medium text-gray-900">
-              {formatNumberWithDots(promotion.discountValue)}đ
+            <div className="text-sm font-medium text-white">
+              <span className="font-semibold text-red-400">{formatNumberWithDots(promotion.discountValue)}đ</span>
               {promotion.maxDiscount ? (
-                <span className="text-gray-500 ml-1.5">
+                <span className="text-gray-400 ml-1.5 text-xs">
                   (tối đa {formatNumberWithDots(promotion.maxDiscount)}đ/lần)
                 </span>
               ) : null}
@@ -509,22 +507,22 @@ const PromotionRow: React.FC<{
           )}
         </div>
         <div className="mt-1 flex flex-wrap gap-2">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm bg-gray-100 text-gray-800">
-            <FaTicketAlt className="mr-1.5" size={12} />
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs bg-white/10 text-gray-300 border border-white/10">
+            <FaTicketAlt className="mr-1.5 text-red-400" size={10} />
             Vé
           </span>
         </div>
       </td>
 
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-sm text-gray-900">
+        <div className="text-sm text-white font-medium">
           {formatDate(promotion.startDate)}
         </div>
-        <div className="text-sm text-gray-500 mt-1">
+        <div className="text-xs text-gray-400 mt-1">
           đến {formatDate(promotion.endDate)}
         </div>
         {isExpiringSoon() && (
-          <div className="mt-1.5 flex items-center text-xs text-amber-600">
+          <div className="mt-1.5 flex items-center text-xs text-amber-400">
             <FaExclamationTriangle className="mr-1" size={10} />
             Sắp hết hạn
           </div>
@@ -532,23 +530,23 @@ const PromotionRow: React.FC<{
       </td>
       <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge()}</td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-sm text-gray-900">
+        <div className="text-sm text-white font-medium">
           {promotion.usageCount}
           {promotion.usageLimit ? `/${promotion.usageLimit}` : ""}
         </div>
         {isNearUsageLimit() && (
-          <div className="mt-1.5 flex items-center text-xs text-amber-600">
+          <div className="mt-1.5 flex items-center text-xs text-amber-400">
             <FaExclamationTriangle className="mr-1" size={10} />
             Đã đạt giới hạn
           </div>
         )}
         {promotion.usageLimit && (
-          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1.5">
+          <div className="w-full bg-white/10 rounded-full h-1.5 mt-1.5">
             <div
               className={`h-1.5 rounded-full ${
                 promotion.usageCount / promotion.usageLimit > 0.9
                   ? "bg-red-500"
-                  : "bg-indigo-500"
+                  : "bg-red-600"
               }`}
               style={{
                 width: `${Math.min(
@@ -577,7 +575,7 @@ const PromotionRow: React.FC<{
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.1 }}
-              className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"
+              className="origin-top-right absolute right-0 mt-2 w-48 rounded-xl shadow-2xl bg-[#1E2738] border border-white/10 z-10 overflow-hidden"
             >
               <div className="py-1">
                 <button
@@ -585,7 +583,7 @@ const PromotionRow: React.FC<{
                     onView();
                     setShowActions(false);
                   }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                  className="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-white/10 flex items-center transition-colors"
                 >
                   <FaInfoCircle className="mr-3 text-gray-400" />
                   Xem chi tiết
@@ -596,9 +594,9 @@ const PromotionRow: React.FC<{
                       onEdit();
                       setShowActions(false);
                     }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-white/10 flex items-center transition-colors"
                   >
-                    <FaEdit className="mr-3 text-gray-400" />
+                    <FaEdit className="mr-3 text-amber-400" />
                     Chỉnh sửa
                   </button>
                 )}
@@ -607,9 +605,9 @@ const PromotionRow: React.FC<{
                     onDelete();
                     setShowActions(false);
                   }}
-                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+                  className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 flex items-center transition-colors"
                 >
-                  <FaTrash className="mr-3 text-red-500" />
+                  <FaTrash className="mr-3 text-red-400" />
                   {promotion.usageCount > 0 ? "Vô hiệu hóa" : "Xóa"}
                 </button>
               </div>
@@ -628,43 +626,43 @@ const PromotionsList: React.FC<{
   onView: (promotion: Promotion) => void;
   onExtend: (promotion: Promotion) => void;
 }> = ({ promotions, onEdit, onDelete, onView, onExtend }) => (
-  <div className="mt-6 bg-white rounded-lg shadow overflow-hidden">
+  <div className="mt-6 bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl overflow-hidden">
     {promotions.length === 0 ? (
-      <div className="p-8 text-center">
-        <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+      <div className="p-12 text-center">
+        <div className="mx-auto w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
           <FaTicketAlt className="text-gray-400" size={24} />
         </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-1">
+        <h3 className="text-lg font-semibold text-white mb-1">
           Không có khuyến mãi nào
         </h3>
-        <p className="text-gray-500">Hãy thêm khuyến mãi mới để bắt đầu.</p>
+        <p className="text-gray-400">Hãy thêm khuyến mãi mới để bắt đầu.</p>
       </div>
     ) : (
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-white/10">
+          <thead className="bg-white/5 text-gray-300">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
                 Tên & Mã
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
                 Giảm giá
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
                 Thời gian
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
                 Trạng thái
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
                 Sử dụng
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">
                 Thao tác
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-white/5 bg-[#161D2F]">
             {promotions.map((promotion) => (
               <PromotionRow
                 key={promotion.id}
@@ -708,8 +706,8 @@ const PromotionsFilter: React.FC<{
   };
 
   return (
-    <div className="mt-6 bg-white rounded-lg shadow p-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0">
+    <div className="mt-6 bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl p-6 text-white">
+      <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0 gap-4">
         <div className="w-full md:w-2/5 relative">
           <input
             type="text"
@@ -718,7 +716,7 @@ const PromotionsFilter: React.FC<{
             onChange={(e) =>
               setFilters((prev) => ({ ...prev, searchTerm: e.target.value }))
             }
-            className="w-full border border-gray-300 rounded-lg py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full bg-[#1E2738] border border-white/10 text-white placeholder-gray-500 rounded-xl py-2.5 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
           />
           <div className="absolute left-0 top-0 bottom-0 w-10 flex items-center justify-center pointer-events-none">
             <FaSearch className="text-gray-400" />
@@ -734,10 +732,10 @@ const PromotionsFilter: React.FC<{
                   statusFilter: e.target.value,
                 }))
               }
-              className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full bg-[#1E2738] border border-white/10 text-white rounded-xl py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
             >
               {statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
+                <option key={option.value} value={option.value} className="bg-[#1E2738] text-white">
                   {option.label}
                 </option>
               ))}
@@ -745,7 +743,7 @@ const PromotionsFilter: React.FC<{
           </div>
           <button
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            className="flex items-center text-sm text-indigo-600 hover:text-indigo-800"
+            className="flex items-center text-sm text-red-400 hover:text-red-300 transition-colors font-medium"
           >
             <FaFilter className="mr-1.5" />
             Bộ lọc{" "}
@@ -757,7 +755,7 @@ const PromotionsFilter: React.FC<{
           </button>
           <button
             onClick={resetFilters}
-            className="text-sm text-gray-600 hover:text-gray-800 flex items-center"
+            className="text-sm text-gray-400 hover:text-white flex items-center transition-colors"
           >
             <FaUndo className="mr-1.5" size={12} />
             Đặt lại
@@ -773,20 +771,20 @@ const PromotionsFilter: React.FC<{
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="mt-6 pt-6 border-t border-white/10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Loại khuyến mãi
                 </label>
-                <div className="flex space-x-4">
+                <div className="flex space-x-3">
                   {promotionTypes.map((type) => (
                     <div
                       key={type.id}
                       onClick={() => handlePromotionTypeToggle(type.id)}
-                      className={`px-3 py-2 rounded-lg text-sm cursor-pointer ${
+                      className={`px-3 py-2 rounded-xl text-sm cursor-pointer transition-colors border ${
                         filters.promotionType.includes(type.id)
-                          ? "bg-indigo-100 text-indigo-700 border-indigo-300"
-                          : "hover:bg-indigo-50 hover:border-indigo-200 border-gray-300 text-gray-700"
+                          ? "bg-red-500/20 text-red-300 border-red-500/40"
+                          : "bg-[#1E2738] border-white/10 text-gray-300 hover:bg-white/10"
                       }`}
                     >
                       <span className="mr-2">{type.icon}</span>
@@ -796,7 +794,7 @@ const PromotionsFilter: React.FC<{
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Khoảng thời gian
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -818,7 +816,7 @@ const PromotionsFilter: React.FC<{
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Lọc thêm
                 </label>
                 <div className="space-y-3">
@@ -2112,153 +2110,157 @@ const PromotionsManagement: React.FC = () => {
   );
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="flex flex-col md:flex-row md:items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Quản lý khuyến mãi
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Tạo và quản lý các mã giảm giá, khuyến mãi cho khách hàng
-          </p>
-        </div>
-        <div className="mt-4 md:mt-0">
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-indigo-600 rounded-md text-white flex items-center hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-          >
-            <FaPlus className="mr-2" /> Thêm khuyến mãi
-          </button>
-        </div>
-      </div>
-
-      <PromotionsFilter
-        filters={filters}
-        setFilters={setFilters}
-        resetFilters={resetFilters}
-      />
-
-      {loading ? (
-        <div className="mt-6 bg-white rounded-lg shadow p-8 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Đang tải danh sách khuyến mãi...</p>
-        </div>
-      ) : error ? (
-        <div className="mt-6 bg-white rounded-lg shadow p-8 text-center">
-          <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-            <FaExclamationTriangle className="text-red-500" size={24} />
+    <div className="min-h-screen bg-[#0B0F19] text-white py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-white/10 gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+              <span className="p-2.5 rounded-xl bg-red-600/10 text-red-500 border border-red-500/20">
+                <FaTag className="text-xl" />
+              </span>
+              Quản lý khuyến mãi
+            </h1>
+            <p className="mt-1 text-sm text-gray-400">
+              Tạo và quản lý các mã giảm giá, khuyến mãi cho khách hàng
+            </p>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-1">
-            Đã xảy ra lỗi
-          </h3>
-          <p className="text-gray-500">{error}</p>
-          <button
-            onClick={fetchPromotions}
-            className="mt-4 px-4 py-2 bg-indigo-600 rounded-md text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            Thử lại
-          </button>
+          <div>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2.5 bg-red-600 hover:bg-red-700 rounded-xl text-white flex items-center transition-colors font-medium shadow-lg shadow-red-600/30"
+            >
+              <FaPlus className="mr-2" /> Thêm khuyến mãi
+            </button>
+          </div>
         </div>
-      ) : (
-        <>
-          <PromotionsList
-            promotions={paginatedPromotions}
-            onEdit={(promotion) => {
-              setSelectedPromotion(promotion);
-              setShowEditModal(true);
-            }}
-            onDelete={(promotion) => {
-              setSelectedPromotion(promotion);
-              setShowDeleteModal(true);
-            }}
-            onView={(promotion) => {
-              setSelectedPromotion(promotion);
-              setShowViewModal(true);
-            }}
-            onExtend={(promotion) => {
-              setSelectedPromotion(promotion);
-              setShowExtendModal(true);
-            }}
-          />
 
-          {totalPages > 1 && (
-            <div className="mt-6 flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                Hiển thị{" "}
-                <span className="font-medium">
-                  {Math.min(
-                    1 + (currentPage - 1) * itemsPerPage,
-                    filteredPromotions.length
-                  )}
-                </span>{" "}
-                đến{" "}
-                <span className="font-medium">
-                  {Math.min(
-                    currentPage * itemsPerPage,
-                    filteredPromotions.length
-                  )}
-                </span>{" "}
-                trong tổng số{" "}
-                <span className="font-medium">{filteredPromotions.length}</span>{" "}
-                khuyến mãi
-              </div>
-              <div className="flex space-x-1">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className={`px-3 py-1 rounded-md ${
-                    currentPage === 1
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white text-gray-700 hover:bg-gray-50"
-                  }`}
-                >
-                  <FaChevronLeft size={14} />
-                </button>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  // Logic to show pages around current page
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
+        <PromotionsFilter
+          filters={filters}
+          setFilters={setFilters}
+          resetFilters={resetFilters}
+        />
 
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={`px-3 py-1 rounded-md ${
-                        currentPage === pageNum
-                          ? "bg-indigo-600 text-white"
-                          : "bg-white text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-                <button
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }
-                  disabled={currentPage === totalPages}
-                  className={`px-3 py-1 rounded-md ${
-                    currentPage === totalPages
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white text-gray-700 hover:bg-gray-50"
-                  }`}
-                >
-                  <FaChevronRight size={14} />
-                </button>
-              </div>
+        {loading ? (
+          <div className="mt-6 bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500 mx-auto"></div>
+            <p className="mt-4 text-gray-400">Đang tải danh sách khuyến mãi...</p>
+          </div>
+        ) : error ? (
+          <div className="mt-6 bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl p-12 text-center">
+            <div className="mx-auto w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+              <FaExclamationTriangle className="text-red-500" size={24} />
             </div>
-          )}
-        </>
-      )}
+            <h3 className="text-lg font-semibold text-white mb-1">
+              Đã xảy ra lỗi
+            </h3>
+            <p className="text-gray-400">{error}</p>
+            <button
+              onClick={fetchPromotions}
+              className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-xl text-white transition-colors"
+            >
+              Thử lại
+            </button>
+          </div>
+        ) : (
+          <>
+            <PromotionsList
+              promotions={paginatedPromotions}
+              onEdit={(promotion) => {
+                setSelectedPromotion(promotion);
+                setShowEditModal(true);
+              }}
+              onDelete={(promotion) => {
+                setSelectedPromotion(promotion);
+                setShowDeleteModal(true);
+              }}
+              onView={(promotion) => {
+                setSelectedPromotion(promotion);
+                setShowViewModal(true);
+              }}
+              onExtend={(promotion) => {
+                setSelectedPromotion(promotion);
+                setShowExtendModal(true);
+              }}
+            />
+
+            {totalPages > 1 && (
+              <div className="mt-6 flex items-center justify-between">
+                <div className="text-sm text-gray-400">
+                  Hiển thị{" "}
+                  <span className="font-semibold text-white">
+                    {Math.min(
+                      1 + (currentPage - 1) * itemsPerPage,
+                      filteredPromotions.length
+                    )}
+                  </span>{" "}
+                  đến{" "}
+                  <span className="font-semibold text-white">
+                    {Math.min(
+                      currentPage * itemsPerPage,
+                      filteredPromotions.length
+                    )}
+                  </span>{" "}
+                  trong tổng số{" "}
+                  <span className="font-semibold text-white">{filteredPromotions.length}</span>{" "}
+                  khuyến mãi
+                </div>
+                <div className="flex space-x-1">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className={`px-3 py-1.5 rounded-xl border border-white/10 text-sm transition-colors ${
+                      currentPage === 1
+                        ? "bg-white/5 text-gray-500 cursor-not-allowed"
+                        : "bg-[#1E2738] text-gray-300 hover:bg-white/10"
+                    }`}
+                  >
+                    <FaChevronLeft size={12} />
+                  </button>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-3.5 py-1.5 rounded-xl text-sm font-medium transition-colors ${
+                          currentPage === pageNum
+                            ? "bg-red-600 text-white"
+                            : "bg-[#1E2738] border border-white/10 text-gray-300 hover:bg-white/10"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  <button
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }
+                    disabled={currentPage === totalPages}
+                    className={`px-3 py-1.5 rounded-xl border border-white/10 text-sm transition-colors ${
+                      currentPage === totalPages
+                        ? "bg-white/5 text-gray-500 cursor-not-allowed"
+                        : "bg-[#1E2738] text-gray-300 hover:bg-white/10"
+                    }`}
+                  >
+                    <FaChevronRight size={12} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       <AnimatePresence>
         {showAddModal && (

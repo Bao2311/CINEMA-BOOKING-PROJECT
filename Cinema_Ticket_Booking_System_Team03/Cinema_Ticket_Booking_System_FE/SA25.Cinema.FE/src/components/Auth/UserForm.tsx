@@ -121,21 +121,21 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel, disableRo
           {/* Left column */}
           <div className="space-y-6">
             <div className="group">
-              <label className="block text-sm font-semibold text-gray-700 mb-1 group-hover:text-indigo-600 transition-colors">
-                Full Name
+              <label className="block text-sm font-semibold text-gray-300 mb-1 group-hover:text-red-400 transition-colors">
+                Họ và tên
               </label>
               <input
                 type="text"
                 name="full_Name"
                 value={formData.full_Name}
                 onChange={handleChange}
-                className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-indigo-300"
-                placeholder="Enter full name"
+                className="block w-full px-4 py-3 bg-[#1E2738] border border-white/10 text-white rounded-xl shadow-sm focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 placeholder-gray-500"
+                placeholder="Nhập họ và tên"
               />
             </div>
             
             <div className="group">
-              <label className="block text-sm font-semibold text-gray-700 mb-1 group-hover:text-indigo-600 transition-colors">
+              <label className="block text-sm font-semibold text-gray-300 mb-1 group-hover:text-red-400 transition-colors">
                 Email
               </label>
               <input
@@ -143,14 +143,14 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel, disableRo
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-indigo-300"
+                className="block w-full px-4 py-3 bg-[#1E2738] border border-white/10 text-white rounded-xl shadow-sm focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 placeholder-gray-500"
                 placeholder="email@example.com"
               />
             </div>
             
             <div className="group">
-              <label className="block text-sm font-semibold text-gray-700 mb-1 group-hover:text-indigo-600 transition-colors">
-                Date of Birth
+              <label className="block text-sm font-semibold text-gray-300 mb-1 group-hover:text-red-400 transition-colors">
+                Ngày sinh
               </label>
               <input
                 type="text"
@@ -158,28 +158,28 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel, disableRo
                 value={formData.date_Of_Birth}
                 onChange={handleChange}
                 placeholder="YYYY-MM-DD"
-                className={`block w-full px-4 py-3 border ${dateError ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-indigo-300`}
+                className={`block w-full px-4 py-3 bg-[#1E2738] border ${dateError ? 'border-red-500' : 'border-white/10'} text-white rounded-xl shadow-sm focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 placeholder-gray-500`}
               />
               {dateError ? (
                 <p className="mt-1 text-xs text-red-500">{dateError}</p>
               ) : (
-                <p className="mt-1 text-xs text-gray-500">Nhập theo định dạng: Năm-Tháng-Ngày (VD: 1990-05-15)</p>
+                <p className="mt-1 text-xs text-gray-400">Nhập theo định dạng: YYYY-MM-DD (VD: 1990-05-15)</p>
               )}
             </div>
             
             <div className="group">
-              <label className="block text-sm font-semibold text-gray-700 mb-1 group-hover:text-indigo-600 transition-colors">
-                Sex
+              <label className="block text-sm font-semibold text-gray-300 mb-1 group-hover:text-red-400 transition-colors">
+                Giới tính
               </label>
               <select
                 name="sex"
                 value={formData.sex}
                 onChange={handleChange}
-                className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-indigo-300 bg-white"
+                className="block w-full px-4 py-3 bg-[#1E2738] border border-white/10 text-white rounded-xl shadow-sm focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
               >
-                <option value="">Select Gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
+                <option value="">Chọn giới tính</option>
+                <option value="Male">Nam</option>
+                <option value="Female">Nữ</option>
               </select>
             </div>
           </div>
@@ -187,87 +187,87 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel, disableRo
           {/* Right column */}
           <div className="space-y-6">
             <div className="group">
-              <label className="block text-sm font-semibold text-gray-700 mb-1 group-hover:text-indigo-600 transition-colors">
-                Phone Number
+              <label className="block text-sm font-semibold text-gray-300 mb-1 group-hover:text-red-400 transition-colors">
+                Số điện thoại
               </label>
               <input
                 type="text"
                 name="phone_Number"
                 value={formData.phone_Number}
                 onChange={handleChange}
-                className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-indigo-300"
-                placeholder="Enter phone number"
+                className="block w-full px-4 py-3 bg-[#1E2738] border border-white/10 text-white rounded-xl shadow-sm focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 placeholder-gray-500"
+                placeholder="Nhập số điện thoại"
               />
             </div>
             
             <div className="group">
-              <label className="block text-sm font-semibold text-gray-700 mb-1 group-hover:text-indigo-600 transition-colors">
-                Address
+              <label className="block text-sm font-semibold text-gray-300 mb-1 group-hover:text-red-400 transition-colors">
+                Địa chỉ
               </label>
               <input
                 type="text"
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-indigo-300"
-                placeholder="Enter address"
+                className="block w-full px-4 py-3 bg-[#1E2738] border border-white/10 text-white rounded-xl shadow-sm focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 placeholder-gray-500"
+                placeholder="Nhập địa chỉ"
               />
             </div>
             
             <div className="group">
-              <label className="block text-sm font-semibold text-gray-700 mb-1 group-hover:text-indigo-600 transition-colors">
-                Role
+              <label className="block text-sm font-semibold text-gray-300 mb-1 group-hover:text-red-400 transition-colors">
+                Vai trò
               </label>
               <select
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                title={user ? `Current role: ${user.role}` : "Select a role"}
-                className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-indigo-300 bg-white cursor-help"
+                title={user ? `Current role: ${user.role}` : "Chọn vai trò"}
+                className="block w-full px-4 py-3 bg-[#1E2738] border border-white/10 text-white rounded-xl shadow-sm focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
               >
                 {user?.role && <option value={user.role}>{user.role}</option>}
                 {(!user?.role || user.role !== "Staff") && <option value="Staff">Staff</option>}
                 {(!user?.role || user.role !== "Customer") && <option value="Customer">Customer</option>}
               </select>
               {user && (
-                <p className="mt-1 text-xs text-gray-500 italic">
-                  Current role: {user.role}
+                <p className="mt-1 text-xs text-gray-400 italic">
+                  Vai trò hiện tại: {user.role}
                 </p>
               )}
             </div>
             
             <div className="group">
-              <label className="block text-sm font-semibold text-gray-700 mb-1 group-hover:text-indigo-600 transition-colors">
-                Account Status
+              <label className="block text-sm font-semibold text-gray-300 mb-1 group-hover:text-red-400 transition-colors">
+                Trạng thái tài khoản
               </label>
               <select
                 name="account_Status"
                 value={formData.account_Status}
                 onChange={handleChange}
-                className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-indigo-300 bg-white"
+                className="block w-full px-4 py-3 bg-[#1E2738] border border-white/10 text-white rounded-xl shadow-sm focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
               >
-                <option value="">Select Status</option>
+                <option value="">Chọn trạng thái</option>
                 <option value="Active">Active</option>
                 <option value="Pending">Pending</option>
-                <option value="Locked">Locked</option>ơ                                                                 
+                <option value="Locked">Locked</option>
               </select>
             </div>
           </div>
         </div>
         
-        <div className="flex justify-end space-x-4 pt-4 border-t border-gray-100 mt-8">
+        <div className="flex justify-end space-x-4 pt-6 border-t border-white/10 mt-8">
           <button
             type="button"
             onClick={onCancel}
-            className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 font-medium focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+            className="px-6 py-2.5 bg-white/5 border border-white/10 text-gray-300 rounded-xl hover:bg-white/10 transition-colors duration-200 font-medium focus:outline-none"
           >
-            Cancel
+            Hủy
           </button>
           <button
             type="submit"
-            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 shadow-md"
+            className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors duration-200 font-medium focus:outline-none shadow-lg shadow-red-600/30"
           >
-            {user ? 'Update User' : 'Create User'}
+            {user ? 'Cập nhật' : 'Tạo mới'}
           </button>
         </div>
       </form>

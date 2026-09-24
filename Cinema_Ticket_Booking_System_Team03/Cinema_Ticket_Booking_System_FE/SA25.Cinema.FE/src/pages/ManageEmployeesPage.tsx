@@ -63,8 +63,8 @@ const AlertDialog = ({ open, onOpenChange, children }) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full">{children}</div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+      <div className="bg-[#161D2F] border border-white/10 text-white rounded-2xl p-6 max-w-md w-full shadow-2xl animate-fade-in">{children}</div>
     </div>
   );
 };
@@ -417,15 +417,15 @@ const ManageUsersPage: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-[#0B0F19] text-white min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-white">
             Quản lý người dùng
           </h1>
           <button
             onClick={() => setIsAddingUser(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md flex items-center transition-colors"
+            className="bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-5 rounded-xl flex items-center shadow-lg transition-colors cursor-pointer"
           >
             <Plus className="h-5 w-5 mr-2" />
             Thêm người dùng
@@ -445,9 +445,9 @@ const ManageUsersPage: React.FC = () => {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+        <div className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl overflow-hidden mb-6">
           {/* Filter section */}
-          <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <div className="p-5 border-b border-white/10 bg-white/5">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -456,14 +456,14 @@ const ManageUsersPage: React.FC = () => {
                   placeholder="Tìm kiếm người dùng..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="pl-10 w-full px-4 py-2.5 bg-[#1E2738] border border-white/10 text-white rounded-xl placeholder-gray-500 focus:outline-none focus:border-red-500 transition-colors"
                 />
               </div>
               <div className="flex gap-2 flex-wrap">
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-40 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-40 px-4 py-2.5 bg-[#1E2738] border border-white/10 text-white rounded-xl focus:outline-none focus:border-red-500 transition-colors"
                 >
                   <option value="all">Tất cả trạng thái</option>
                   <option value="Active">Hoạt động</option>
@@ -474,7 +474,7 @@ const ManageUsersPage: React.FC = () => {
                 <select
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
-                  className="w-40 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-40 px-4 py-2.5 bg-[#1E2738] border border-white/10 text-white rounded-xl focus:outline-none focus:border-red-500 transition-colors"
                 >
                   <option value="all">Tất cả vai trò</option>
                   {uniqueRoles.map((role) => (
@@ -485,7 +485,7 @@ const ManageUsersPage: React.FC = () => {
                 </select>
                 <button
                   onClick={resetFilters}
-                  className="flex items-center px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                  className="flex items-center px-4 py-2 bg-white/10 text-white border border-white/10 rounded-xl hover:bg-white/20 transition-colors cursor-pointer"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Đặt lại
@@ -498,15 +498,15 @@ const ManageUsersPage: React.FC = () => {
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
               <Spinner />
-              <span className="ml-2 text-gray-600">Đang tải...</span>
+              <span className="ml-2 text-gray-400">Đang tải...</span>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-white/10">
+                <thead className="bg-white/5 text-gray-300">
                   <tr>
                     <th
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
                       onClick={() => handleSort("user_ID")}
                     >
                       <div className="flex items-center">
@@ -523,7 +523,7 @@ const ManageUsersPage: React.FC = () => {
                       </div>
                     </th>
                     <th
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
                       onClick={() => handleSort("full_Name")}
                     >
                       <div className="flex items-center">
@@ -540,7 +540,7 @@ const ManageUsersPage: React.FC = () => {
                       </div>
                     </th>
                     <th
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
                       onClick={() => handleSort("email")}
                     >
                       <div className="flex items-center">
@@ -557,7 +557,7 @@ const ManageUsersPage: React.FC = () => {
                       </div>
                     </th>
                     <th
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
                       onClick={() => handleSort("role")}
                     >
                       <div className="flex items-center">
@@ -574,7 +574,7 @@ const ManageUsersPage: React.FC = () => {
                       </div>
                     </th>
                     <th
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
                       onClick={() => handleSort("account_Status")}
                     >
                       <div className="flex items-center">
@@ -591,7 +591,7 @@ const ManageUsersPage: React.FC = () => {
                       </div>
                     </th>
                     <th
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
                       onClick={() => handleSort("points")}
                     >
                       <div className="flex items-center">
@@ -607,59 +607,58 @@ const ManageUsersPage: React.FC = () => {
                         )}
                       </div>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
                       Thao tác
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="divide-y divide-white/5 bg-[#161D2F]">
                   {currentUsers.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={6}
-                        className="px-6 py-4 text-center text-gray-500"
+                        colSpan={7}
+                        className="px-6 py-8 text-center text-gray-400"
                       >
                         Không tìm thấy người dùng nào.
                       </td>
                     </tr>
                   ) : (
                     currentUsers.map((user) => (
-                      <tr key={user.user_ID} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {user.user_ID}
+                      <tr key={user.user_ID} className="hover:bg-white/5 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                          #{user.user_ID}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
                           {user.full_Name}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                           {user.email}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          <Badge className="bg-blue-100 text-blue-800 border border-blue-200">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30">
                             {user.role}
                           </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           {renderStatusBadge(user.account_Status)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          <Badge className="bg-purple-100 text-purple-800 border border-purple-200">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30">
                             {user.points?.toLocaleString() || "0"} điểm
                           </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
-                            
                             <button
                               onClick={() => setEditingUser(user)}
-                              className="text-amber-600 hover:text-amber-900 p-1 rounded-md hover:bg-amber-50"
+                              className="text-amber-400 hover:text-amber-300 p-1.5 rounded-lg hover:bg-amber-400/10 transition-colors"
                               title={`Chỉnh sửa - Role hiện tại: ${user.role}`}
                             >
                               <Edit className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => confirmDeleteUser(user)}
-                              className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50"
+                              className="text-red-400 hover:text-red-300 p-1.5 rounded-lg hover:bg-red-400/10 transition-colors"
                               title="Xóa"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -676,17 +675,17 @@ const ManageUsersPage: React.FC = () => {
 
           {/* Pagination Controls */}
           {!isLoading && filteredAndSortedUsers.length > 0 && (
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+            <div className="px-6 py-4 bg-[#161D2F] border-t border-white/10 flex items-center justify-between">
               <div className="flex-1 flex justify-between sm:hidden">
                 <button
                   onClick={() =>
                     setCurrentPage((prev) => Math.max(prev - 1, 1))
                   }
                   disabled={currentPage === 1}
-                  className={`px-4 py-2 border border-gray-300 rounded-md ${
+                  className={`px-4 py-2 border border-white/10 rounded-xl text-sm font-medium ${
                     currentPage === 1
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white text-gray-700 hover:bg-gray-50"
+                      ? "bg-white/5 text-gray-500 cursor-not-allowed"
+                      : "bg-[#1E2738] text-gray-200 hover:bg-white/10"
                   }`}
                 >
                   Trước
@@ -696,10 +695,10 @@ const ManageUsersPage: React.FC = () => {
                     setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                   }
                   disabled={currentPage === totalPages}
-                  className={`px-4 py-2 border border-gray-300 rounded-md ${
+                  className={`px-4 py-2 border border-white/10 rounded-xl text-sm font-medium ${
                     currentPage === totalPages
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white text-gray-700 hover:bg-gray-50"
+                      ? "bg-white/5 text-gray-500 cursor-not-allowed"
+                      : "bg-[#1E2738] text-gray-200 hover:bg-white/10"
                   }`}
                 >
                   Sau
@@ -707,20 +706,20 @@ const ManageUsersPage: React.FC = () => {
               </div>
               <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm text-gray-700">
+                  <p className="text-sm text-gray-400">
                     Hiển thị{" "}
-                    <span className="font-medium">
+                    <span className="font-semibold text-white">
                       {(currentPage - 1) * usersPerPage + 1}
                     </span>{" "}
                     đến{" "}
-                    <span className="font-medium">
+                    <span className="font-semibold text-white">
                       {Math.min(
                         currentPage * usersPerPage,
                         filteredAndSortedUsers.length
                       )}
                     </span>{" "}
                     trong tổng số{" "}
-                    <span className="font-medium">
+                    <span className="font-semibold text-white">
                       {filteredAndSortedUsers.length}
                     </span>{" "}
                     người dùng
@@ -728,14 +727,14 @@ const ManageUsersPage: React.FC = () => {
                 </div>
                 <div>
                   <nav
-                    className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                    className="relative z-0 inline-flex rounded-xl shadow-sm -space-x-px overflow-hidden border border-white/10"
                     aria-label="Pagination"
                   >
                     <button
-                      className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+                      className={`relative inline-flex items-center px-3 py-2 bg-[#1E2738] text-sm font-medium transition-colors ${
                         currentPage === 1
-                          ? "text-gray-300 cursor-not-allowed"
-                          : "text-gray-500 hover:bg-gray-50"
+                          ? "text-gray-600 cursor-not-allowed"
+                          : "text-gray-300 hover:bg-white/10"
                       }`}
                       onClick={() =>
                         setCurrentPage((prev) => Math.max(prev - 1, 1))
@@ -743,7 +742,7 @@ const ManageUsersPage: React.FC = () => {
                       disabled={currentPage === 1}
                     >
                       <span className="sr-only">Trang trước</span>
-                      <ChevronLeft className="h-5 w-5" />
+                      <ChevronLeft className="h-4 w-4" />
                     </button>
 
                     {/* Page numbers */}
@@ -764,11 +763,11 @@ const ManageUsersPage: React.FC = () => {
                         return (
                           <button
                             key={pageNum}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium
+                            className={`relative inline-flex items-center px-3.5 py-2 text-sm font-medium transition-colors
                             ${
                               currentPage === pageNum
-                                ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
-                                : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                                ? "z-10 bg-red-600 text-white"
+                                : "bg-[#1E2738] text-gray-300 hover:bg-white/10 border-l border-white/10"
                             }`}
                             onClick={() => setCurrentPage(pageNum)}
                           >
@@ -779,10 +778,10 @@ const ManageUsersPage: React.FC = () => {
                     )}
 
                     <button
-                      className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+                      className={`relative inline-flex items-center px-3 py-2 bg-[#1E2738] text-sm font-medium transition-colors border-l border-white/10 ${
                         currentPage === totalPages
-                          ? "text-gray-300 cursor-not-allowed"
-                          : "text-gray-500 hover:bg-gray-50"
+                          ? "text-gray-600 cursor-not-allowed"
+                          : "text-gray-300 hover:bg-white/10"
                       }`}
                       onClick={() =>
                         setCurrentPage((prev) => Math.min(prev + 1, totalPages))
@@ -790,7 +789,7 @@ const ManageUsersPage: React.FC = () => {
                       disabled={currentPage === totalPages}
                     >
                       <span className="sr-only">Trang sau</span>
-                      <ChevronRight className="h-5 w-5" />
+                      <ChevronRight className="h-4 w-4" />
                     </button>
                   </nav>
                 </div>
@@ -806,7 +805,7 @@ const ManageUsersPage: React.FC = () => {
         onClose={() => !isSubmitting && setIsAddingUser(false)}
       >
         <div className="p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+          <h2 className="text-2xl font-bold text-white mb-6">
             Thêm người dùng mới
           </h2>
           <UserForm
@@ -822,7 +821,7 @@ const ManageUsersPage: React.FC = () => {
         onClose={() => !isSubmitting && setEditingUser(null)}
       >
         <div className="p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+          <h2 className="text-2xl font-bold text-white mb-6">
             Chỉnh sửa người dùng
           </h2>
           <UserForm
@@ -839,26 +838,26 @@ const ManageUsersPage: React.FC = () => {
         onOpenChange={() => !isSubmitting && setUserToDelete(null)}
       >
         <div className="p-6">
-          <h2 className="text-xl font-semibold mb-2">
+          <h2 className="text-xl font-bold text-white mb-2">
             Xác nhận xóa người dùng
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-300 mb-6">
             Bạn có chắc chắn muốn xóa người dùng{" "}
-            <strong>{userToDelete?.full_Name}</strong>? Hành động này không thể
+            <strong className="text-white">{userToDelete?.full_Name}</strong>? Hành động này không thể
             hoàn tác.
           </p>
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end space-x-3">
             <button
               onClick={() => setUserToDelete(null)}
               disabled={isSubmitting}
-              className="px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 border border-white/10 rounded-xl bg-white/5 text-gray-300 hover:bg-white/10 transition-colors"
             >
               Hủy
             </button>
             <button
               onClick={handleDeleteUser}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+              className="px-4 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-colors font-medium shadow-lg shadow-red-600/30"
             >
               {isSubmitting ? (
                 <>

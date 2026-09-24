@@ -2850,9 +2850,9 @@ const ManageMoviesPage: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-[#0B0F19] text-white min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Quản lý phim</h1>
+        <h1 className="text-3xl font-bold text-white mb-8">Quản lý phim</h1>
 
         {/* Actions bar */}
         <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
@@ -2861,14 +2861,14 @@ const ManageMoviesPage: React.FC = () => {
               resetNewMovie();
               setIsAddingMovie(true);
             }}
-            className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md flex items-center transition-colors"
+            className="bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-5 rounded-xl flex items-center shadow-lg transition-colors cursor-pointer"
           >
             <Plus className="h-5 w-5 mr-2" />
             Thêm phim mới
           </button>
           <button
             onClick={fetchMovies}
-            className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md flex items-center transition-colors"
+            className="bg-[#1E2738] hover:bg-white/10 text-white border border-white/10 font-medium py-2.5 px-5 rounded-xl flex items-center transition-colors cursor-pointer"
           >
             <RefreshCw className="h-5 w-5 mr-2" />
             Làm mới
@@ -2884,15 +2884,15 @@ const ManageMoviesPage: React.FC = () => {
         )}
 
         {/* Search filters */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-          <div className="p-4 border-b border-gray-200 bg-gray-50">
-            <h3 className="text-lg font-medium text-gray-700 mb-3 flex items-center">
-              <Search className="h-5 w-5 mr-2" />
+        <div className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl overflow-hidden mb-6">
+          <div className="p-5 border-b border-white/10 bg-white/5">
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+              <Search className="h-5 w-5 mr-2 text-red-500" />
               Bộ lọc tìm kiếm
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
                   ID
                 </label>
                 <input
@@ -2900,12 +2900,12 @@ const ManageMoviesPage: React.FC = () => {
                   name="movieId"
                   value={searchFilters.movieId}
                   onChange={handleFilterChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-[#1E2738] border border-white/10 text-white rounded-xl placeholder-gray-500 focus:outline-none focus:border-red-500 transition-colors"
                   placeholder="Tìm theo ID"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
                   Tên phim
                 </label>
                 <input
@@ -2913,12 +2913,12 @@ const ManageMoviesPage: React.FC = () => {
                   name="movieName"
                   value={searchFilters.movieName}
                   onChange={handleFilterChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-[#1E2738] border border-white/10 text-white rounded-xl placeholder-gray-500 focus:outline-none focus:border-red-500 transition-colors"
                   placeholder="Tìm theo tên"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
                   Thể loại
                 </label>
                 <input
@@ -2926,12 +2926,12 @@ const ManageMoviesPage: React.FC = () => {
                   name="genre"
                   value={searchFilters.genre}
                   onChange={handleFilterChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-[#1E2738] border border-white/10 text-white rounded-xl placeholder-gray-500 focus:outline-none focus:border-red-500 transition-colors"
                   placeholder="Tìm theo thể loại"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
                   Ngôn ngữ
                 </label>
                 <input
@@ -2939,12 +2939,12 @@ const ManageMoviesPage: React.FC = () => {
                   name="language"
                   value={searchFilters.language}
                   onChange={handleFilterChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-[#1E2738] border border-white/10 text-white rounded-xl placeholder-gray-500 focus:outline-none focus:border-red-500 transition-colors"
                   placeholder="Tìm theo ngôn ngữ"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
                   Xếp hạng
                 </label>
                 <input
@@ -2952,12 +2952,12 @@ const ManageMoviesPage: React.FC = () => {
                   name="rating"
                   value={searchFilters.rating}
                   onChange={handleFilterChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-[#1E2738] border border-white/10 text-white rounded-xl placeholder-gray-500 focus:outline-none focus:border-red-500 transition-colors"
                   placeholder="Tìm theo xếp hạng"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
                   Trạng thái
                 </label>
                 <input
@@ -2965,7 +2965,7 @@ const ManageMoviesPage: React.FC = () => {
                   name="status"
                   value={searchFilters.status}
                   onChange={handleFilterChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-[#1E2738] border border-white/10 text-white rounded-xl placeholder-gray-500 focus:outline-none focus:border-red-500 transition-colors"
                   placeholder="Tìm theo trạng thái"
                 />
               </div>
@@ -2973,7 +2973,7 @@ const ManageMoviesPage: React.FC = () => {
             <div className="mt-4 flex justify-end">
               <button
                 onClick={resetFilters}
-                className="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors"
+                className="bg-white/10 text-white py-2 px-4 rounded-xl hover:bg-white/20 transition-colors text-sm font-medium cursor-pointer"
               >
                 Xóa bộ lọc
               </button>
@@ -2982,62 +2982,62 @@ const ManageMoviesPage: React.FC = () => {
         </div>
 
         {/* Movies table */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+        <div className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl overflow-hidden mb-6">
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
               <Spinner />
-              <span className="ml-2 text-gray-600">Đang tải dữ liệu...</span>
+              <span className="ml-2 text-gray-400">Đang tải dữ liệu...</span>
             </div>
           ) : filteredMovies.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              <Film className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-medium text-gray-900 mb-1">
+            <div className="p-8 text-center text-gray-400">
+              <Film className="h-12 w-12 mx-auto mb-4 text-gray-500" />
+              <h3 className="text-lg font-medium text-white mb-1">
                 Không tìm thấy phim nào
               </h3>
-              <p>Thử thay đổi bộ lọc tìm kiếm hoặc thêm phim mới.</p>
+              <p className="text-gray-400">Thử thay đổi bộ lọc tìm kiếm hoặc thêm phim mới.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-white/10">
+                <thead className="bg-white/5">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       ID
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       Hình ảnh
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       Tên phim
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       Năm phát hành
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       Thể loại
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       Ngôn ngữ
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       Xếp hạng
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       Trạng thái
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       Thao tác
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="divide-y divide-white/5">
                   {currentMovies.map((movie) => (
-                    <tr key={movie.movie_ID} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <tr key={movie.movie_ID} className="hover:bg-white/5 transition-colors">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-white">
                         {movie.movie_ID}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="h-16 w-12 overflow-hidden rounded group relative">
+                        <div className="h-16 w-12 overflow-hidden rounded-lg group relative border border-white/10">
                           {movie.poster_URL ? (
                             <>
                               <img
@@ -3049,39 +3049,39 @@ const ManageMoviesPage: React.FC = () => {
                                     "https://via.placeholder.com/150x225?text=No+Image";
                                 }}
                               />
-                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100">
+                              <div className="absolute inset-0 bg-black/60 flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100">
                                 <a 
                                   href={movie.poster_URL} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="bg-white text-gray-800 rounded-full p-1"
+                                  className="bg-white/20 hover:bg-white/40 text-white rounded-full p-1.5 transition"
                                 >
                                   <Search className="h-4 w-4" />
                                 </a>
                               </div>
                             </>
                           ) : (
-                            <div className="h-full w-full bg-gray-200 flex items-center justify-center">
-                                                            <Film className="h-6 w-6 text-gray-400" />
+                            <div className="h-full w-full bg-[#1E2738] flex items-center justify-center">
+                              <Film className="h-6 w-6 text-gray-500" />
                             </div>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-white">
                         {movie.movie_Name}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
                         {movie.release_Date
                           ? new Date(movie.release_Date).getFullYear()
                           : "N/A"}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
                         {movie.genre}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
                         {movie.language}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-amber-400 font-semibold">
                         {movie.rating}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm">
@@ -3091,27 +3091,27 @@ const ManageMoviesPage: React.FC = () => {
                         <div className="flex space-x-2">
                           <button
                             onClick={() => editMovie(movie)}
-                            className="text-blue-600 hover:text-blue-800 p-1 rounded-md hover:bg-blue-50"
+                            className="text-blue-400 hover:text-blue-300 p-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer"
                             title="Chỉnh sửa"
                           >
-                            <Edit className="h-5 w-5" />
+                            <Edit className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => confirmDeleteMovie(movie)}
-                            className="text-red-600 hover:text-red-800 p-1 rounded-md hover:bg-red-50"
+                            className="text-red-400 hover:text-red-300 p-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer"
                             title="Xóa"
                           >
-                            <Trash2 className="h-5 w-5" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                           {movie.trailer_Link && (
                             <a
                               href={movie.trailer_Link}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-purple-600 hover:text-purple-800 p-1 rounded-md hover:bg-purple-50"
+                              className="text-purple-400 hover:text-purple-300 p-1.5 rounded-lg hover:bg-white/10 transition"
                               title="Xem trailer"
                             >
-                              <Play className="h-5 w-5" />
+                              <Play className="h-4 w-4" />
                             </a>
                           )}
                         </div>
@@ -3125,17 +3125,17 @@ const ManageMoviesPage: React.FC = () => {
 
           {/* Pagination */}
           {!isLoading && filteredMovies.length > 0 && (
-            <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+            <div className="px-4 py-3 bg-white/5 border-t border-white/10 flex items-center justify-between">
               <div className="flex-1 flex justify-between sm:hidden">
                 <button
                   onClick={() =>
                     setCurrentPage((prev) => Math.max(prev - 1, 1))
                   }
                   disabled={currentPage === 1}
-                  className={`px-4 py-2 border border-gray-300 rounded-md ${
+                  className={`px-4 py-2 border border-white/10 rounded-xl text-sm ${
                     currentPage === 1
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white text-gray-700 hover:bg-gray-50"
+                      ? "bg-white/5 text-gray-500 cursor-not-allowed"
+                      : "bg-[#1E2738] text-gray-200 hover:bg-white/10"
                   }`}
                 >
                   Trước
@@ -3145,10 +3145,10 @@ const ManageMoviesPage: React.FC = () => {
                     setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                   }
                   disabled={currentPage === totalPages}
-                  className={`px-4 py-2 border border-gray-300 rounded-md ${
+                  className={`px-4 py-2 border border-white/10 rounded-xl text-sm ${
                     currentPage === totalPages
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white text-gray-700 hover:bg-gray-50"
+                      ? "bg-white/5 text-gray-500 cursor-not-allowed"
+                      : "bg-[#1E2738] text-gray-200 hover:bg-white/10"
                   }`}
                 >
                   Sau
@@ -3156,26 +3156,26 @@ const ManageMoviesPage: React.FC = () => {
               </div>
               <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm text-gray-700">
+                  <p className="text-sm text-gray-400">
                     Hiển thị{" "}
-                    <span className="font-medium">
+                    <span className="font-semibold text-white">
                       {(currentPage - 1) * moviesPerPage + 1}
                     </span>{" "}
                     đến{" "}
-                    <span className="font-medium">
+                    <span className="font-semibold text-white">
                       {Math.min(
                         currentPage * moviesPerPage,
                         filteredMovies.length
                       )}
                     </span>{" "}
                     trong tổng số{" "}
-                    <span className="font-medium">{filteredMovies.length}</span>{" "}
+                    <span className="font-semibold text-white">{filteredMovies.length}</span>{" "}
                     phim
                   </p>
                 </div>
                 <div>
                   <nav
-                    className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                    className="relative z-0 inline-flex rounded-xl shadow-sm -space-x-px overflow-hidden border border-white/10"
                     aria-label="Pagination"
                   >
                     <button
@@ -3183,10 +3183,10 @@ const ManageMoviesPage: React.FC = () => {
                         setCurrentPage((prev) => Math.max(prev - 1, 1))
                       }
                       disabled={currentPage === 1}
-                      className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+                      className={`relative inline-flex items-center px-3 py-2 bg-[#1E2738] text-sm font-medium ${
                         currentPage === 1
-                          ? "text-gray-300 cursor-not-allowed"
-                          : "text-gray-500 hover:bg-gray-50"
+                          ? "text-gray-600 cursor-not-allowed"
+                          : "text-gray-300 hover:bg-white/10"
                       }`}
                     >
                       <span className="sr-only">Trang trước</span>
@@ -3212,10 +3212,10 @@ const ManageMoviesPage: React.FC = () => {
                           <button
                             key={pageNum}
                             onClick={() => setCurrentPage(pageNum)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            className={`relative inline-flex items-center px-4 py-2 border-r border-white/10 text-sm font-medium ${
                               currentPage === pageNum
-                                ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
-                                : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                                ? "z-10 bg-red-600 text-white font-bold"
+                                : "bg-[#1E2738] text-gray-300 hover:bg-white/10"
                             }`}
                           >
                             {pageNum}
@@ -3229,10 +3229,10 @@ const ManageMoviesPage: React.FC = () => {
                         setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                       }
                       disabled={currentPage === totalPages}
-                      className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+                      className={`relative inline-flex items-center px-3 py-2 bg-[#1E2738] text-sm font-medium ${
                         currentPage === totalPages
-                          ? "text-gray-300 cursor-not-allowed"
-                          : "text-gray-500 hover:bg-gray-50"
+                          ? "text-gray-600 cursor-not-allowed"
+                          : "text-gray-300 hover:bg-white/10"
                       }`}
                     >
                       <span className="sr-only">Trang sau</span>

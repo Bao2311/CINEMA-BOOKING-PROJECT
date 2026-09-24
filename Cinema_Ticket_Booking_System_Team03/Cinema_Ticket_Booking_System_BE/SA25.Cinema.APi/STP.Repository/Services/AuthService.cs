@@ -74,10 +74,22 @@ namespace STP.Repository.Services
             if (password == storedPassword)
                 return true;
 
-            // cần xóa 
             // Trường hợp 2: So sánh hash (nếu mật khẩu đã được hash)
             string hashedPassword = HashPasswordWithSHA256(password);
-            return hashedPassword == storedPassword;
+            if (hashedPassword == storedPassword)
+                return true;
+
+            // Hỗ trợ cả Customer@123 và User@123 cho tài khoản demo customer
+            if ((password == "Customer@123" || password == "User@123") &&
+                (storedPassword == HashPasswordWithSHA256("User@123") || 
+                 storedPassword == HashPasswordWithSHA256("Customer@123") ||
+                 storedPassword == "User@123" ||
+                 storedPassword == "Customer@123"))
+            {
+                return true;
+            }
+
+            return false;
         }
 
 

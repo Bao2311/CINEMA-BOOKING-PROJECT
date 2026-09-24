@@ -84,16 +84,16 @@ interface SeatTypePrice {
 const Screen = styled.div`
   width: 90%;
   height: 50px;
-  background: linear-gradient(to bottom, #e5e7eb, #ffffff);
+  background: linear-gradient(to bottom, #1E2738, #0B0F19);
   border-radius: 8px;
   margin: 0 auto 3rem;
   transform: perspective(500px) rotateX(-20deg);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 12px 24px rgba(229, 9, 20, 0.2);
   display: flex;
   justify-content: center;
   align-items: center;
   position: relative;
-  border: 2px solid #d1d5db;
+  border: 2px solid rgba(229, 9, 20, 0.4);
 
   &:after {
     content: "";
@@ -102,13 +102,13 @@ const Screen = styled.div`
     left: 5%;
     width: 90%;
     height: 25px;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.15), transparent);
+    background: linear-gradient(to bottom, rgba(229, 9, 20, 0.15), transparent);
     border-radius: 8px;
   }
 `;
 
 const ScreenText = styled.div`
-  color: #4b5563;
+  color: #e50914;
   font-weight: 700;
   font-size: 1rem;
   letter-spacing: 3px;
@@ -1538,113 +1538,117 @@ const ManageCinemaRoomPage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <ToastContainer position="top-right" autoClose={5000} />
+    <div className="min-h-screen bg-[#0B0F19] text-white py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <ToastContainer position="top-right" autoClose={5000} theme="dark" />
 
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Cinema Room Management
-          </h1>
-          <p className="text-gray-600">
-            Create and manage cinema rooms and their seating layouts
-          </p>
+        {/* Page Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center pb-4 border-b border-white/10 gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+              <span className="p-2.5 rounded-xl bg-red-600/10 text-red-500 border border-red-500/20">
+                <FiLayout className="text-xl" />
+              </span>
+              Quản lý phòng chiếu
+            </h1>
+            <p className="text-sm text-gray-400 mt-1">
+              Tạo và quản lý các phòng chiếu phim cùng sơ đồ ghế ngồi
+            </p>
+          </div>
+          <button
+            onClick={handleAddRoom}
+            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-4 rounded-xl transition-colors shadow-lg shadow-red-600/30"
+          >
+            <FiPlus className="h-5 w-5" />
+            Thêm phòng chiếu
+          </button>
         </div>
-        <button
-          onClick={handleAddRoom}
-          className="mt-4 md:mt-0 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-md"
-        >
-          <FiPlus className="h-5 w-5" />
-          Add New Room
-        </button>
-      </div>
 
-      {/* Filters and Controls */}
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div className="flex flex-col md:flex-row gap-4 justify-between">
-          <div className="flex flex-col sm:flex-row gap-4 flex-grow">
-            {/* Search Input */}
-            <div className="relative flex-grow">
-              <input
-                type="text"
-                placeholder="Search rooms..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-              <FiSearch className="absolute left-3 top-3.5 text-gray-400 h-5 w-5" />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"
-                >
-                  <FiX className="h-5 w-5" />
-                </button>
-              )}
-            </div>
+        {/* Filters and Controls */}
+        <div className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl p-5 mb-6 text-white">
+          <div className="flex flex-col md:flex-row gap-4 justify-between">
+            <div className="flex flex-col sm:flex-row gap-4 flex-grow">
+              {/* Search Input */}
+              <div className="relative flex-grow">
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm phòng chiếu..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full p-2.5 pl-10 bg-[#1E2738] border border-white/10 text-white placeholder-gray-500 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm"
+                />
+                <FiSearch className="absolute left-3.5 top-3 text-gray-400 h-4 w-4" />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-3.5 top-3 text-gray-400 hover:text-white"
+                  >
+                    <FiX className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
 
-            {/* Status Filter */}
-            <div className="min-w-[200px]">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              >
-                <option value="all">All Statuses</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Maintenance">Maintenance</option>
-              </select>
-            </div>
-
-            {/* Rooms Per Page */}
-            <div className="min-w-[150px]">
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600 whitespace-nowrap">
-                  Rooms per page:
-                </label>
+              {/* Status Filter */}
+              <div className="min-w-[180px]">
                 <select
-                  value={roomsPerPage}
-                  onChange={handleRoomsPerPageChange}
-                  className="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full p-2.5 bg-[#1E2738] border border-white/10 text-white rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm"
                 >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
+                  <option value="all" className="bg-[#1E2738] text-white">Tất cả trạng thái</option>
+                  <option value="Active" className="bg-[#1E2738] text-white">Đang hoạt động</option>
+                  <option value="Inactive" className="bg-[#1E2738] text-white">Đã tắt</option>
+                  <option value="Maintenance" className="bg-[#1E2738] text-white">Bảo trì</option>
                 </select>
               </div>
+
+              {/* Rooms Per Page */}
+              <div className="min-w-[170px]">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-400 whitespace-nowrap">
+                    Hiển thị:
+                  </label>
+                  <select
+                    value={roomsPerPage}
+                    onChange={handleRoomsPerPageChange}
+                    className="flex-grow p-2.5 bg-[#1E2738] border border-white/10 text-white rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm"
+                  >
+                    <option value={5} className="bg-[#1E2738] text-white">5 phòng</option>
+                    <option value={10} className="bg-[#1E2738] text-white">10 phòng</option>
+                    <option value={20} className="bg-[#1E2738] text-white">20 phòng</option>
+                    <option value={50} className="bg-[#1E2738] text-white">50 phòng</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-1.5 p-1 bg-[#1E2738] rounded-xl border border-white/10">
+              <button
+                onClick={() => setViewMode("table")}
+                className={`p-2 rounded-lg transition-colors ${
+                  viewMode === "table"
+                    ? "bg-red-600 text-white"
+                    : "text-gray-400 hover:text-white"
+                }`}
+                title="Bảng"
+              >
+                <FiLayout className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-2 rounded-lg transition-colors ${
+                  viewMode === "grid"
+                    ? "bg-red-600 text-white"
+                    : "text-gray-400 hover:text-white"
+                }`}
+                title="Lưới"
+              >
+                <FiGrid className="h-4 w-4" />
+              </button>
             </div>
           </div>
-
-          {/* View Mode Toggle */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setViewMode("table")}
-              className={`p-2 rounded-lg ${
-                viewMode === "table"
-                  ? "bg-blue-100 text-blue-600"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-              title="Table View"
-            >
-              <FiLayout className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`p-2 rounded-lg ${
-                viewMode === "grid"
-                  ? "bg-blue-100 text-blue-600"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-              title="Grid View"
-            >
-              <FiGrid className="h-5 w-5" />
-            </button>
-          </div>
         </div>
-      </div>
 
       {/* Error Display */}
       {error && (
@@ -1672,74 +1676,74 @@ const ManageCinemaRoomPage: React.FC = () => {
         <>
           {/* Table View */}
           {viewMode === "table" && (
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl overflow-hidden">
               {filteredRooms.length > 0 ? (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                  <table className="min-w-full divide-y divide-white/10">
+                    <thead className="bg-white/5 text-gray-300">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
                           ID
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Room Name
+                        <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                          Tên phòng
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Type
+                        <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                          Loại
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Seats
+                        <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                          Số ghế
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
+                        <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                          Trạng thái
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Notes
+                        <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                          Ghi chú
                         </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
+                        <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                          Thao tác
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="divide-y divide-white/5 bg-[#161D2F]">
                       {paginatedRooms.map((room) => (
                         <tr
                           key={room.cinema_Room_ID}
-                          className="hover:bg-gray-50"
+                          className="hover:bg-white/5 transition-colors"
                         >
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="font-medium text-gray-900">
-                              {room.cinema_Room_ID}
+                            <div className="font-medium text-white">
+                              #{room.cinema_Room_ID}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="font-medium text-gray-900">
+                            <div className="font-semibold text-white">
                               {room.room_Name}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                            <span className="px-2.5 py-1 text-xs font-medium rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30">
                               {room.room_Type}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                            {room.seat_Quantity}
+                          <td className="px-6 py-4 whitespace-nowrap text-gray-300 font-medium">
+                            {room.seat_Quantity} ghế
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span
-                              className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              className={`px-2.5 py-1 text-xs font-medium rounded-lg ${
                                 room.status === "Active"
-                                  ? "bg-green-100 text-green-800"
+                                  ? "bg-green-500/20 text-green-300 border border-green-500/30"
                                   : room.status === "Inactive"
-                                  ? "bg-gray-100 text-gray-800"
-                                  : "bg-yellow-100 text-yellow-800"
+                                  ? "bg-white/10 text-gray-400 border border-white/10"
+                                  : "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30"
                               }`}
                             >
-                              {room.status}
+                              {room.status === "Active" ? "Hoạt động" : room.status === "Inactive" ? "Tắt" : "Bảo trì"}
                             </span>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-sm text-gray-500 max-w-xs truncate">
+                            <div className="text-sm text-gray-400 max-w-xs truncate">
                               {room.notes || "-"}
                             </div>
                           </td>
@@ -1749,10 +1753,10 @@ const ManageCinemaRoomPage: React.FC = () => {
                                 onClick={() =>
                                   fetchSeatLayout(room.cinema_Room_ID)
                                 }
-                                className="text-purple-600 hover:text-purple-900 p-1"
-                                title="View Seat Layout"
+                                className="text-purple-400 hover:text-purple-300 p-1.5 rounded-lg hover:bg-purple-400/10 transition-colors"
+                                title="Xem sơ đồ ghế"
                               >
-                                <FiEye className="h-5 w-5" />
+                                <FiEye className="h-4 w-4" />
                               </button>
                               <button
                                 onClick={() =>
@@ -1760,35 +1764,35 @@ const ManageCinemaRoomPage: React.FC = () => {
                                     room.cinema_Room_ID
                                   )
                                 }
-                                className="text-indigo-600 hover:text-indigo-900 p-1"
-                                title="Create/Edit Seat Layout"
+                                className="text-indigo-400 hover:text-indigo-300 p-1.5 rounded-lg hover:bg-indigo-400/10 transition-colors"
+                                title="Tạo/Sửa sơ đồ ghế"
                               >
-                                <FiLayout className="h-5 w-5" />
+                                <FiLayout className="h-4 w-4" />
                               </button>
                               <button
                                 onClick={() => handleEditRoom(room)}
-                                className="text-blue-600 hover:text-blue-900 p-1"
-                                title="Edit Room"
+                                className="text-blue-400 hover:text-blue-300 p-1.5 rounded-lg hover:bg-blue-400/10 transition-colors"
+                                title="Sửa phòng"
                               >
-                                <FiEdit2 className="h-5 w-5" />
+                                <FiEdit2 className="h-4 w-4" />
                               </button>
                               <button
                                 onClick={() =>
                                   setConfirmDeleteId(room.cinema_Room_ID)
                                 }
-                                className={`p-1 ${
+                                className={`p-1.5 rounded-lg transition-colors ${
                                   room.hasUpcomingShowtimes
-                                    ? "text-gray-400 cursor-not-allowed"
-                                    : "text-red-600 hover:text-red-900"
+                                    ? "text-gray-600 cursor-not-allowed"
+                                    : "text-red-400 hover:text-red-300 hover:bg-red-400/10"
                                 }`}
                                 disabled={room.hasUpcomingShowtimes}
                                 title={
                                   room.hasUpcomingShowtimes
-                                    ? "Cannot delete: Room has upcoming showtimes"
-                                    : "Delete Room"
+                                    ? "Không thể xóa: Có suất chiếu sắp diễn ra"
+                                    : "Xóa phòng"
                                 }
                               >
-                                <FiTrash2 className="h-5 w-5" />
+                                <FiTrash2 className="h-4 w-4" />
                               </button>
                             </div>
                           </td>
@@ -1799,21 +1803,21 @@ const ManageCinemaRoomPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <FiInfo className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">
-                    No rooms found
+                  <FiInfo className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-white mb-1">
+                    Không tìm thấy phòng chiếu
                   </h3>
-                  <p className="text-gray-500">
+                  <p className="text-gray-400">
                     {searchTerm || statusFilter !== "all"
-                      ? "Try adjusting your search or filter criteria"
-                      : "Add a new cinema room to get started"}
+                      ? "Hãy thử tìm kiếm với từ khóa khác"
+                      : "Thêm phòng chiếu mới để bắt đầu"}
                   </p>
                 </div>
               )}
 
               {/* Pagination - Table View */}
               {filteredRooms.length > 0 && (
-                <div className="px-6 py-4 border-t border-gray-200">
+                <div className="px-6 py-4 border-t border-white/10 bg-[#161D2F]">
                   <Pagination
                     currentPage={currentPage}
                     totalPages={totalPages}
@@ -1834,53 +1838,53 @@ const ManageCinemaRoomPage: React.FC = () => {
                   {paginatedRooms.map((room) => (
                     <div
                       key={room.cinema_Room_ID}
-                      className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow"
+                      className="bg-[#161D2F] rounded-2xl shadow-xl overflow-hidden border border-white/10 hover:border-white/20 transition-all text-white"
                     >
                       <div className="p-6">
                         <div className="flex justify-between items-start mb-4">
                           <h3
-                            className="text-lg font-semibold text-gray-900 truncate"
+                            className="text-lg font-bold text-white truncate"
                             title={room.room_Name}
                           >
                             {room.room_Name}
                           </h3>
                           <span
-                            className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            className={`px-2.5 py-1 text-xs font-medium rounded-lg ${
                               room.status === "Active"
-                                ? "bg-green-100 text-green-800"
+                                ? "bg-green-500/20 text-green-300 border border-green-500/30"
                                 : room.status === "Inactive"
-                                ? "bg-gray-100 text-gray-800"
-                                : "bg-yellow-100 text-yellow-800"
+                                ? "bg-white/10 text-gray-400 border border-white/10"
+                                : "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30"
                             }`}
                           >
-                            {room.status}
+                            {room.status === "Active" ? "Hoạt động" : room.status === "Inactive" ? "Tắt" : "Bảo trì"}
                           </span>
                         </div>
 
-                        <div className="space-y-2 mb-6">
+                        <div className="space-y-2 mb-6 text-sm">
                           <div className="flex justify-between">
-                            <span className="text-gray-500">Type:</span>
-                            <span className="font-medium text-gray-900">
+                            <span className="text-gray-400">Loại:</span>
+                            <span className="font-semibold text-white">
                               {room.room_Type}
                             </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-500">Seats:</span>
-                            <span className="font-medium text-gray-900">
+                            <span className="text-gray-400">Số ghế:</span>
+                            <span className="font-semibold text-white">
                               {room.seat_Quantity}
                             </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-500">ID:</span>
-                            <span className="font-medium text-gray-900">
-                              {room.cinema_Room_ID}
+                            <span className="text-gray-400">Mã phòng:</span>
+                            <span className="font-semibold text-white">
+                              #{room.cinema_Room_ID}
                             </span>
                           </div>
                           {room.notes && (
                             <div className="pt-2">
-                              <span className="text-gray-500">Notes:</span>
+                              <span className="text-gray-400">Ghi chú:</span>
                               <p
-                                className="text-gray-700 text-sm mt-1 line-clamp-2"
+                                className="text-gray-300 text-sm mt-1 line-clamp-2"
                                 title={room.notes}
                               >
                                 {room.notes}
@@ -1889,47 +1893,47 @@ const ManageCinemaRoomPage: React.FC = () => {
                           )}
                         </div>
 
-                        <div className="flex justify-between pt-4 border-t border-gray-200">
+                        <div className="flex justify-between pt-4 border-t border-white/10">
                           <button
                             onClick={() => fetchSeatLayout(room.cinema_Room_ID)}
-                            className="text-purple-600 hover:text-purple-900 p-1"
-                            title="View Seat Layout"
+                            className="text-purple-400 hover:text-purple-300 p-1.5 rounded-lg hover:bg-purple-400/10 transition-colors"
+                            title="Xem sơ đồ ghế"
                           >
-                            <FiEye className="h-5 w-5" />
+                            <FiEye className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() =>
                               handleOpenCreateSeatLayout(room.cinema_Room_ID)
                             }
-                            className="text-indigo-600 hover:text-indigo-900 p-1"
-                            title="Create/Edit Seat Layout"
+                            className="text-indigo-400 hover:text-indigo-300 p-1.5 rounded-lg hover:bg-indigo-400/10 transition-colors"
+                            title="Tạo/Sửa sơ đồ ghế"
                           >
-                            <FiLayout className="h-5 w-5" />
+                            <FiLayout className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleEditRoom(room)}
-                            className="text-blue-600 hover:text-blue-900 p-1"
-                            title="Edit Room"
+                            className="text-blue-400 hover:text-blue-300 p-1.5 rounded-lg hover:bg-blue-400/10 transition-colors"
+                            title="Sửa phòng"
                           >
-                            <FiEdit2 className="h-5 w-5" />
+                            <FiEdit2 className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() =>
                               setConfirmDeleteId(room.cinema_Room_ID)
                             }
-                            className={`p-1 ${
+                            className={`p-1.5 rounded-lg transition-colors ${
                               room.hasUpcomingShowtimes
-                                ? "text-gray-400 cursor-not-allowed"
-                                : "text-red-600 hover:text-red-900"
+                                ? "text-gray-600 cursor-not-allowed"
+                                : "text-red-400 hover:text-red-300 hover:bg-red-400/10"
                             }`}
                             disabled={room.hasUpcomingShowtimes}
                             title={
                               room.hasUpcomingShowtimes
-                                ? "Cannot delete: Room has upcoming showtimes"
-                                : "Delete Room"
+                                ? "Không thể xóa: Có suất chiếu sắp diễn ra"
+                                : "Xóa phòng"
                             }
                           >
-                            <FiTrash2 className="h-5 w-5" />
+                            <FiTrash2 className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
@@ -1937,15 +1941,15 @@ const ManageCinemaRoomPage: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div className="col-span-full text-center py-12 bg-white rounded-lg shadow-md">
-                  <FiInfo className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">
-                    No rooms found
+                <div className="col-span-full text-center py-12 bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl">
+                  <FiInfo className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-white mb-1">
+                    Không tìm thấy phòng chiếu
                   </h3>
-                  <p className="text-gray-500">
+                  <p className="text-gray-400">
                     {searchTerm || statusFilter !== "all"
-                      ? "Try adjusting your search or filter criteria"
-                      : "Add a new cinema room to get started"}
+                      ? "Hãy thử tìm kiếm với từ khóa khác"
+                      : "Thêm phòng chiếu mới để bắt đầu"}
                   </p>
                 </div>
               )}
@@ -2845,6 +2849,7 @@ const ManageCinemaRoomPage: React.FC = () => {
           )}
         </PriceModalContent>
       </Modal>
+      </div>
     </div>
   );
 };
@@ -2872,39 +2877,39 @@ const Pagination = ({
   }
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-3">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-3 text-white">
       <div>
-        <p className="text-sm text-gray-700">
-          Showing{" "}
-          <span className="font-medium">
+        <p className="text-sm text-gray-400">
+          Hiển thị{" "}
+          <span className="font-semibold text-white">
             {Math.min(totalRooms, (currentPage - 1) * roomsPerPage + 1)}
           </span>{" "}
-          to{" "}
-          <span className="font-medium">
+          đến{" "}
+          <span className="font-semibold text-white">
             {Math.min(currentPage * roomsPerPage, totalRooms)}
           </span>{" "}
-          of <span className="font-medium">{totalRooms}</span> rooms
+          trong <span className="font-semibold text-white">{totalRooms}</span> phòng
         </p>
       </div>
       <div className="flex items-center">
         <nav
-          className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+          className="relative z-0 inline-flex rounded-xl shadow-sm -space-x-px overflow-hidden border border-white/10"
           aria-label="Pagination"
         >
           <button
             onClick={() => onPageChange(1)}
             disabled={currentPage === 1}
-            className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+            className={`relative inline-flex items-center px-3 py-2 bg-[#1E2738] text-sm font-medium transition-colors ${
               currentPage === 1
-                ? "text-gray-300 cursor-not-allowed"
-                : "text-gray-500 hover:bg-gray-50"
+                ? "text-gray-600 cursor-not-allowed"
+                : "text-gray-300 hover:bg-white/10"
             }`}
             aria-label="First page"
           >
             <span className="sr-only">First</span>
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
+              className="h-4 w-4"
               viewBox="0 0 20 20"
               fill="currentColor"
             >
@@ -2918,16 +2923,16 @@ const Pagination = ({
           <button
             onClick={() => onPageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
-            className={`relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium ${
+            className={`relative inline-flex items-center px-3 py-2 bg-[#1E2738] border-l border-white/10 text-sm font-medium transition-colors ${
               currentPage === 1
-                ? "text-gray-300 cursor-not-allowed"
-                : "text-gray-500 hover:bg-gray-50"
+                ? "text-gray-600 cursor-not-allowed"
+                : "text-gray-300 hover:bg-white/10"
             }`}
             aria-label="Previous page"
           >
             <span className="sr-only">Previous</span>
             <svg
-              className="h-5 w-5"
+              className="h-4 w-4"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 20 20"
               fill="currentColor"
@@ -2945,12 +2950,12 @@ const Pagination = ({
             <>
               <button
                 onClick={() => onPageChange(1)}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="relative inline-flex items-center px-3.5 py-2 bg-[#1E2738] border-l border-white/10 text-sm font-medium text-gray-300 hover:bg-white/10"
               >
                 1
               </button>
               {startPage > 2 && (
-                <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                <span className="relative inline-flex items-center px-3 py-2 bg-[#1E2738] border-l border-white/10 text-sm font-medium text-gray-500">
                   ...
                 </span>
               )}
@@ -2961,10 +2966,10 @@ const Pagination = ({
             <button
               key={number}
               onClick={() => onPageChange(number)}
-              className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+              className={`relative inline-flex items-center px-3.5 py-2 text-sm font-medium transition-colors ${
                 currentPage === number
-                  ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
-                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                  ? "z-10 bg-red-600 text-white"
+                  : "bg-[#1E2738] border-l border-white/10 text-gray-300 hover:bg-white/10"
               }`}
             >
               {number}
@@ -2974,13 +2979,13 @@ const Pagination = ({
           {endPage < totalPages && (
             <>
               {endPage < totalPages - 1 && (
-                <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                <span className="relative inline-flex items-center px-3 py-2 bg-[#1E2738] border-l border-white/10 text-sm font-medium text-gray-500">
                   ...
                 </span>
               )}
               <button
                 onClick={() => onPageChange(totalPages)}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="relative inline-flex items-center px-3.5 py-2 bg-[#1E2738] border-l border-white/10 text-sm font-medium text-gray-300 hover:bg-white/10"
               >
                 {totalPages}
               </button>
@@ -2990,16 +2995,16 @@ const Pagination = ({
           <button
             onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
-            className={`relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium ${
+            className={`relative inline-flex items-center px-3 py-2 bg-[#1E2738] border-l border-white/10 text-sm font-medium transition-colors ${
               currentPage === totalPages
-                ? "text-gray-300 cursor-not-allowed"
-                : "text-gray-500 hover:bg-gray-50"
+                ? "text-gray-600 cursor-not-allowed"
+                : "text-gray-300 hover:bg-white/10"
             }`}
             aria-label="Next page"
           >
             <span className="sr-only">Next</span>
             <svg
-              className="h-5 w-5"
+              className="h-4 w-4"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 20 20"
               fill="currentColor"
@@ -3015,17 +3020,17 @@ const Pagination = ({
           <button
             onClick={() => onPageChange(totalPages)}
             disabled={currentPage === totalPages}
-            className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+            className={`relative inline-flex items-center px-3 py-2 bg-[#1E2738] border-l border-white/10 text-sm font-medium transition-colors ${
               currentPage === totalPages
-                ? "text-gray-300 cursor-not-allowed"
-                : "text-gray-500 hover:bg-gray-50"
+                ? "text-gray-600 cursor-not-allowed"
+                : "text-gray-300 hover:bg-white/10"
             }`}
             aria-label="Last page"
           >
             <span className="sr-only">Last</span>
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
+              className="h-4 w-4"
               viewBox="0 0 20 20"
               fill="currentColor"
             >
