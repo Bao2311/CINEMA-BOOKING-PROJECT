@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using STP.Repository.Dtos;
 using STP.Repository.Services;
@@ -388,7 +388,7 @@ namespace STP.Repository.DTOs
                     <h1>Xác thực email thất bại</h1>
                     <p>Đường dẫn xác thực không hợp lệ hoặc đã hết hạn.</p>
                     <p>Vui lòng thử lại hoặc yêu cầu gửi lại email xác thực.</p>
-                    <a href='/resend-verification' class='btn'>Gửi lại email xác thực</a>
+                    <a href='http://localhost:5173/login' class='btn'>Quay lại trang Đăng nhập</a>
                 </div>
             </body>
             </html>";

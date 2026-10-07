@@ -102,6 +102,11 @@ const MovieDetailPage: React.FC = () => {
   }, {} as Record<string, any[]>);
 
   const handleBooking = (showtimeId: number) => {
+    const role = localStorage.getItem('role');
+    if (role === 'Staff' || role === 'Admin' || role === 'Manager') {
+      navigate('/staff', { state: { showtimeId, movieId: id } });
+      return;
+    }
     navigate(`/cinema-room/${showtimeId}?movieId=${id}`);
   };
 
@@ -117,7 +122,12 @@ const MovieDetailPage: React.FC = () => {
       toast.success('Đã hủy đơn đặt vé thành công!');
       setIsModalVisible(false);
       if (selectedShowtimeInfo) {
-        navigate(`/cinema-room/${selectedShowtimeInfo.showtimeId}?movieId=${selectedShowtimeInfo.movieId}`);
+        const role = localStorage.getItem('role');
+        if (role === 'Staff' || role === 'Admin' || role === 'Manager') {
+          navigate('/staff', { state: { showtimeId: selectedShowtimeInfo.showtimeId, movieId: selectedShowtimeInfo.movieId } });
+        } else {
+          navigate(`/cinema-room/${selectedShowtimeInfo.showtimeId}?movieId=${selectedShowtimeInfo.movieId}`);
+        }
       }
     } catch (err) {
       toast.error('Có lỗi xảy ra khi hủy đơn vé.');

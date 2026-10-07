@@ -109,8 +109,8 @@ INSERT INTO Movies (Movie_Name, Release_Date, End_Date, Production_Company, Dire
  N'Tom Cruise, Hayley Atwell, Ving Rhames, Angela Bassett, Henry Czerny',
  169,N'Action, Thriller','PG-13',N'English',N'USA',
  N'Ethan Hunt and the IMF face their deadliest mission yet against a rogue AI that controls the world''s nuclear arsenals.',
- 'https://image.tmdb.org/t/p/w500/aLVkiINlIeCkcvaI3jWMnMkOp4I.jpg',
- 'https://www.youtube.com/watch?v=avz06PDqDbM',
+ 'https://image.tmdb.org/t/p/w500/iKPsC9EFUafRP9SrUznI61getVP.jpg',
+ 'https://www.youtube.com/watch?v=fsQgc9pCyDU',
  'NowShowing',1,GETDATE(),GETDATE()),
 
 (N'Superman',
@@ -118,8 +118,8 @@ INSERT INTO Movies (Movie_Name, Release_Date, End_Date, Production_Company, Dire
  N'David Corenswet, Rachel Brosnahan, Nicholas Hoult, Edi Gathegi',
  129,N'Action, Sci-Fi, Adventure','PG-13',N'English',N'USA',
  N'Clark Kent balances his life as a reporter and as Superman, Earth''s greatest hero, facing an alien threat.',
- 'https://image.tmdb.org/t/p/w500/rktDFPbfHfUbArZ6OOOKsXcv0Bm.jpg',
- 'https://www.youtube.com/watch?v=2vjCDx5oqgA',
+ 'https://image.tmdb.org/t/p/w500/ldyfo0BKmz5rWtJJKCvwaNS4cJT.jpg',
+ 'https://www.youtube.com/watch?v=Ox8ZLF6cGM0',
  'NowShowing',1,GETDATE(),GETDATE()),
 
 (N'The Fantastic Four: First Steps',
@@ -136,8 +136,8 @@ INSERT INTO Movies (Movie_Name, Release_Date, End_Date, Production_Company, Dire
  N'Scarlett Johansson, Jonathan Bailey, Mahershala Ali, Manuel Garcia-Rulfo',
  119,N'Action, Adventure, Sci-Fi','PG-13',N'English',N'USA',
  N'A team ventures to a remote island to obtain dinosaur DNA with the power to save human lives.',
- 'https://image.tmdb.org/t/p/w500/vIeu8WysZrTSFb2uhPViKjX0Wjl.jpg',
- 'https://www.youtube.com/watch?v=wBqJdFGLEsk',
+ 'https://image.tmdb.org/t/p/w500/1RICxzeoNCAO5NpcRMIgg1XT6fm.jpg',
+ 'https://www.youtube.com/watch?v=jan5CFWs9ic',
  'NowShowing',1,GETDATE(),GETDATE()),
 
 (N'F1',
@@ -145,8 +145,8 @@ INSERT INTO Movies (Movie_Name, Release_Date, End_Date, Production_Company, Dire
  N'Brad Pitt, Damson Idris, Kerry Condon, Javier Bardem',
  144,N'Action, Drama, Sport','PG-13',N'English',N'USA',
  N'A retired Formula 1 driver comes back to the track to mentor a talented young rookie.',
- 'https://image.tmdb.org/t/p/w500/6CoRTJTmijhBLJTUNoVSUNxZMEI.jpg',
- 'https://www.youtube.com/watch?v=yqAX7l3OAag',
+ 'https://image.tmdb.org/t/p/w500/9PXZIUsSDh4alB80jheWX4fhZmy.jpg',
+ 'https://www.youtube.com/watch?v=CT2_P2DZBR0',
  'NowShowing',1,GETDATE(),GETDATE()),
 
 (N'How to Train Your Dragon',
@@ -154,8 +154,8 @@ INSERT INTO Movies (Movie_Name, Release_Date, End_Date, Production_Company, Dire
  N'Mason Thames, Nico Parker, Gerard Butler, Cate Blanchett',
  124,N'Adventure, Fantasy, Family','PG',N'English',N'USA',
  N'A young Viking befriends a dragon and must fight to protect him from his own tribe.',
- 'https://image.tmdb.org/t/p/w500/q2AY61gMgXebrNmKOhbBdCkKBVh.jpg',
- 'https://www.youtube.com/watch?v=_LWW7_Cxe9E',
+ 'https://image.tmdb.org/t/p/w500/53dsJ3oEnBhTBVMigWJ9tkA5bzJ.jpg',
+ 'https://www.youtube.com/watch?v=22w7z_lT6YM',
  'NowShowing',1,GETDATE(),GETDATE()),
 
 (N'Lilo & Stitch',
@@ -172,8 +172,8 @@ INSERT INTO Movies (Movie_Name, Release_Date, End_Date, Production_Company, Dire
  N'Michael B. Jordan, Hailee Steinfeld, Jack O''Connell, Wunmi Mosaku',
  137,N'Horror, Thriller, Drama','R',N'English',N'USA',
  N'Twin brothers trying to leave their troubled lives behind find a Mississippi town infested with an evil threat.',
- 'https://image.tmdb.org/t/p/w500/wAOv3HWMn20HGT4xZzE1qQfCCrg.jpg',
- 'https://www.youtube.com/watch?v=TaJHGYyGPsM',
+ 'https://image.tmdb.org/t/p/w500/fWPgbnt2LSqkQ6cdQc0SZN9CpLm.jpg',
+ 'https://www.youtube.com/watch?v=O98jSd24lmA',
  'NowShowing',1,GETDATE(),GETDATE()),
 
 (N'Thunderbolts*',
@@ -181,8 +181,8 @@ INSERT INTO Movies (Movie_Name, Release_Date, End_Date, Production_Company, Dire
  N'Florence Pugh, Sebastian Stan, David Harbour, Wyatt Russell, Julia Louis-Dreyfus',
  127,N'Action, Adventure, Superhero','PG-13',N'English',N'USA',
  N'A team of antiheroes assembled by the government must stop a threat more dangerous than any of them.',
- 'https://image.tmdb.org/t/p/w500/m9EtP1Yrzv6v7dMaC9mRaGhd1um.jpg',
- 'https://www.youtube.com/watch?v=UHmJFKKrXFo',
+ 'https://image.tmdb.org/t/p/w500/hqcexYHbiTBfDIdDWxrxPtVndBX.jpg',
+ 'https://www.youtube.com/watch?v=-sAOWhvheK8',
  'NowShowing',1,GETDATE(),GETDATE()),
 
 -- ComingSoon
@@ -200,8 +200,8 @@ INSERT INTO Movies (Movie_Name, Release_Date, End_Date, Production_Company, Dire
  N'Sam Worthington, Zoe Saldana, Sigourney Weaver, Stephen Lang',
  180,N'Action, Sci-Fi, Adventure','PG-13',N'English',N'USA',
  N'Jake Sully and Neytiri face an even greater threat to Pandora in this breathtaking third chapter.',
- 'https://image.tmdb.org/t/p/w500/b33nnKl1GSFbao4l3fZDDqsMx0F.jpg',
- 'https://www.youtube.com/watch?v=example_avatar3',
+ 'https://image.tmdb.org/t/p/w500/bRBeSHfGHwkEpImlhxPmOcUsaeg.jpg',
+ 'https://www.youtube.com/watch?v=ITmRYfeg4H0',
  'ComingSoon',1,GETDATE(),GETDATE()),
 
 (N'Captain America: Brave New World',

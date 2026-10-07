@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -52,7 +52,7 @@ namespace STP.Repository.Models
         /// <summary>
         /// Phản hồi chi tiết từ bộ xử lý thanh toán, có thể chứa mã lỗi hoặc thông tin bổ sung
         /// </summary>
-        public string Processor_Response { get; set; }
+        public string? Processor_Response { get; set; }
 
         /// <summary>
         /// Số tiền đã hoàn lại cho khách hàng, mặc định là 0
@@ -67,7 +67,7 @@ namespace STP.Repository.Models
         /// <summary>
         /// Lý do hoàn tiền (nếu có)
         /// </summary>
-        public string Refund_Reason { get; set; }
+        public string? Refund_Reason { get; set; }
 
         /// <summary>
         /// ID của nhân viên xử lý giao dịch thanh toán hoặc hoàn tiền (nếu có)

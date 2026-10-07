@@ -359,7 +359,6 @@ const CinemaRoomPage: React.FC = () => {
       console.error('Error creating booking:', error);
       const errorMessage = error.response?.data?.message || 'Không thể tạo đặt vé. Vui lòng thử lại sau.';
       toast.error(errorMessage);
-      setTimeout(() => window.location.reload(), 2000); // Reload the page after showing error message
       return false;
     } finally {
       setIsLoading(false);
@@ -396,7 +395,6 @@ const CinemaRoomPage: React.FC = () => {
       } catch (error) {
         console.error('Error creating payment link:', error);
         toast.error('Không thể tạo liên kết thanh toán. Vui lòng thử lại.');
-        setTimeout(() => window.location.reload(), 2000); // Reload the page after showing error message
         setIsLoading(false);
       }
       return;

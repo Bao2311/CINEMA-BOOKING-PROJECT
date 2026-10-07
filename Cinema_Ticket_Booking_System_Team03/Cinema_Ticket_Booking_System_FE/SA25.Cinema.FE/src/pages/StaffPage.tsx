@@ -21,7 +21,7 @@ import Layout from '../components/Layout/Layout';
 import { QRCode } from 'antd';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { API_URL } from '../config/apiUrl';
 
 const { Option } = Select;
@@ -216,14 +216,16 @@ const ScreenText = styled.div`
 
 const SeatingArea = styled.div`
   display: grid;
-  grid-template-columns: 40px 1fr 40px; /* Row label, seats section, row label */
-  gap: 0.5rem;
-  width: 100%;
-  max-width: 900px;
-  background: #f9fafb;
+  grid-template-columns: 40px auto 40px; /* Row label, seats section, row label */
+  gap: 0.625rem;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   position: relative;
 `;
 
@@ -236,19 +238,21 @@ const RowLabel = styled.div`
   height: 40px;
   text-align: center;
   font-weight: 600;
-  color: #374151;
+  color: #e2e8f0;
   font-size: 1rem;
   cursor: pointer;
   padding: 0.75rem;
   border-radius: 6px;
-  background: #e5e7eb;
+  background: #1E2738;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
 
   &:hover {
-    background: #d1d5db;
+    background: rgba(229, 9, 20, 0.2);
+    border-color: rgba(229, 9, 20, 0.4);
     transform: scale(1.05);
   }
 `;
@@ -274,19 +278,21 @@ const ColumnLabel = styled.div`
   height: 40px;
   text-align: center;
   font-weight: 600;
-  color: #374151;
+  color: #e2e8f0;
   font-size: 0.9rem;
   cursor: pointer;
   padding: 0.75rem;
   border-radius: 6px;
-  background: #e5e7eb;
+  background: #1E2738;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
 
   &:hover {
-    background: #d1d5db;
+    background: rgba(229, 9, 20, 0.2);
+    border-color: rgba(229, 9, 20, 0.4);
     transform: scale(1.05);
   }
 `;
@@ -391,30 +397,31 @@ const SeatTooltip = styled.div`
 const SeatLegend = styled.div`
   display: flex;
   justify-content: center;
-  gap: 2rem;
-  margin-top: 2.5rem;
+  gap: 1.5rem;
+  margin-top: 2rem;
   flex-wrap: wrap;
-  background: #ffffff;
-  padding: 1rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: #1E2738;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 `;
 
 const LegendItem = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 0.9rem;
-  color: #4b5563;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #e2e8f0;
   font-weight: 500;
 `;
 
 const ColorBox = styled.div`
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   background-color: ${props => props.color};
   border-radius: 4px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 `;
 
 const PromotionList = styled.div`
@@ -452,6 +459,8 @@ const StickyHeader = styled.div`
 const ManageBookings: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [movies, setMovies] = useState<Movie[]>([]);
   const [showtimes, setShowtimes] = useState<Showtime[]>([]);
@@ -497,14 +506,10 @@ const ManageBookings: React.FC = () => {
   const [membershipForm] = Form.useForm();
   const [newUserForm] = Form.useForm();
 
-  // Reset booking state when component mounts or when route changes
+  // Fetch initial data when component mounts
   useEffect(() => {
     fetchNowShowingMovies();
     fetchPromotions();
-    
-    return () => {
-      resetBookingState();
-    };
   }, []);
 
   // Reset booking state function
@@ -603,20 +608,39 @@ const ManageBookings: React.FC = () => {
           Authorization: token ? `Bearer ${token}` : undefined,
         },
       });
+      let datesList: string[] = [];
       if (response.data && response.data.$values) {
-        setAvailableDates(response.data.$values);
-        if (response.data.$values.length > 0) {
-          setSelectedDate(moment(response.data.$values[0]));
-          fetchShowtimes(movieId, moment(response.data.$values[0]).format('YYYY-MM-DD'));
-        }
+        datesList = response.data.$values;
       } else if (Array.isArray(response.data)) {
-        setAvailableDates(response.data);
-        if (response.data.length > 0) {
-          setSelectedDate(moment(response.data[0]));
-          fetchShowtimes(movieId, moment(response.data[0]).format('YYYY-MM-DD'));
+        datesList = response.data;
+      }
+
+      // Fallback if empty: fetch from /Showtimes/movie/{movieId}
+      if (!datesList || datesList.length === 0) {
+        try {
+          const fallbackRes = await axios.get(`${API_URL}/Showtimes/movie/${movieId}`, {
+            headers: {
+              Authorization: token ? `Bearer ${token}` : undefined,
+            },
+          });
+          const rawDates = fallbackRes.data?.dates?.$values || fallbackRes.data?.dates;
+          if (Array.isArray(rawDates)) {
+            datesList = rawDates.map((d: any) => d.show_Date || d);
+          }
+        } catch (e) {
+          console.warn('Fallback movie dates fetch failed:', e);
         }
+      }
+
+      setAvailableDates(datesList);
+      if (datesList.length > 0) {
+        setSelectedDate(prev => {
+          const dateToUse = prev || moment(datesList[0]);
+          fetchShowtimes(movieId, dateToUse.format('YYYY-MM-DD'));
+          return dateToUse;
+        });
       } else {
-        setAvailableDates([]);
+        setShowtimes([]);
       }
     } catch (error) {
       console.error('Error fetching available dates:', error);
@@ -638,14 +662,23 @@ const ManageBookings: React.FC = () => {
         },
       });
 
-      // Log response để debug
       console.log('Showtime response:', response.data);
 
-      let showtimeData = [];
+      let showtimeData: any[] = [];
       if (response.data && response.data.$values) {
         showtimeData = response.data.$values;
       } else if (Array.isArray(response.data)) {
         showtimeData = response.data;
+      } else if (response.data && response.data.dates) {
+        const dObj = response.data.dates.$values || response.data.dates;
+        if (Array.isArray(dObj)) {
+          if (date) {
+            const matched = dObj.find((d: any) => moment(d.show_Date).format('YYYY-MM-DD') === date);
+            showtimeData = matched?.showtimes?.$values || matched?.showtimes || [];
+          } else {
+            showtimeData = dObj.flatMap((d: any) => d.showtimes?.$values || d.showtimes || []);
+          }
+        }
       }
 
       // Xử lý và map dữ liệu showtime
@@ -657,8 +690,6 @@ const ManageBookings: React.FC = () => {
       }));
 
       setShowtimes(processedShowtimes);
-      
-      // Log processed data để debug
       console.log('Processed showtimes:', processedShowtimes);
     } catch (error) {
       console.error('Error fetching showtimes:', error);
@@ -750,6 +781,100 @@ const ManageBookings: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Handle preselected showtime or movie passed via navigation state or query params
+  const handleInitialNavigation = async (showtimeId?: number, movieId?: number) => {
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+
+      if (showtimeId) {
+        // Reset previously selected seats and booking
+        setSelectedSeats([]);
+        setBookingId(null);
+
+        // 1. Fetch showtime details
+        const stRes = await axios.get(`${API_URL}/Showtimes/${showtimeId}`, {
+          headers: { Authorization: token ? `Bearer ${token}` : undefined }
+        });
+        const stData = stRes.data;
+
+        if (stData) {
+          const mId = movieId || stData.movie_ID || stData.movie?.movie_ID;
+
+          // 2. Fetch movie details
+          let movieObj = movies.find(m => m.movie_ID === mId);
+          if (!movieObj && mId) {
+            try {
+              const mRes = await axios.get(`${API_URL}/Movie/${mId}`, {
+                headers: { Authorization: token ? `Bearer ${token}` : undefined }
+              });
+              movieObj = mRes.data;
+            } catch (err) {
+              console.error('Failed to fetch movie details:', err);
+            }
+          }
+
+          if (movieObj) {
+            setSelectedMovie(movieObj);
+          }
+
+          const processedShowtime: Showtime = {
+            ...stData,
+            room_Name: stData.room?.room_Name || stData.room_Name || 'Phòng chiếu',
+            room_Type: stData.room?.room_Type || stData.room_Type || 'Tiêu chuẩn',
+            seat_Quantity: stData.room?.seat_Quantity || stData.seat_Quantity || 0
+          };
+          setSelectedShowtime(processedShowtime);
+
+          if (stData.show_Date) {
+            setSelectedDate(moment(stData.show_Date));
+          }
+
+          // 3. Fetch seats
+          await fetchSeats(showtimeId);
+
+          // 4. Preload dates for movie in background (in case staff clicks "Quay lại chọn suất chiếu")
+          if (mId) {
+            fetchAvailableDates(mId);
+          }
+
+          // 5. Jump directly to Step 2 (Chọn ghế)
+          setCurrentStep(2);
+        }
+      } else if (movieId) {
+        let movieObj = movies.find(m => m.movie_ID === movieId);
+        if (!movieObj) {
+          const mRes = await axios.get(`${API_URL}/Movie/${movieId}`, {
+            headers: { Authorization: token ? `Bearer ${token}` : undefined }
+          });
+          movieObj = mRes.data;
+        }
+        if (movieObj) {
+          setSelectedMovie(movieObj);
+          await fetchAvailableDates(movieId);
+          setCurrentStep(1);
+        }
+      }
+    } catch (error) {
+      console.error('Error initializing booking from navigation state:', error);
+      message.error('Không thể tải thông tin suất chiếu đã chọn');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Listen to navigation state or query params changes
+  useEffect(() => {
+    const stateShowtimeId = location.state?.showtimeId 
+      || (searchParams.get('showtimeId') ? parseInt(searchParams.get('showtimeId')!) : undefined);
+    const stateMovieId = location.state?.movieId 
+      || (searchParams.get('movieId') ? parseInt(searchParams.get('movieId')!) : undefined);
+
+    if (stateShowtimeId || stateMovieId) {
+      handleInitialNavigation(stateShowtimeId, stateMovieId);
+    }
+  }, [location.state, searchParams]);
 
   // Lookup member by phone or email
   const lookupMember = async (value: string, type: 'phone' | 'email') => {
@@ -1746,22 +1871,44 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
     return result;
   };
 
+  const fallbackPoster = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop&q=80';
+
   // Enhanced Movie Card Component
   const MovieCard = ({ movie, onSelect }) => {
     return (
       <Card 
         key={movie.movie_ID}
         hoverable
-        className="movie-card"
+        className="movie-card w-full h-full flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#161D2F] text-white shadow-lg transition-all duration-300 hover:border-red-500/50 hover:shadow-red-500/10"
+        bodyStyle={{ 
+          flex: 1, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          justifyContent: 'space-between', 
+          padding: '16px',
+          backgroundColor: '#161D2F' 
+        }}
+        styles={{ 
+          body: { 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            justifyContent: 'space-between', 
+            padding: '16px',
+            backgroundColor: '#161D2F' 
+          } 
+        }}
         cover={
-          <div className="relative">
+          <div className="relative w-full overflow-hidden bg-slate-900" style={{ aspectRatio: '2/3' }}>
             <img 
               alt={movie.movie_Name} 
-              src={movie.poster_URL} 
-              style={{ height: 300, objectFit: 'cover' }} 
+              src={movie.poster_URL || fallbackPoster} 
+              className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+              onError={(e) => { e.currentTarget.src = fallbackPoster; }}
             />
-            <Tag color={movie.rating === 'P13' ? 'orange' : 'green'} 
-                className="absolute top-2 right-2">
+            <div className="absolute inset-0 bg-gradient-to-t from-[#161D2F] via-transparent to-transparent opacity-60 pointer-events-none" />
+            <Tag color={movie.rating === 'P13' ? 'orange' : movie.rating === 'C18' ? 'red' : 'green'} 
+                className="absolute top-2.5 right-2.5 font-bold shadow-md">
               {movie.rating}
             </Tag>
           </div>
@@ -1769,24 +1916,27 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
         onClick={() => onSelect(movie)}
       >
         <Card.Meta
-          title={<span className="text-lg font-bold">{movie.movie_Name}</span>}
+          title={<span className="text-base font-bold text-white truncate block" title={movie.movie_Name}>{movie.movie_Name}</span>}
           description={
-            <>
-              <div className="flex items-center mb-1">
-                <ClockCircleOutlined className="mr-1" />
-                <span>{movie.duration} phút</span>
-              </div>
-              <div className="flex items-center mb-1">
-                <TagOutlined className="mr-1" />
-                <span>{movie.genre}</span>
-              </div>
-              <div className="flex items-center">
-                <UserOutlined className="mr-1" />
-                <span>Đạo diễn: {movie.director}</span>
+            <div className="flex flex-col justify-between flex-1 mt-2">
+              <div className="space-y-1.5 text-xs text-gray-300">
+                <div className="flex items-center text-gray-300">
+                  <ClockCircleOutlined className="mr-1.5 text-red-400" />
+                  <span>{movie.duration} phút</span>
+                </div>
+                <div className="flex items-center text-gray-300">
+                  <TagOutlined className="mr-1.5 text-red-400" />
+                  <span className="truncate">{movie.genre}</span>
+                </div>
+                <div className="flex items-center text-gray-300">
+                  <UserOutlined className="mr-1.5 text-red-400" />
+                  <span className="truncate">Đạo diễn: {movie.director}</span>
+                </div>
               </div>
               <Button 
                 type="primary" 
-                className="mt-3 w-full"
+                danger
+                className="mt-3.5 w-full font-semibold rounded-lg h-9 bg-red-600 hover:bg-red-500 shadow-md shadow-red-600/30 border-none"
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelect(movie);
@@ -1794,7 +1944,7 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
               >
                 Đặt vé ngay
               </Button>
-            </>
+            </div>
           }
         />
       </Card>
@@ -1804,35 +1954,37 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
   // Enhanced Showtime Info Header
   const ShowtimeInfoHeader = ({ movie, showtime }) => {
     return (
-      <div className="sticky top-0 z-10 bg-white shadow-md p-4 mb-6 rounded-lg">
+      <div className="sticky top-0 z-10 bg-[#161D2F] border border-white/10 shadow-lg p-4 mb-6 rounded-xl text-white">
         <Row gutter={16} align="middle">
           <Col span={4}>
-            <img 
-              src={movie?.poster_URL} 
-              alt={movie?.movie_Name} 
-              className="w-full rounded-lg"
-              style={{ maxHeight: '80px', objectFit: 'cover' }}
-            />
+            <div className="w-full overflow-hidden rounded-lg shadow-sm border border-white/10" style={{ aspectRatio: '2/3', maxHeight: '100px' }}>
+              <img 
+                src={movie?.poster_URL || fallbackPoster} 
+                alt={movie?.movie_Name} 
+                className="w-full h-full object-cover rounded-lg"
+                onError={(e) => { e.currentTarget.src = fallbackPoster; }}
+              />
+            </div>
           </Col>
           <Col span={14}>
-            <Title level={4} className="m-0">{movie?.movie_Name}</Title>
+            <Title level={4} className="m-0 text-white">{movie?.movie_Name}</Title>
             <Space className="mt-1">
               <Tag color="blue">{movie?.rating}</Tag>
               <Tag color="purple">{movie?.duration} phút</Tag>
             </Space>
-            <div className="mt-2">
-              <Text strong>Suất chiếu:</Text> {formatDate(showtime?.show_Date)} {formatTime(showtime?.start_Time)}
+            <div className="mt-2 text-gray-300">
+              <Text strong className="text-white">Suất chiếu:</Text> {formatDate(showtime?.show_Date)} {formatTime(showtime?.start_Time)}
             </div>
           </Col>
-          <Col span={6} className="text-right">
+          <Col span={6} className="text-right text-gray-300">
             <div>
-              <Text strong>Phòng:</Text> {showtime?.room_Name}
+              <Text strong className="text-white">Phòng:</Text> {showtime?.room_Name}
             </div>
             <div>
-              <Text strong>Giá:</Text> {showtime?.base_Price.toLocaleString()} VND
+              <Text strong className="text-white">Giá:</Text> {showtime?.base_Price?.toLocaleString()} VND
             </div>
             <div className="mt-2">
-              <Tag color="green">Còn {seats.filter(s => s.seat_Status !== 'Booked' && s.seat_Status !== 'Reserved').length} ghế trống</Tag>
+              <Tag color="green">Còn {seats.filter(s => s.seat_Status !== 'Booked' && s.seat_Status !== 'Reserved' && s.seat_Status !== 'Sold').length} ghế trống</Tag>
             </div>
           </Col>
         </Row>
@@ -1840,98 +1992,98 @@ const calculateDiscountAmount = (value: number, type: string, subtotal: number):
     );
   };
 
-  // Enhanced Member Details Component
-  // Inside your MemberDetailsView component
+// Enhanced Member Details Component
 const MemberDetailsView = ({ member }) => {
   if (!member) return null;
   
   return (
-    <div className="member-details bg-white p-4 mt-4 rounded-lg border">
-      <Descriptions title="Thông tin thành viên" bordered column={1}>
-        <Descriptions.Item label="Họ và tên">{member.full_Name}</Descriptions.Item>
-        <Descriptions.Item label="Email">{member.email}</Descriptions.Item>
-        <Descriptions.Item label="Số điện thoại">{member.phone_Number}</Descriptions.Item>
-        <Descriptions.Item label="Điểm tích lũy">
-          <Tag color="green">{member.currentPoints?.toLocaleString() || 0} điểm</Tag>
-        </Descriptions.Item>
-        <Descriptions.Item label="Hạng thành viên">
-          <Tag color={member.membershipStatus === 'VIP' ? 'gold' : 'blue'}>
-            {member.membershipStatus}
-          </Tag>
-        </Descriptions.Item>
-      </Descriptions>
+    <div className="member-details bg-[#0B0F19]/80 border border-white/10 p-5 mt-4 rounded-xl text-white">
+      <div className="text-base font-bold text-white mb-3 flex items-center justify-between">
+        <span>Thông tin thành viên</span>
+        <Tag color={member.membershipStatus === 'VIP' ? 'gold' : 'blue'} className="px-2.5 py-0.5 text-xs font-bold">
+          {member.membershipStatus}
+        </Tag>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+        <div>
+          <span className="text-gray-400">Họ và tên:</span>{' '}
+          <span className="text-white font-medium">{member.full_Name}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Số điện thoại:</span>{' '}
+          <span className="text-white font-medium">{member.phone_Number}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Email:</span>{' '}
+          <span className="text-white font-medium">{member.email}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Điểm tích lũy:</span>{' '}
+          <Tag color="green" className="font-bold">{member.currentPoints?.toLocaleString() || 0} điểm</Tag>
+        </div>
+      </div>
       
       {!appliedPromotion && (
         <Alert
-          message="Áp dụng mã khuyến mãi"
-          description="Mã khuyến mãi trước đó đã bị hủy. Vui lòng nhập và áp dụng lại mã khuyến mãi nếu cần."
+          message="Lưu ý khuyến mãi"
+          description="Mã khuyến mãi trước đó đã bị hủy khi chọn thành viên. Vui lòng áp dụng lại mã nếu cần."
           type="info"
           showIcon
-          className="mt-4"
+          className="mt-4 bg-sky-950/40 border border-sky-500/30 text-sky-200"
         />
       )}
     </div>
   );
 };
 
-
-  // Enhanced Promotion Section
-  // Component EnhancedPromotionSection
+// Enhanced Promotion Section
 const EnhancedPromotionSection = () => {
   return (
     <>
-      <div className="mb-4">
-        <Input.Group compact>
-          <Input
-            style={{ width: 'calc(100% - 100px)' }}
-            placeholder="Nhập mã khuyến mãi"
-            value={promotionCode}
-            onChange={(e) => setPromotionCode(e.target.value)}
-            disabled={loading || appliedPromotion}
-          />
-          {appliedPromotion ? (
-            <Button
-              type="default"
-              danger
-              onClick={() => {
-                // Reset promotion state
-                setAppliedPromotion(null);
-                setPromotionCode('');
-                
-                // Recalculate total without promotion discount
-                const subtotal = bookingSummary.subtotal;
-                const memberDiscount = bookingSummary.memberDiscount;
-                const pointsDiscount = bookingSummary.pointsDiscount;
-                
-                // Calculate total without promotion discount
-                const totalDiscounts = memberDiscount + pointsDiscount;
-                const newTotal = Math.max(0, subtotal - totalDiscounts);
-                
-                // Update booking summary
-                setBookingSummary({
-                  ...bookingSummary,
-                  discounts: totalDiscounts,
-                  promotionDiscount: 0,
-                  total: newTotal
-                });
-                
-                message.success('Đã xóa mã khuyến mãi');
-              }}
-              loading={loading}
-            >
-              Hủy
-            </Button>
-          ) : (
-            <Button
-              type="primary"
-              onClick={applyPromotionCode}
-              loading={loading}
-              style={{ width: '100px' }}
-            >
-              Áp dụng
-            </Button>
-          )}
-        </Input.Group>
+      <div className="mb-4 flex gap-2">
+        <Input
+          placeholder="Nhập mã khuyến mãi"
+          value={promotionCode}
+          onChange={(e) => setPromotionCode(e.target.value)}
+          disabled={loading || appliedPromotion}
+          className="flex-1 bg-[#0B0F19] border-white/10 text-white rounded-xl h-11"
+        />
+        {appliedPromotion ? (
+          <Button
+            type="default"
+            danger
+            onClick={() => {
+              setAppliedPromotion(null);
+              setPromotionCode('');
+              const subtotal = bookingSummary.subtotal;
+              const memberDiscount = bookingSummary.memberDiscount;
+              const pointsDiscount = bookingSummary.pointsDiscount;
+              const totalDiscounts = memberDiscount + pointsDiscount;
+              const newTotal = Math.max(0, subtotal - totalDiscounts);
+              setBookingSummary({
+                ...bookingSummary,
+                discounts: totalDiscounts,
+                promotionDiscount: 0,
+                total: newTotal
+              });
+              message.success('Đã xóa mã khuyến mãi');
+            }}
+            loading={loading}
+            className="rounded-xl h-11 px-5 border-red-500/50 text-red-400 hover:text-red-300"
+          >
+            Hủy
+          </Button>
+        ) : (
+          <Button
+            type="primary"
+            danger
+            onClick={applyPromotionCode}
+            loading={loading}
+            className="rounded-xl h-11 px-6 bg-red-600 hover:bg-red-500 font-bold shadow-md shadow-red-600/20"
+          >
+            Áp dụng
+          </Button>
+        )}
       </div>
       
       {appliedPromotion && (
@@ -1948,7 +2100,7 @@ const EnhancedPromotionSection = () => {
           }
           type="success"
           showIcon
-          className="mb-4"
+          className="mb-4 bg-emerald-950/40 border border-emerald-500/30 text-emerald-200"
         />
       )}
     </>
@@ -1963,8 +2115,8 @@ const EnhancedPromotionSection = () => {
   ];
 
   return (
-    <div className="container mx-auto p-4">
-      <Title level={2} className="mb-6">Đặt vé xem phim</Title>
+    <div className="container mx-auto p-4 text-white">
+      <Title level={2} className="mb-6 text-white">Bán vé xem phim (Nhân viên)</Title>
       
       <Steps current={currentStep} className="mb-8">
         <Step title="Chọn phim" icon={<PlayCircleOutlined />} />
@@ -1995,7 +2147,7 @@ const EnhancedPromotionSection = () => {
           ) : (
             <Row gutter={[24, 24]}>
               {filteredMovies.map(movie => (
-                <Col xs={24} sm={12} md={8} lg={6} key={movie.movie_ID}>
+                <Col xs={24} sm={12} md={8} lg={6} key={movie.movie_ID} className="flex">
                   <MovieCard movie={movie} onSelect={handleMovieSelect} />
                 </Col>
               ))}
@@ -2011,39 +2163,42 @@ const EnhancedPromotionSection = () => {
             type="link" 
             icon={<LeftOutlined />} 
             onClick={() => setCurrentStep(0)}
-            className="mb-4"
+            className="mb-4 text-red-400 hover:text-red-300 p-0"
           >
             Quay lại chọn phim
           </Button>
           
-          <Row gutter={24}>
+          <Row gutter={24} className="bg-[#161D2F] border border-white/10 p-6 rounded-2xl mb-6 shadow-lg">
             <Col span={6}>
-              <img 
-                src={selectedMovie.poster_URL} 
-                alt={selectedMovie.movie_Name} 
-                style={{ width: '100%', borderRadius: 8 }} 
-              />
+              <div className="w-full overflow-hidden rounded-xl shadow-md bg-slate-900 border border-white/10" style={{ aspectRatio: '2/3' }}>
+                <img 
+                  src={selectedMovie.poster_URL || fallbackPoster} 
+                  alt={selectedMovie.movie_Name} 
+                  className="w-full h-full object-cover" 
+                  onError={(e) => { e.currentTarget.src = fallbackPoster; }}
+                />
+              </div>
             </Col>
-            <Col span={18}>
-              <Title level={3}>{selectedMovie.movie_Name}</Title>
-              <Row>
-                <Col span={12}>
-                  <p><strong>Đạo diễn:</strong> {selectedMovie.director}</p>
-                  <p><strong>Thể loại:</strong> {selectedMovie.genre}</p>
-                  <p><strong>Diễn viên:</strong> {selectedMovie.cast}</p>
+            <Col span={18} className="flex flex-col justify-center">
+              <Title level={3} className="text-white m-0 mb-4">{selectedMovie.movie_Name}</Title>
+              <Row gutter={[24, 12]} className="text-gray-300">
+                <Col span={12} className="space-y-2">
+                  <p><strong className="text-white">Đạo diễn:</strong> {selectedMovie.director}</p>
+                  <p><strong className="text-white">Thể loại:</strong> {selectedMovie.genre}</p>
+                  <p><strong className="text-white">Diễn viên:</strong> {selectedMovie.cast}</p>
                 </Col>
-                <Col span={12}>
-                  <p><strong>Thời lượng:</strong> {selectedMovie.duration} phút</p>
-                  <p><strong>Phân loại:</strong> <Tag color={selectedMovie.rating === 'P13' ? 'orange' : 'green'}>{selectedMovie.rating}</Tag></p>
+                <Col span={12} className="space-y-2">
+                  <p><strong className="text-white">Thời lượng:</strong> {selectedMovie.duration} phút</p>
+                  <p><strong className="text-white">Phân loại:</strong> <Tag color={selectedMovie.rating === 'P13' ? 'orange' : 'green'}>{selectedMovie.rating}</Tag></p>
                 </Col>
               </Row>
             </Col>
           </Row>
           
-          <Divider />
+          <Divider className="border-white/10" />
           
-          <Title level={4}>Chọn ngày chiếu</Title>
-          <div className="date-selection mb-6 overflow-auto">
+          <Title level={4} className="text-white">Chọn ngày chiếu</Title>
+          <div className="date-selection mb-6 overflow-auto pb-2">
             <Space size="middle">
               {availableDates.map((date, index) => {
                 const momentDate = moment(date);
@@ -2052,16 +2207,18 @@ const EnhancedPromotionSection = () => {
                 return (
                   <div 
                     key={index} 
-                    className={`date-card p-3 rounded-lg cursor-pointer text-center min-w-[100px] ${
-                      isSelected ? 'bg-blue-500 text-white' : 'bg-gray-100'
+                    className={`date-card p-3 rounded-xl cursor-pointer text-center min-w-[100px] border transition-all ${
+                      isSelected 
+                        ? 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-600/30 font-bold' 
+                        : 'bg-[#161D2F] border-white/10 text-gray-300 hover:border-red-500/50 hover:bg-white/5'
                     }`}
                     onClick={() => handleDateSelect(momentDate)}
                   >
-                    <div className="text-lg font-bold">{momentDate.format('DD')}</div>
-                    <div className={isSelected ? 'text-white' : 'text-gray-500'}>
+                    <div className="text-xl font-bold">{momentDate.format('DD')}</div>
+                    <div className={isSelected ? 'text-white' : 'text-gray-400 text-xs mt-0.5'}>
                       {momentDate.format('ddd')}
                     </div>
-                    <div className={isSelected ? 'text-white' : 'text-gray-500'}>
+                    <div className={isSelected ? 'text-white/80' : 'text-gray-400 text-xs'}>
                       {momentDate.format('MM/YYYY')}
                     </div>
                   </div>
@@ -2070,7 +2227,7 @@ const EnhancedPromotionSection = () => {
             </Space>
           </div>
           
-          <Title level={4}>Chọn suất chiếu</Title>
+          <Title level={4} className="text-white">Chọn suất chiếu</Title>
           {loading ? (
             <div className="flex justify-center my-8">
               <Spin size="large" />
@@ -2080,30 +2237,33 @@ const EnhancedPromotionSection = () => {
               {showtimes.map(showtime => (
                 <Card 
                   key={showtime.showtime_ID} 
-                  className={`showtime-card cursor-pointer hover:shadow-md transition-shadow`}
+                  className="showtime-card cursor-pointer bg-[#161D2F] border border-white/10 rounded-xl hover:border-red-500 hover:shadow-lg hover:shadow-red-500/10 transition-all text-white"
+                  styles={{ body: { padding: '16px', backgroundColor: '#161D2F' } }}
                   onClick={() => handleShowtimeSelect(showtime)}
                 >
                   <div className="flex justify-between items-center">
                     <div>
-                      <div className="text-lg font-bold">
+                      <div className="text-lg font-bold text-white">
                         {formatTime(showtime.start_Time)} - {formatTime(showtime.end_Time)}
                       </div>
-                      <div className="text-gray-500">
+                      <div className="text-gray-400 text-sm mt-1">
                         Phòng: {showtime.room_Name}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-red-500">
+                      <div className="font-bold text-red-500 text-base">
                         {showtime.base_Price.toLocaleString()} VND
                       </div>
-                      <Tag color="blue">{showtime.price_Tier}</Tag>
+                      <Tag color="blue" className="mt-1">{showtime.price_Tier}</Tag>
                     </div>
                   </div>
                 </Card>
               ))}
             </div>
           ) : (
-            <Empty description="Không có suất chiếu nào cho ngày này" />
+            <div className="py-12 bg-[#161D2F] border border-white/10 rounded-xl text-center">
+              <Empty description={<span className="text-gray-400">Không có suất chiếu nào cho ngày này</span>} />
+            </div>
           )}
         </div>
       )}
@@ -2115,7 +2275,7 @@ const EnhancedPromotionSection = () => {
             type="link" 
             icon={<LeftOutlined />} 
             onClick={() => setCurrentStep(1)}
-            className="mb-4"
+            className="mb-4 text-red-400 hover:text-red-300 p-0"
           >
             Quay lại chọn suất chiếu
           </Button>
@@ -2212,11 +2372,11 @@ const EnhancedPromotionSection = () => {
                 </LegendItem>
               </SeatLegend>
               
-              <div className="mt-8 bg-gray-50 p-6 rounded-lg shadow-sm mx-auto max-w-4xl">
-                <Row gutter={24}>
+              <div className="mt-8 bg-[#161D2F] border border-white/10 p-6 rounded-2xl shadow-xl mx-auto max-w-4xl text-white w-full">
+                <Row gutter={24} align="middle">
                   <Col span={16}>
-                    <div className="mb-4">
-                      <Text strong className="text-lg">Ghế đã chọn ({selectedSeats.length}):</Text>
+                    <div className="mb-2">
+                      <Text strong className="text-lg text-white">Ghế đã chọn ({selectedSeats.length}):</Text>
                       <div className="mt-2">
                         {selectedSeats.length > 0 ? (
                           <Space wrap>
@@ -2226,34 +2386,35 @@ const EnhancedPromotionSection = () => {
                                 color={seat.seat_Type === 'VIP' ? 'red' : 'blue'}
                                 closable
                                 onClose={() => handleSeatSelect(seat)}
-                                className="text-base py-1 px-2"
+                                className="text-base py-1 px-2.5 rounded-lg font-medium"
                               >
                                 {seat.row_Name}{seat.seat_Number} - {seat.price.toLocaleString()} VND
                               </Tag>
                             ))}
                           </Space>
                         ) : (
-                          <Text type="secondary">Chưa chọn ghế nào</Text>
+                          <Text className="text-gray-400">Chưa chọn ghế nào</Text>
                         )}
                       </div>
                     </div>
                   </Col>
                   <Col span={8} className="text-right">
                     <div>
-                      <Text type="secondary">Tổng tiền:</Text>
-                      <div className="text-2xl font-bold text-red-600">
+                      <Text className="text-gray-400">Tổng tiền:</Text>
+                      <div className="text-2xl font-black text-red-500">
                         {calculateSubtotal().toLocaleString()} VND
                       </div>
                     </div>
                     <Button 
                       type="primary" 
+                      danger
                       size="large" 
-                      className="mt-4"
+                      className="mt-4 w-full h-11 font-bold rounded-xl bg-red-600 hover:bg-red-500 shadow-lg shadow-red-600/30"
                       onClick={handleContinueAfterSeatSelection}
                       disabled={selectedSeats.length === 0}
                       loading={loading}
                     >
-                      Tiếp tục
+                      Tiếp tục ({selectedSeats.length} ghế)
                     </Button>
                   </Col>
                 </Row>
@@ -2270,7 +2431,6 @@ const EnhancedPromotionSection = () => {
             type="link" 
             icon={<LeftOutlined />} 
             onClick={async () => {
-              // Call the API here
               try {
                 const token = getAuthToken();
                 const response = await axios.put(`${API_URL}/Booking/${bookingId}/cancel`, {}, {
@@ -2281,67 +2441,79 @@ const EnhancedPromotionSection = () => {
                 });
 
                 if (response.status === 200) {
-                  setCurrentStep(2); // Navigate back to seat selection
+                  setCurrentStep(2);
                 }
               } catch (error) {
                 console.error('Error canceling booking:', error);
                 message.error('Không thể hủy đặt vé');
               }
             }}
-            className="mb-4"
+            className="mb-4 text-red-400 hover:text-red-300 p-0"
           >
             Quay lại chọn ghế
           </Button>
           
-          <Card className="mb-6" title="Thông tin đặt vé">
+          <Card className="mb-6 bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl" title={<span className="text-white font-bold text-lg">Thông tin đặt vé</span>}>
             <Row gutter={24}>
               <Col span={8}>
-                <img 
-                  src={selectedMovie.poster_URL} 
-                  alt={selectedMovie.movie_Name} 
-                  style={{ width: '100%', borderRadius: 8 }} 
-                />
+                <div className="w-full overflow-hidden rounded-xl shadow-md bg-slate-900 border border-white/10" style={{ aspectRatio: '2/3' }}>
+                  <img 
+                    src={selectedMovie.poster_URL || fallbackPoster} 
+                    alt={selectedMovie.movie_Name} 
+                    className="w-full h-full object-cover" 
+                    onError={(e) => { e.currentTarget.src = fallbackPoster; }}
+                  />
+                </div>
               </Col>
               <Col span={16}>
-                <Descriptions column={1} bordered>
-                  <Descriptions.Item label="Phim">{selectedMovie.movie_Name}</Descriptions.Item>
-                  <Descriptions.Item label="Suất chiếu">
-                    {formatDate(selectedShowtime.show_Date)} {formatTime(selectedShowtime.start_Time)} - {formatTime(selectedShowtime.end_Time)}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Phòng">{selectedShowtime.room_Name}</Descriptions.Item>
-                  <Descriptions.Item label="Ghế">
-                    {selectedSeats.map(seat => `${seat.row_Name}${seat.seat_Number}`).join(', ')}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Tổng tiền">
-                    <span className="text-xl font-bold text-red-600">
-                      {calculateSubtotal().toLocaleString()} VND
-                    </span>
-                  </Descriptions.Item>
-                </Descriptions>
+                <div className="space-y-3 bg-[#0B0F19]/60 border border-white/10 p-5 rounded-xl text-sm">
+                  <div className="flex justify-between pb-2 border-b border-white/5">
+                    <span className="text-gray-400">Phim:</span>
+                    <span className="text-white font-bold">{selectedMovie.movie_Name}</span>
+                  </div>
+                  <div className="flex justify-between pb-2 border-b border-white/5">
+                    <span className="text-gray-400">Suất chiếu:</span>
+                    <span className="text-white font-medium">{formatDate(selectedShowtime.show_Date)} {formatTime(selectedShowtime.start_Time)} - {formatTime(selectedShowtime.end_Time)}</span>
+                  </div>
+                  <div className="flex justify-between pb-2 border-b border-white/5">
+                    <span className="text-gray-400">Phòng chiếu:</span>
+                    <span className="text-white font-medium">{selectedShowtime.room_Name}</span>
+                  </div>
+                  <div className="flex justify-between pb-2 border-b border-white/5">
+                    <span className="text-gray-400">Ghế đã chọn:</span>
+                    <span className="text-red-400 font-bold">{selectedSeats.map(seat => `${seat.row_Name}${seat.seat_Number}`).join(', ')}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-gray-400 font-medium">Tổng tiền vé:</span>
+                    <span className="text-xl font-black text-red-500">{calculateSubtotal().toLocaleString()} VND</span>
+                  </div>
+                </div>
               </Col>
             </Row>
           </Card>
           
-          <Card title="Tìm kiếm thành viên" className="mb-6">
-            <div className="flex items-center gap-4">
+          <Card title={<span className="text-white font-bold text-lg">Tìm kiếm thành viên</span>} className="mb-6 bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl">
+            <div className="flex flex-wrap items-center gap-3">
               <Select 
                 defaultValue="phone" 
-                style={{ width: 120 }}
+                style={{ width: 140 }}
                 onChange={(value) => setMemberLookupType(value)}
               >
                 <Option value="phone">Số điện thoại</Option>
                 <Option value="email">Email</Option>
               </Select>
               <Input 
-                placeholder={memberLookupType === 'phone' ? "Nhập số điện thoại" : "Nhập email"}
+                placeholder={memberLookupType === 'phone' ? "Nhập số điện thoại..." : "Nhập email..."}
                 value={memberLookupValue}
                 onChange={(e) => setMemberLookupValue(e.target.value)}
-                style={{ width: 300 }}
+                className="bg-[#0B0F19] border-white/10 text-white rounded-xl h-10 max-w-sm"
               />
               <Button 
                 type="primary" 
+                danger
                 onClick={() => lookupMember(memberLookupValue, memberLookupType)}
                 loading={lookupLoading}
+                className="rounded-xl h-10 px-5 bg-red-600 hover:bg-red-500 font-bold shadow-md shadow-red-600/20"
               >
                 Tìm kiếm
               </Button>
@@ -2349,6 +2521,7 @@ const EnhancedPromotionSection = () => {
                 type="default"
                 icon={<PlusOutlined />}
                 onClick={() => setNewUserModalVisible(true)}
+                className="rounded-xl h-10 border-white/20 text-gray-200 hover:border-white/40 hover:text-white"
               >
                 Đăng ký thành viên mới
               </Button>
@@ -2357,7 +2530,7 @@ const EnhancedPromotionSection = () => {
             {member && <MemberDetailsView member={member} />}
           </Card>
           
-          <Card title="Thông tin khách hàng">
+          <Card title={<span className="text-white font-bold text-lg">Thông tin khách hàng</span>} className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl">
             <Form
               form={customerForm}
               layout="vertical"
@@ -2373,18 +2546,17 @@ const EnhancedPromotionSection = () => {
                 <Col span={12}>
                   <Form.Item
                     name="name"
-                    label="Họ và tên"
+                    label={<span className="text-gray-300">Họ và tên</span>}
                   >
-                    <Input placeholder="Nhập họ và tên" />
+                    <Input placeholder="Nhập họ và tên" className="bg-[#0B0F19] border-white/10 text-white rounded-xl h-10" />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
                   <Form.Item
                     name="phone"
-                    label="Số điện thoại"
-                    // Đã xóa rules bắt buộc cho số điện thoại
+                    label={<span className="text-gray-300">Số điện thoại</span>}
                   >
-                    <Input placeholder="Nhập số điện thoại" />
+                    <Input placeholder="Nhập số điện thoại" className="bg-[#0B0F19] border-white/10 text-white rounded-xl h-10" />
                   </Form.Item>
                 </Col>
               </Row>
@@ -2393,20 +2565,20 @@ const EnhancedPromotionSection = () => {
                 <Col span={12}>
                   <Form.Item
                     name="email"
-                    label="Email"
+                    label={<span className="text-gray-300">Email</span>}
                     rules={[
                       { type: 'email', message: 'Email không hợp lệ' }
                     ]}
                   >
-                    <Input placeholder="Nhập email" />
+                    <Input placeholder="Nhập email" className="bg-[#0B0F19] border-white/10 text-white rounded-xl h-10" />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
                   <Form.Item
                     name="sex"
-                    label="Giới tính"
+                    label={<span className="text-gray-300">Giới tính</span>}
                   >
-                    <Select>
+                    <Select className="rounded-xl">
                       <Option value="Male">Nam</Option>
                       <Option value="Female">Nữ</Option>
                       <Option value="Other">Khác</Option>
@@ -2419,14 +2591,21 @@ const EnhancedPromotionSection = () => {
                 <Checkbox 
                   checked={sendConfirmation} 
                   onChange={(e) => setSendConfirmation(e.target.checked)}
+                  className="text-gray-300"
                 >
                   Gửi thông tin đặt vé qua email
                 </Checkbox>
               </Form.Item>
               
               <Form.Item>
-                <Button type="primary" htmlType="submit" size="large">
-                  Tiếp tục
+                <Button 
+                  type="primary" 
+                  danger
+                  htmlType="submit" 
+                  size="large"
+                  className="h-12 px-8 font-bold text-base rounded-xl bg-red-600 hover:bg-red-500 shadow-lg shadow-red-600/30"
+                >
+                  Tiếp tục đến thanh toán
                 </Button>
               </Form.Item>
             </Form>
@@ -2441,56 +2620,67 @@ const EnhancedPromotionSection = () => {
             type="link" 
             icon={<LeftOutlined />} 
             onClick={() => setCurrentStep(3)}
-            className="mb-4"
+            className="mb-4 text-red-400 hover:text-red-300 p-0"
           >
             Quay lại thông tin khách hàng
           </Button>
           
           <Row gutter={24}>
             <Col span={16}>
-              <Card title="Chọn phương thức thanh toán" className="mb-6">
-                <div className="payment-methods">
-                  {paymentMethods.map(method => (
-                    <div 
-                      key={method.id}
-                      className={`payment-method-item p-4 mb-4 border rounded-lg cursor-pointer ${
-                        paymentMethod === method.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                      }`}
-                      onClick={() => handlePaymentMethodSelect(method.id)}
-                    >
-                      <div className="flex items-center">
-                        <Radio checked={paymentMethod === method.id} />
-                        <div className="ml-4 flex items-center">
-                          <div className="payment-icon text-2xl mr-3">
+              <Card title={<span className="text-white font-bold text-lg">Chọn phương thức thanh toán</span>} className="mb-6 bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl">
+                <div className="payment-methods space-y-3">
+                  {paymentMethods.map(method => {
+                    const isSelected = paymentMethod === method.id;
+                    return (
+                      <div 
+                        key={method.id}
+                        className={`payment-method-item p-4 border rounded-xl cursor-pointer transition-all flex items-center justify-between ${
+                          isSelected 
+                            ? 'border-red-500 bg-red-500/10 shadow-lg shadow-red-500/10' 
+                            : 'border-white/10 bg-[#0B0F19]/60 hover:border-white/20 hover:bg-white/5'
+                        }`}
+                        onClick={() => handlePaymentMethodSelect(method.id)}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`text-2xl w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+                            isSelected ? 'bg-red-600 text-white shadow-md shadow-red-600/30' : 'bg-white/5 text-gray-400'
+                          }`}>
                             {method.icon}
                           </div>
                           <div>
-                            <div className="font-medium">{method.name}</div>
-                            <div className="text-gray-500 text-sm">
+                            <div className="font-bold text-white text-base">{method.name}</div>
+                            <div className="text-gray-400 text-xs mt-0.5">
                               {method.id === 'Cash' 
-                                ? 'Thanh toán trực tiếp tại quầy' 
-                                : 'Quét mã QR để thanh toán'}
+                                ? 'Thanh toán trực tiếp tại quầy bằng tiền mặt' 
+                                : 'Quét mã QR qua ứng dụng ngân hàng / ví điện tử'}
                             </div>
                           </div>
                         </div>
+
+                        {/* Custom Radio Indicator */}
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          isSelected ? 'border-red-500 bg-red-600' : 'border-gray-500 bg-transparent'
+                        }`}>
+                          {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </Card>
               
-              <Card title="Mã khuyến mãi & Ưu đãi">
+              <Card title={<span className="text-white font-bold text-lg">Mã khuyến mãi & Ưu đãi</span>} className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl">
                 <EnhancedPromotionSection />
                 
                 {member && (
-                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <div className="mt-4 p-4 bg-[#0B0F19]/60 border border-white/10 rounded-xl">
                     <div className="flex justify-between items-center mb-2">
-                      <Text strong>Điểm tích lũy của thành viên:</Text>
-                      <Tag color="green" className="text-base">{member.currentPoints?.toLocaleString() || 0} điểm</Tag>
+                      <Text className="text-gray-300 font-medium">Điểm tích lũy của thành viên:</Text>
+                      <Tag color="green" className="text-base px-2 py-0.5 font-bold">{member.currentPoints?.toLocaleString() || 0} điểm</Tag>
                     </div>
                     
                     {member.currentPoints > 0 && (
-                      <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center gap-2 mt-3">
                         <Input
                           type="number"
                           placeholder="Số điểm muốn sử dụng"
@@ -2506,12 +2696,14 @@ const EnhancedPromotionSection = () => {
                           step="1000"
                           min="0"
                           max={Math.min(member.currentPoints, Math.floor(bookingSummary.subtotal * 0.5))}
-                          style={{ width: '60%' }}
+                          className="bg-[#0B0F19] border-white/10 text-white rounded-xl h-11 flex-1"
                         />
                         <Button 
                           type="primary" 
+                          danger
                           onClick={applyPointsDiscount}
                           disabled={pointsToUse <= 0}
+                          className="rounded-xl h-11 px-5 bg-red-600 hover:bg-red-500 font-bold"
                         >
                           Sử dụng điểm
                         </Button>
@@ -2524,77 +2716,78 @@ const EnhancedPromotionSection = () => {
             
             <Col span={8}>
               <Card 
-                title="Thông tin thanh toán" 
-                className="sticky-summary"
+                title={<span className="text-white font-bold text-lg">Thông tin thanh toán</span>} 
+                className="bg-[#161D2F] border border-white/10 rounded-2xl shadow-xl sticky-summary text-white"
                 style={{ position: 'sticky', top: '20px' }}
               >
-                <Descriptions column={1} bordered>
-                  <Descriptions.Item label="Phim">{selectedMovie.movie_Name}</Descriptions.Item>
-                  <Descriptions.Item label="Suất chiếu">
-                    {formatDate(selectedShowtime.show_Date)} {formatTime(selectedShowtime.start_Time)}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Ghế">
-                    {selectedSeats.map(seat => `${seat.row_Name}${seat.seat_Number}`).join(', ')}
-                  </Descriptions.Item>
-                </Descriptions>
+                <div className="space-y-3 bg-[#0B0F19]/60 border border-white/10 p-4 rounded-xl mb-4 text-sm">
+                  <div className="flex justify-between pb-2 border-b border-white/5">
+                    <span className="text-gray-400">Phim:</span>
+                    <span className="text-white font-bold text-right max-w-[65%]">{selectedMovie.movie_Name}</span>
+                  </div>
+                  <div className="flex justify-between pb-2 border-b border-white/5">
+                    <span className="text-gray-400">Suất chiếu:</span>
+                    <span className="text-white font-medium">{formatDate(selectedShowtime.show_Date)} {formatTime(selectedShowtime.start_Time)}</span>
+                  </div>
+                  <div className="flex justify-between pb-2 border-b border-white/5">
+                    <span className="text-gray-400">Phòng chiếu:</span>
+                    <span className="text-white font-medium">{selectedShowtime.room_Name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Ghế:</span>
+                    <span className="text-red-400 font-bold">{selectedSeats.map(seat => `${seat.row_Name}${seat.seat_Number}`).join(', ')}</span>
+                  </div>
+                </div>
                 
-                <Divider />
+                <Divider className="border-white/10 my-4" />
                 
-                <div className="price-summary">
-                  <div className="flex justify-between mb-2">
-                    <Text>Tạm tính:</Text>
-                    <Text>{bookingSummary.subtotal.toLocaleString()} VND</Text>
+                <div className="price-summary space-y-2 text-sm">
+                  <div className="flex justify-between items-center text-gray-300">
+                    <span>Tạm tính:</span>
+                    <span className="font-semibold text-white">{bookingSummary.subtotal.toLocaleString()} VND</span>
                   </div>
                   
                   {memberDiscountAmount > 0 && (
-                    <div className="flex justify-between mb-2 text-green-600">
-                      <Text>Giảm giá thành viên ({memberDiscountAmount}%):</Text>
-                      <Text>-{bookingSummary.memberDiscount.toLocaleString()} VND</Text>
+                    <div className="flex justify-between items-center text-emerald-400">
+                      <span>Giảm giá thành viên ({memberDiscountAmount}%):</span>
+                      <span className="font-semibold">-{bookingSummary.memberDiscount.toLocaleString()} VND</span>
                     </div>
                   )}
                   
                   {appliedPromotion && (
-                    <div className="flex justify-between mb-2 text-green-600">
-                      <Text>Mã khuyến mãi ({appliedPromotion.code}):</Text>
-                      <Text>-{appliedPromotion.discount_Amount.toLocaleString()} VND</Text>
+                    <div className="flex justify-between items-center text-emerald-400">
+                      <span>Mã khuyến mãi ({appliedPromotion.code}):</span>
+                      <span className="font-semibold">-{appliedPromotion.discount_Amount.toLocaleString()} VND</span>
                     </div>
                   )}
                   
                   {bookingSummary.pointsDiscount > 0 && (
-                    <div className="flex justify-between mb-2 text-green-600">
-                      <Text>Điểm tích lũy sử dụng:</Text>
-                      <Text>-{bookingSummary.pointsDiscount.toLocaleString()} VND</Text>
+                    <div className="flex justify-between items-center text-emerald-400">
+                      <span>Điểm tích lũy sử dụng:</span>
+                      <span className="font-semibold">-{bookingSummary.pointsDiscount.toLocaleString()} VND</span>
                     </div>
                   )}
                   
+                  <Divider className="border-white/10 my-3" />
                   
-                  <Divider />
-                  
-                  <div className="flex justify-between items-center font-bold">
-                    <Text className="text-lg">Tổng thanh toán:</Text>
-                    <Text className="text-xl text-red-600" id="total-amount">
-                      {bookingSummary.total.toLocaleString()} VND 
-                      {/* Debugging info - remove in production */}
-                      <span style={{ display: 'none' }}>
-                        (ST: {bookingSummary.subtotal}, 
-                        MD: {bookingSummary.memberDiscount}, 
-                        PD: {bookingSummary.promotionDiscount}, 
-                        PTD: {bookingSummary.pointsDiscount})
-                      </span>
-                    </Text>
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="text-base font-bold text-white">Tổng thanh toán:</span>
+                    <span className="text-2xl font-black text-red-500" id="total-amount">
+                      {bookingSummary.total.toLocaleString()} VND
+                    </span>
                   </div>
-                  
                 </div>
                 
                 <Button 
                   type="primary" 
+                  danger
                   size="large" 
                   block 
-                  className="mt-6"
+                  className="mt-6 h-12 font-bold text-base rounded-xl bg-red-600 hover:bg-red-500 shadow-lg shadow-red-600/30"
                   onClick={processPayment}
                   loading={loading}
                 >
-                  Thanh toán
+                  {paymentMethod === 'Cash' ? 'Xác nhận thanh toán tại quầy' : 'Tạo mã QR thanh toán'}
                 </Button>
               </Card>
             </Col>
@@ -2663,11 +2856,11 @@ const EnhancedPromotionSection = () => {
       
       {/* QR Payment Modal */}
       <Modal
-        title="Thanh toán QR Code"
+        title={<span className="text-white font-bold">Thanh toán QR Code</span>}
         open={paymentQrVisible}
         onCancel={() => setPaymentQrVisible(false)}
         footer={[
-          <Button key="cancel" onClick={() => setPaymentQrVisible(false)}>
+          <Button key="cancel" onClick={() => setPaymentQrVisible(false)} className="rounded-lg">
             Hủy / Đóng
           </Button>,
           <Button 
@@ -2675,32 +2868,34 @@ const EnhancedPromotionSection = () => {
             type="primary" 
             loading={loading}
             onClick={handlePaymentSuccess}
-            style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+            className="bg-emerald-600 hover:bg-emerald-500 border-none font-bold rounded-lg px-5 text-white"
           >
             Đã thanh toán thành công
           </Button>
         ]}
       >
         {paymentData && (
-          <div className="text-center">
+          <div className="text-center py-2">
             <div className="mb-4">
-              <QRCode value={paymentData.qrCodeUrl || paymentData.paymentUrl} size={250} bordered />
+              <div className="p-4 bg-white rounded-2xl inline-block shadow-xl">
+                <QRCode value={paymentData.qrCodeUrl || paymentData.paymentUrl} size={220} bordered={false} />
+              </div>
             </div>
-            <div className="mb-2">
-              <Text strong>Mã đơn hàng: {paymentData.orderCode}</Text>
+            <div className="mb-1.5">
+              <Text className="text-gray-300">Mã đơn hàng: <strong className="text-white">{paymentData.orderCode}</strong></Text>
             </div>
             <div className="mb-4">
-              <Text strong className="text-red-600 text-lg">
-                Số tiền: {paymentData.amount.toLocaleString()} VND
+              <Text className="text-red-500 text-2xl font-black">
+                {paymentData.amount.toLocaleString()} VND
               </Text>
             </div>
-            <Paragraph>
-              Quét mã QR bằng ứng dụng ngân hàng để thanh toán.<br />
-              Sau khi thanh toán thành công, vui lòng nhấn "Đã thanh toán thành công".
-            </Paragraph>
+            <p className="text-gray-400 text-sm max-w-sm mx-auto">
+              Quét mã QR bằng ứng dụng ngân hàng hoặc ví điện tử để thanh toán.<br />
+              Sau khi khách hàng chuyển khoản thành công, nhấn <strong className="text-emerald-400">"Đã thanh toán thành công"</strong>.
+            </p>
             <div className="mt-4">
-              <Button type="link" href={paymentData.paymentUrl} target="_blank">
-                Mở trang thanh toán
+              <Button type="link" href={paymentData.paymentUrl} target="_blank" className="text-red-400 hover:text-red-300">
+                Mở liên kết thanh toán bên ngoài →
               </Button>
             </div>
           </div>

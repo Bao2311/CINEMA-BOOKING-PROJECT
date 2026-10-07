@@ -55,10 +55,13 @@ const ShowtimesPage: React.FC = () => {
   // Filter showtimes by selected date and status
   const validShowtimes = showtimes.filter((st) => {
     if (!st.show_Date) return false;
-    const d = new Date(st.show_Date);
+    const showDateStr = typeof st.show_Date === 'string'
+      ? st.show_Date.split('T')[0]
+      : format(new Date(st.show_Date), 'yyyy-MM-dd');
+    const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
     const dateMatch =
-      isSameDay(d, selectedDate) ||
-      format(d, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+      showDateStr === selectedDateStr ||
+      isSameDay(new Date(st.show_Date), selectedDate);
     const statusMatch = st.status !== 'Hidden' && st.status !== 'Cancelled';
     const movieMatch = movieId ? st.movie_ID === parseInt(movieId) : true;
     return dateMatch && statusMatch && movieMatch;
@@ -82,6 +85,12 @@ const ShowtimesPage: React.FC = () => {
     });
 
   const handleBooking = async (showtimeId: number, targetMovieId: number) => {
+    const role = localStorage.getItem('role');
+    if (role === 'Staff' || role === 'Admin' || role === 'Manager') {
+      navigate('/staff', { state: { showtimeId, movieId: targetMovieId } });
+      return;
+    }
+
     const token = localStorage.getItem('token');
     try {
       // Check if user has unpaid bookings
@@ -112,7 +121,12 @@ const ShowtimesPage: React.FC = () => {
       toast.success('Đã hủy đơn đặt vé thành công!');
       setIsModalVisible(false);
       if (selectedShowtimeInfo) {
-        navigate(`/cinema-room/${selectedShowtimeInfo.showtimeId}?movieId=${selectedShowtimeInfo.movieId}`);
+        const role = localStorage.getItem('role');
+        if (role === 'Staff' || role === 'Admin' || role === 'Manager') {
+          navigate('/staff', { state: { showtimeId: selectedShowtimeInfo.showtimeId, movieId: selectedShowtimeInfo.movieId } });
+        } else {
+          navigate(`/cinema-room/${selectedShowtimeInfo.showtimeId}?movieId=${selectedShowtimeInfo.movieId}`);
+        }
       }
     } catch {
       toast.error('Có lỗi xảy ra khi hủy đơn vé.');

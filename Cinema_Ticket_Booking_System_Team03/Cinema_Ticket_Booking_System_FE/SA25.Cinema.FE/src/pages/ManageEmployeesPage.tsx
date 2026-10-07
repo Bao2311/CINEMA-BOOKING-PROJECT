@@ -803,11 +803,15 @@ const ManageUsersPage: React.FC = () => {
       <Modal
         isOpen={isAddingUser}
         onClose={() => !isSubmitting && setIsAddingUser(false)}
+        size="3xl"
       >
-        <div className="p-6">
-          <h2 className="text-2xl font-bold text-white mb-6">
-            Thêm người dùng mới
-          </h2>
+        <div className="p-2 sm:p-4">
+          <div className="flex items-center gap-2.5 mb-6">
+            <span className="w-2.5 h-6 bg-red-600 rounded-full inline-block"></span>
+            <h2 className="text-xl font-bold text-white">
+              Thêm người dùng mới
+            </h2>
+          </div>
           <UserForm
             onSubmit={handleAddUser}
             onCancel={() => !isSubmitting && setIsAddingUser(false)}
@@ -819,11 +823,15 @@ const ManageUsersPage: React.FC = () => {
       <Modal
         isOpen={!!editingUser}
         onClose={() => !isSubmitting && setEditingUser(null)}
+        size="3xl"
       >
-        <div className="p-6">
-          <h2 className="text-2xl font-bold text-white mb-6">
-            Chỉnh sửa người dùng
-          </h2>
+        <div className="p-2 sm:p-4">
+          <div className="flex items-center gap-2.5 mb-6">
+            <span className="w-2.5 h-6 bg-red-600 rounded-full inline-block"></span>
+            <h2 className="text-xl font-bold text-white">
+              Chỉnh sửa thông tin người dùng
+            </h2>
+          </div>
           <UserForm
             user={editingUser}
             onSubmit={handleUpdateUser}

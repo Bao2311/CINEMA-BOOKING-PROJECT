@@ -55,29 +55,37 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     const phoneRegex = /^0[0-9]{9}$/;
-    if (!phoneRegex.test(formData.phone_Number)) {
+    if (formData.phone_Number && !phoneRegex.test(formData.phone_Number)) {
       showAlert('error', 'Số điện thoại phải bắt đầu bằng số 0 và có 10 chữ số.');
       return;
     }
     try {
-      let formattedDateOfBirth = formData.date_Of_Birth;
+      let formattedDateOfBirth: string | null = formData.date_Of_Birth || null;
       if (formData.date_Of_Birth) {
-        const dob = new Date(formData.date_Of_Birth);
-        const today = new Date(); // Ngày hiện tại
-        const ageDiff = today.getFullYear() - dob.getFullYear();
-        const monthDiff = today.getMonth() - dob.getMonth();
-        const dayDiff = today.getDate() - dob.getDate();
-        const isUnder10 = ageDiff < 10 || (ageDiff === 10 && (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)));
-  
-        if (isNaN(dob.getTime()) || dob >= today) {
-          showAlert('error', 'Ngày sinh không hợp lệ hoặc phải trong quá khứ.');
-          return;
+        const parts = formData.date_Of_Birth.split('-');
+        if (parts.length === 3) {
+          const birthYear = parseInt(parts[0], 10);
+          const birthMonth = parseInt(parts[1], 10) - 1;
+          const birthDay = parseInt(parts[2], 10);
+          const dob = new Date(birthYear, birthMonth, birthDay);
+          const today = new Date();
+
+          if (isNaN(dob.getTime()) || dob >= today) {
+            showAlert('error', 'Ngày sinh không hợp lệ hoặc phải trong quá khứ.');
+            return;
+          }
+
+          const ageDiff = today.getFullYear() - dob.getFullYear();
+          const monthDiff = today.getMonth() - dob.getMonth();
+          const dayDiff = today.getDate() - dob.getDate();
+          const isUnder10 = ageDiff < 10 || (ageDiff === 10 && (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)));
+
+          if (isUnder10) {
+            showAlert('error', 'Bạn phải ít nhất 10 tuổi.');
+            return;
+          }
+          formattedDateOfBirth = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
         }
-        if (isUnder10) {
-          showAlert('error', 'Bạn phải ít nhất 10 tuổi.');
-          return;
-        }
-        formattedDateOfBirth = dob.toISOString().split('T')[0];
       }
       const token = localStorage.getItem('token');
       if (!token) {
@@ -95,7 +103,7 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({
       showAlert('success', 'Cập nhật thông tin thành công!');
       setIsEditing(false);
       if (profile) {
-        setProfile({ ...profile, ...formData, date_Of_Birth: formattedDateOfBirth });
+        setProfile({ ...profile, ...formData, date_Of_Birth: formattedDateOfBirth || '' });
       }
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -244,7 +252,25 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({
                     <option value="Khác">Khác</option>
                   </select>
                 </div>
-                <div className="md:col-span-2">
+                <div>
+                  <label htmlFor="date_Of_Birth" className="block text-sm font-medium text-gray-300 mb-1.5">
+                    Ngày sinh
+                  </label>
+                  <input
+                    type="date"
+                    id="date_Of_Birth"
+                    value={formData.date_Of_Birth}
+                    onChange={handleInputChange}
+                    max={new Date().toISOString().split('T')[0]}
+                    className={`w-full px-3.5 py-2.5 border rounded-xl text-sm focus:outline-none transition-all [color-scheme:dark] ${
+                      isEditing
+                        ? 'border-white/20 bg-white/5 text-white focus:border-red-500'
+                        : 'border-white/10 bg-white/[0.02] text-gray-400 cursor-not-allowed'
+                    }`}
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div>
                   <label htmlFor="address" className="block text-sm font-medium text-gray-300 mb-1.5">
                     Địa chỉ
                   </label>

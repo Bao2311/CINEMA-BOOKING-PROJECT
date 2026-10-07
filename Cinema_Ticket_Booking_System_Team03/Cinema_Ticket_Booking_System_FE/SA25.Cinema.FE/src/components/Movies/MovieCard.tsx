@@ -52,13 +52,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
   const genres = movie.genre?.split(',').slice(0, 2) || [];
   const isNowShowing = movie.status === 'Now Showing';
 
-  const fallbackPoster = `https://image.tmdb.org/t/p/w400${
-    movie.movie_Name.includes('Avengers') ? '/or06FN3Dka5tukK1e9sl16pB3iy.jpg'
-    : movie.movie_Name.includes('Spider') ? '/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg'
-    : movie.movie_Name.includes('Inception') ? '/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg'
-    : movie.movie_Name.includes('Interstellar') ? '/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg'
-    : '/qJ2tW6WMUDux911r6m7haRef0WH.jpg'
-  }`;
+  const fallbackPoster = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop&q=80';
 
   return (
     <>

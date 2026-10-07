@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using STP.Repository.Data;
@@ -106,6 +106,7 @@ namespace STP.Repository.Services
 
         public async Task<BookingResponseDTO> CreateBooking(BookingRequestDTO request, int userId)
         {
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 // Lấy thông tin người dùng để kiểm tra role
@@ -333,7 +334,9 @@ namespace STP.Repository.Services
                         Payment_Reference = Guid.NewGuid().ToString(),
                         Transaction_Date = DateTime.Now,
                         Payment_Status = "Initiated",
-                        Processor_Response = "Payment method selected"
+                        Processor_Response = "Payment method selected",
+                        Refund_Amount = 0,
+                        Refund_Reason = null
                     };
 
                     _context.Payments.Add(initialPayment);
@@ -352,6 +355,7 @@ namespace STP.Repository.Services
 
                 _context.BookingHistories.Add(history);
                 await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
 
                 // Lấy số điểm hiện tại của người dùng - chỉ áp dụng cho đặt online
                 int currentPoints = 0;
@@ -418,6 +422,7 @@ namespace STP.Repository.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error creating booking");
                 throw;
             }
@@ -612,15 +617,18 @@ namespace STP.Repository.Services
                     booking.Status = "Confirmed";
 
                     // Cập nhật thanh toán
+                    var paymentMethod = booking.Payments?.FirstOrDefault()?.Payment_Method ?? "Cash";
                     var payment = new Payment
                     {
                         Booking_ID = bookingId,
                         Amount = booking.Total_Amount,
-                        Payment_Method = "Cash", // Hoặc lấy từ request
+                        Payment_Method = paymentMethod,
                         Payment_Status = "Confirmed",
                         Transaction_Date = DateTime.Now,
                         Payment_Reference = Guid.NewGuid().ToString(),
-                        Processor_Response = "Payment completed successfully"
+                        Processor_Response = "Payment completed successfully",
+                        Refund_Amount = 0,
+                        Refund_Reason = null
                     };
 
                     _context.Payments.Add(payment);

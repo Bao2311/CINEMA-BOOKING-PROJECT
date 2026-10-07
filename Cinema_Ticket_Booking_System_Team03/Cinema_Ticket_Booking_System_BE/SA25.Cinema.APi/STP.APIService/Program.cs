@@ -25,6 +25,9 @@ namespace STP.APIService
             // Cho phép Npgsql xử lý DateTime linh hoạt (hỗ trợ cả Local và UTC như SQL Server)
             AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
+            // Đăng ký CodePagesEncodingProvider để hỗ trợ bảng mã Windows-1252 / fonts tiếng Việt trong iTextSharp
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
             // Khởi tạo builder cho ứng dụng web
             var builder = WebApplication.CreateBuilder(args);
 
@@ -135,6 +138,7 @@ namespace STP.APIService
             builder.Services.AddScoped<SeatLayoutService>();
             builder.Services.AddScoped<SeatTypeService>();
             builder.Services.AddScoped<PromotionService>();
+            builder.Services.AddScoped<AiAssistantService>();
             builder.Services.AddHttpClient<PayOSNugetService>();
             builder.Services.AddScoped<PayOSNugetService>();
             builder.Services.AddScoped<StaffPerformanceService>();

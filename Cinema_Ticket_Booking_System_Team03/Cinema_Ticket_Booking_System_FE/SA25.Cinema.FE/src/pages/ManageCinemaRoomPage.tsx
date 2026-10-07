@@ -117,14 +117,16 @@ const ScreenText = styled.div`
 
 const SeatingArea = styled.div`
   display: grid;
-  grid-template-columns: 40px 1fr 40px; /* Row label, seats section, row label */
-  gap: 0.5rem;
-  width: 100%;
-  max-width: 900px;
-  background: #f9fafb;
+  grid-template-columns: 40px auto 40px; /* Row label, seats section, row label */
+  gap: 0.625rem;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   position: relative;
 `;
 
@@ -288,21 +290,22 @@ const Tooltip = styled.div`
 const SeatLegend = styled.div`
   display: flex;
   justify-content: center;
-  gap: 2rem;
-  margin-top: 2.5rem;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
   flex-wrap: wrap;
-  background: #ffffff;
-  padding: 1rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: #1E2738;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 `;
 
 const LegendItem = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 0.9rem;
-  color: #4b5563;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #e2e8f0;
   font-weight: 500;
 `;
 
@@ -390,19 +393,21 @@ const BulkActionButton = styled.button`
   }
 `;
 const ScrollableSeatingArea = styled.div`
-  max-height: 500px; /* Set a fixed height for the scrollable area */
-  overflow-y: auto; /* Enable vertical scrolling */
+  max-height: 520px; /* Set a fixed height for the scrollable area */
+  overflow: auto; /* Enable both horizontal and vertical scrolling */
   width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   background: #0B0F19;
   padding: 1.5rem;
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 const ModalContent = styled.div`
-  max-height: 80vh; /* Set max height for the modal */
+  max-height: 85vh; /* Set max height for the modal */
   overflow-y: auto; /* Enable vertical scrolling */
-  padding: 1rem; /* Add padding inside the modal */
   color: #ffffff;
 `;
 const PriceModalContent = styled.div`
@@ -2350,10 +2355,11 @@ const ManageCinemaRoomPage: React.FC = () => {
       <Modal
         isOpen={isViewingSeatLayout}
         onClose={handleCloseSeatLayoutModal}
-        size="xl"
+        size="6xl"
+        hideCloseButton={true}
       >
         <ModalContent>
-          <div className="p-6">
+          <div className="p-2">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <span className="w-2.5 h-6 bg-red-600 rounded-full inline-block"></span>
@@ -2487,7 +2493,7 @@ const ManageCinemaRoomPage: React.FC = () => {
                                       .every((seat) =>
                                         selectedSeats.includes(seat.layout_ID)
                                       )
-                                    ? "#93c5fd" // All selected - highlight
+                                    ? "#2563eb" // All selected - highlight
                                     : seatLayout.rows.$values
                                         .flatMap((row) =>
                                           row.seats.$values.filter(
@@ -2497,9 +2503,10 @@ const ManageCinemaRoomPage: React.FC = () => {
                                         .some((seat) =>
                                           selectedSeats.includes(seat.layout_ID)
                                         )
-                                    ? "#bfdbfe" // Some selected - light highlight
-                                    : "#e5e7eb" // None selected - default
-                                  : "#e5e7eb",
+                                    ? "#1d4ed8" // Some selected - dark blue highlight
+                                    : "#1E2738" // None selected - dark background
+                                  : "#1E2738",
+                              color: "#e2e8f0",
                             }}
                           >
                             {col}
@@ -2531,13 +2538,14 @@ const ManageCinemaRoomPage: React.FC = () => {
                                   ? row.seats.$values.every((seat) =>
                                       selectedSeats.includes(seat.layout_ID)
                                     )
-                                    ? "#93c5fd" // All selected - highlight
+                                    ? "#2563eb" // All selected - highlight
                                     : row.seats.$values.some((seat) =>
                                         selectedSeats.includes(seat.layout_ID)
                                       )
-                                    ? "#bfdbfe" // Some selected - light highlight
-                                    : "#e5e7eb" // None selected - default
-                                  : "#e5e7eb",
+                                    ? "#1d4ed8" // Some selected - dark blue highlight
+                                    : "#1E2738" // None selected - dark background
+                                  : "#1E2738",
+                              color: "#e2e8f0",
                             }}
                           >
                             {row.row}
@@ -2633,13 +2641,14 @@ const ManageCinemaRoomPage: React.FC = () => {
                                   ? row.seats.$values.every((seat) =>
                                       selectedSeats.includes(seat.layout_ID)
                                     )
-                                    ? "#93c5fd" // All selected - highlight
+                                    ? "#2563eb" // All selected - highlight
                                     : row.seats.$values.some((seat) =>
                                         selectedSeats.includes(seat.layout_ID)
                                       )
-                                    ? "#bfdbfe" // Some selected - light highlight
-                                    : "#e5e7eb" // None selected - default
-                                  : "#e5e7eb",
+                                    ? "#1d4ed8" // Some selected - dark blue highlight
+                                    : "#1E2738" // None selected - dark background
+                                  : "#1E2738",
+                              color: "#e2e8f0",
                             }}
                           >
                             {row.row}
@@ -2676,7 +2685,7 @@ const ManageCinemaRoomPage: React.FC = () => {
                                       .every((seat) =>
                                         selectedSeats.includes(seat.layout_ID)
                                       )
-                                    ? "#93c5fd" // All selected - highlight
+                                    ? "#2563eb" // All selected - highlight
                                     : seatLayout.rows.$values
                                         .flatMap((row) =>
                                           row.seats.$values.filter(
@@ -2686,9 +2695,10 @@ const ManageCinemaRoomPage: React.FC = () => {
                                         .some((seat) =>
                                           selectedSeats.includes(seat.layout_ID)
                                         )
-                                    ? "#bfdbfe" // Some selected - light highlight
-                                    : "#e5e7eb" // None selected - default
-                                  : "#e5e7eb",
+                                    ? "#1d4ed8" // Some selected - dark blue highlight
+                                    : "#1E2738" // None selected - dark background
+                                  : "#1E2738",
+                              color: "#e2e8f0",
                             }}
                           >
                             {col}

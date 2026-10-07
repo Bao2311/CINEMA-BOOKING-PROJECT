@@ -19,6 +19,8 @@ const RegisterForm: React.FC = () => {
 
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const navigate = useNavigate();
 
   const handleInputChange = (
@@ -59,26 +61,103 @@ const RegisterForm: React.FC = () => {
       const response = await axios.post(`${API_URL}/Auth/register`, {
         email: formData.email,
         password: formData.password,
+        confirmPassword: formData.confirmPassword,
         fullName: formData.fullName,
-        dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : new Date().toISOString(),
+        dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : new Date("2000-01-01").toISOString(),
         sex: formData.sex,
         phoneNumber: formData.phoneNumber,
         address: formData.address,
       });
 
       if (response.status === 200 || response.status === 201) {
-        toast.success("Đăng ký tài khoản thành công! Vui lòng đăng nhập.");
-        navigate("/login");
+        setIsRegistered(true);
+        toast.success("Đăng ký thành công! Vui lòng kiểm tra email để kích hoạt tài khoản.");
       }
     } catch (err: any) {
       console.error("Registration error:", err);
-      const msg = err?.response?.data?.message || "Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.";
+      const errorsObj = err?.response?.data?.errors;
+      let msg = err?.response?.data?.message;
+      if (!msg && errorsObj) {
+        const firstKey = Object.keys(errorsObj)[0];
+        msg = Array.isArray(errorsObj[firstKey]) ? errorsObj[firstKey][0] : errorsObj[firstKey];
+      }
+      msg = msg || "Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.";
       setError(msg);
       toast.error(msg);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handleResendVerification = async () => {
+    setIsResending(true);
+    try {
+      await axios.post(`${API_URL}/Auth/resend-verification`, {
+        email: formData.email,
+      });
+      toast.success("Đã gửi lại email xác thực! Vui lòng kiểm tra hộp thư.");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || "Không thể gửi lại email xác thực. Vui lòng thử lại sau.";
+      toast.error(msg);
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  if (isRegistered) {
+    return (
+      <div className="w-full max-w-lg mx-auto bg-[#161D2F] border border-white/10 rounded-2xl shadow-2xl overflow-hidden p-8 text-center animate-fade-in">
+        <div className="flex justify-center mb-5">
+          <div className="relative">
+            <div className="absolute inset-0 bg-green-500 rounded-full blur-lg opacity-40" />
+            <div className="relative bg-gradient-to-br from-green-500 to-emerald-600 p-4 rounded-full">
+              <Mail className="h-8 w-8 text-white" />
+            </div>
+          </div>
+        </div>
+
+        <h2 className="text-2xl font-bold text-white mb-2">
+          Kích hoạt tài khoản
+        </h2>
+        <p className="text-gray-300 text-sm mb-4">
+          Chúng tôi đã gửi email xác thực kèm liên kết kích hoạt đến:
+        </p>
+        <div className="bg-white/5 border border-white/10 py-2.5 px-4 rounded-xl text-red-400 font-semibold mb-6 break-all">
+          {formData.email}
+        </div>
+
+        <p className="text-gray-400 text-xs mb-6 leading-relaxed">
+          Vui lòng mở hòm thư của bạn (kiểm tra cả thư mục <strong>Spam / Thư rác</strong> nếu không thấy) và nhấn vào nút <strong>Xác thực tài khoản</strong> để kích hoạt trước khi đăng nhập.
+        </p>
+
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            className="w-full py-2.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium rounded-xl text-sm transition-all shadow-lg shadow-red-600/30 cursor-pointer"
+          >
+            Đến trang đăng nhập
+          </button>
+          
+          <button
+            type="button"
+            onClick={handleResendVerification}
+            disabled={isResending}
+            className="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-medium rounded-xl text-sm transition-all cursor-pointer flex items-center justify-center gap-2"
+          >
+            {isResending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Đang gửi lại...</span>
+              </>
+            ) : (
+              <span>Chưa nhận được? Gửi lại email xác thực</span>
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-lg mx-auto bg-[#161D2F] border border-white/10 rounded-2xl shadow-2xl overflow-hidden p-8">
@@ -184,6 +263,21 @@ const RegisterForm: React.FC = () => {
               <option value="Khác">Khác</option>
             </select>
           </div>
+        </div>
+
+        {/* Date of Birth */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Ngày sinh
+          </label>
+          <input
+            type="date"
+            name="dateOfBirth"
+            value={formData.dateOfBirth}
+            onChange={handleInputChange}
+            max={new Date().toISOString().split('T')[0]}
+            className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 focus:border-red-500 text-white rounded-xl text-sm focus:outline-none focus:bg-white/10 transition-all [color-scheme:dark]"
+          />
         </div>
 
         {/* Password & Confirm */}

@@ -8,6 +8,22 @@ import { useAuth } from "../context/AuthContext";
 import "react-toastify/dist/ReactToastify.css";
 import { motion } from "framer-motion";
 import { API_URL } from '../config/apiUrl';
+import {
+  FiCamera,
+  FiPlay,
+  FiSquare,
+  FiRotateCw,
+  FiRepeat,
+  FiSearch,
+  FiPrinter,
+  FiCheckCircle,
+  FiXCircle,
+  FiCheck,
+  FiX,
+  FiRefreshCw,
+  FiEdit3,
+} from "react-icons/fi";
+import { QrCode, Ticket as TicketIcon } from "lucide-react";
 
 // Theme colors
 const theme = {
@@ -117,18 +133,14 @@ const HeaderIcon = styled.div`
   width: 60px;
   height: 60px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(229, 9, 20, 0.15);
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-
-  i {
-    color: ${theme.accent};
-    font-size: 1.8rem;
-  }
+  box-shadow: 0 8px 32px rgba(229, 9, 20, 0.2);
+  border: 1px solid rgba(229, 9, 20, 0.3);
+  color: ${theme.accent};
 `;
 
 const ContentGrid = styled(motion.div)`
@@ -157,18 +169,21 @@ const Card = styled(motion.div)`
 `;
 
 const CardHeader = styled.div`
-  padding: 2rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 1.75rem 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
-  background: rgba(10, 17, 40, 0.02);
+  background: rgba(255, 255, 255, 0.02);
 `;
 
 const CardTitle = styled.div`
+  display: flex;
+  align-items: center;
+
   h2 {
-    font-size: 1.5rem;
+    font-size: 1.45rem;
     font-weight: 700;
-    color: ${theme.dark};
+    color: #ffffff;
     margin: 0;
     display: flex;
     align-items: center;
@@ -178,16 +193,13 @@ const CardTitle = styled.div`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
     border-radius: 12px;
-    background: ${theme.primary};
+    background: rgba(229, 9, 20, 0.15);
+    border: 1px solid rgba(229, 9, 20, 0.3);
     margin-right: 1rem;
-
-    i {
-      color: ${theme.accent};
-      font-size: 1.2rem;
-    }
+    color: ${theme.accent};
   }
 `;
 
@@ -195,12 +207,17 @@ const CardBody = styled.div`
   padding: 2rem;
 `;
 
-const CameraContainer = styled.div`
+const CameraContainer = styled.div<{ $mirror?: boolean }>`
   position: relative;
   border-radius: 20px;
   overflow: hidden;
-  background-color: ${theme.dark};
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  background-color: #0b0f19;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &::before {
     content: "";
@@ -212,7 +229,7 @@ const CameraContainer = styled.div`
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 215, 0, 0.5),
+      rgba(229, 9, 20, 0.6),
       transparent
     );
   }
@@ -227,7 +244,7 @@ const CameraContainer = styled.div`
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 215, 0, 0.5),
+      rgba(229, 9, 20, 0.6),
       transparent
     );
   }
@@ -328,17 +345,18 @@ const ScanOverlay = styled.div`
 `;
 
 const ControlPanel = styled.div`
-  margin-top: 2rem;
+  margin-top: 1.5rem;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
 `;
 
 const Button = styled.button`
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem 1.2rem;
+  gap: 0.5rem;
+  padding: 0.85rem 1.2rem;
   border-radius: 12px;
   font-weight: 600;
   font-size: 0.95rem;
@@ -346,96 +364,71 @@ const Button = styled.button`
   border: none;
   cursor: pointer;
   letter-spacing: 0.3px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 
-  i {
-    margin-right: 0.7rem;
-    font-size: 1.1rem;
-  }
   &:focus {
     outline: none;
   }
 `;
 
 const PrimaryButton = styled(Button)`
-  background: ${theme.primary};
-  color: ${theme.light};
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  position: relative;
-  overflow: hidden;
-  z-index: 1;
+  background: linear-gradient(135deg, #e50914 0%, #b20710 100%);
+  color: #ffffff;
+  border: 1px solid rgba(229, 9, 20, 0.4);
 
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      135deg,
-      rgba(255, 215, 0, 0.2) 0%,
-      transparent 100%
-    );
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: -1;
-  }
-
-  &:hover {
+  &:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-    &::before {
-      opacity: 1;
-    }
+    box-shadow: 0 8px 24px rgba(229, 9, 20, 0.4);
+    background: linear-gradient(135deg, #f40612 0%, #c10712 100%);
   }
 
-  &:active {
+  &:active:not(:disabled) {
     transform: translateY(1px);
   }
 
   &:disabled {
-    background-color: rgba(10, 17, 40, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.05);
     cursor: not-allowed;
     transform: none;
-    &::before {
-      opacity: 0;
-    }
+    box-shadow: none;
   }
 `;
 
 const SecondaryButton = styled(Button)`
-  background: rgba(255, 255, 255, 0.1);
-  color: ${theme.dark};
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(5px);
 
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   }
 
-  &:active {
+  &:active:not(:disabled) {
     transform: translateY(1px);
   }
 `;
 
 const ManualEntrySection = styled.div`
-  margin-top: 2.5rem;
-  padding-top: 2rem;
-  border-top: 1px dashed rgba(0, 0, 0, 0.1);
+  margin-top: 2rem;
+  padding-top: 1.75rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
 
   h3 {
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     font-weight: 600;
-    color: ${theme.dark};
-    margin-bottom: 1.2rem;
+    color: #ffffff;
+    margin-bottom: 1rem;
     display: flex;
     align-items: center;
+    gap: 0.6rem;
 
-    i {
-      margin-right: 0.8rem;
+    svg {
       color: ${theme.accent};
     }
   }
@@ -443,33 +436,34 @@ const ManualEntrySection = styled.div`
 
 const InputGroup = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
 
   input {
     flex: 1;
-    padding: 1rem 1.2rem;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 0.85rem 1.2rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 12px;
-    font-size: 1rem;
+    font-size: 0.95rem;
     transition: all 0.3s ease;
-    background: rgba(255, 255, 255, 0.8);
+    background: #0b0f19;
+    color: #ffffff;
 
     &:focus {
       outline: none;
       border-color: ${theme.accent};
-      box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
-      background: white;
+      box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.25);
+      background: #0f1422;
     }
 
     &::placeholder {
-      color: rgba(0, 0, 0, 0.4);
+      color: rgba(255, 255, 255, 0.35);
     }
   }
 `;
 
 const TicketPlaceholder = styled.div`
   height: 100%;
-  min-height: 300px;
+  min-height: 320px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -477,10 +471,17 @@ const TicketPlaceholder = styled.div`
   padding: 3rem 2rem;
   text-align: center;
 
-  .icon {
-    font-size: 4rem;
-    color: rgba(0, 0, 0, 0.1);
+  .icon-wrapper {
+    width: 76px;
+    height: 76px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin-bottom: 1.5rem;
+    color: rgba(255, 255, 255, 0.3);
     animation: pulse 2s infinite ease-in-out;
   }
 
@@ -500,22 +501,23 @@ const TicketPlaceholder = styled.div`
   }
 
   h3 {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
     font-weight: 600;
-    color: ${theme.dark};
+    color: #ffffff;
     margin-bottom: 0.8rem;
   }
   p {
-    color: rgba(0, 0, 0, 0.5);
-    max-width: 280px;
+    color: rgba(255, 255, 255, 0.55);
+    max-width: 320px;
     margin: 0 auto;
     line-height: 1.6;
+    font-size: 0.95rem;
   }
 `;
 
 const LoadingIndicator = styled.div`
   height: 100%;
-  min-height: 300px;
+  min-height: 320px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -523,13 +525,13 @@ const LoadingIndicator = styled.div`
   padding: 3rem 2rem;
 
   .spinner {
-    width: 60px;
-    height: 60px;
-    border: 3px solid rgba(0, 31, 84, 0.1);
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
     border-left-color: ${theme.accent};
     border-radius: 50%;
-    animation: spin 1.2s linear infinite;
-    margin-bottom: 2rem;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1.5rem;
   }
 
   @keyframes spin {
@@ -539,8 +541,8 @@ const LoadingIndicator = styled.div`
   }
 
   p {
-    font-size: 1.1rem;
-    color: rgba(0, 0, 0, 0.6);
+    font-size: 1.05rem;
+    color: rgba(255, 255, 255, 0.7);
     font-weight: 500;
   }
 `;
@@ -549,16 +551,18 @@ const TicketCard = styled.div`
   position: relative;
   padding: 0;
   overflow: hidden;
-  border-radius: 12px;
-  background: white;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  background: #0f1422;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 `;
 
-const TicketHeader = styled.div`
+const TicketHeader = styled.div<{ $success?: boolean }>`
   background: ${(props) =>
     props.$success
-      ? "linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)"
-      : "linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%)"};
+      ? "linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.05) 100%)"
+      : "linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.05) 100%)"};
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   padding: 2rem;
   position: relative;
   overflow: hidden;
@@ -571,7 +575,7 @@ const TicketHeader = styled.div`
     width: 120px;
     height: 120px;
     background: ${(props) => (props.$success ? theme.success : theme.error)};
-    opacity: 0.1;
+    opacity: 0.12;
     border-radius: 50%;
   }
 
@@ -587,13 +591,13 @@ const TicketHeader = styled.div`
     text-transform: uppercase;
     letter-spacing: 1px;
     transform: rotate(45deg);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   }
 
   h3 {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    color: ${theme.dark};
+    color: #ffffff;
     margin-bottom: 0.8rem;
     line-height: 1.3;
     max-width: 80%;
@@ -604,35 +608,13 @@ const TicketHeader = styled.div`
     font-weight: 600;
     display: flex;
     align-items: center;
-
-    i {
-      margin-right: 0.6rem;
-      font-size: 1.1rem;
-    }
+    gap: 0.5rem;
   }
 `;
 
 const TicketInfo = styled.div`
   padding: 2rem;
   position: relative;
-
-  &::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 8px;
-    background-image: linear-gradient(
-      90deg,
-      ${theme.cardBg} 0px,
-      ${theme.cardBg} 12px,
-      transparent 12px,
-      transparent 24px
-    );
-    background-size: 24px 8px;
-    opacity: 0.5;
-  }
 `;
 
 const TicketProperty = styled.div`
@@ -646,27 +628,27 @@ const TicketProperty = styled.div`
   .label {
     width: 40%;
     font-size: 0.95rem;
-    color: rgba(0, 0, 0, 0.5);
+    color: rgba(255, 255, 255, 0.55);
     font-weight: 500;
   }
   .value {
     flex: 1;
     font-size: 1rem;
     font-weight: 600;
-    color: ${theme.dark};
+    color: #ffffff;
   }
 `;
 
 const TicketActions = styled.div`
   padding: 1.5rem 2rem;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  background: rgba(10, 17, 40, 0.01);
+  background: rgba(0, 0, 0, 0.2);
 `;
 
-const StatusIcon = styled.div`
+const StatusIcon = styled.div<{ $success?: boolean }>`
   position: absolute;
   top: 2rem;
   right: 2rem;
@@ -677,12 +659,8 @@ const StatusIcon = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-
-  i {
-    color: white;
-    font-size: 1.2rem;
-  }
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  color: white;
 `;
 
 // Main component
@@ -1053,7 +1031,7 @@ const QRCodeScanner = () => {
       <ScannerContainer>
         <PageHeader initial="hidden" animate="visible" variants={fadeIn}>
           <HeaderIcon>
-            <i className="fas fa-qrcode"></i>
+            <QrCode size={30} />
           </HeaderIcon>
           <HeaderTitle>
             <h1>Kiểm tra vé</h1>
@@ -1066,7 +1044,7 @@ const QRCodeScanner = () => {
             <CardHeader>
               <CardTitle>
                 <div className="icon">
-                  <i className="fas fa-camera"></i>
+                  <FiCamera size={20} />
                 </div>
                 <h2>Quét mã QR</h2>
               </CardTitle>
@@ -1078,9 +1056,29 @@ const QRCodeScanner = () => {
                   ref={videoRef}
                   autoPlay
                   playsInline
-                  onCanPlay={() => videoRef.current.play()}
+                  onCanPlay={() => videoRef.current && videoRef.current.play()}
+                  style={{ display: scanning ? "block" : "none" }}
                 />
                 <canvas ref={canvasRef} />
+                {!scanning && (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "3.5rem 1.5rem",
+                      color: "rgba(255,255,255,0.45)",
+                      gap: "0.85rem",
+                      textAlign: "center",
+                    }}
+                  >
+                    <FiCamera size={44} style={{ opacity: 0.6, color: "#E50914" }} />
+                    <p style={{ margin: 0, fontSize: "0.95rem" }}>
+                      Nhấn <strong>"Bắt đầu quét"</strong> để bật camera kiểm tra vé
+                    </p>
+                  </div>
+                )}
                 {scanning && (
                   <ScanOverlay>
                     <div className="scanner-frame">
@@ -1097,12 +1095,12 @@ const QRCodeScanner = () => {
               <ControlPanel>
                 {!scanning ? (
                   <PrimaryButton onClick={startCamera} disabled={loading}>
-                    <i className="fas fa-play"></i>
+                    <FiPlay size={17} />
                     Bắt đầu quét
                   </PrimaryButton>
                 ) : (
                   <SecondaryButton onClick={stopCamera}>
-                    <i className="fas fa-stop"></i>
+                    <FiSquare size={17} />
                     Dừng quét
                   </SecondaryButton>
                 )}
@@ -1121,20 +1119,20 @@ const QRCodeScanner = () => {
                       }
                     }}
                   >
-                    <i className="fas fa-sync"></i>
+                    <FiRotateCw size={17} />
                     Đổi camera
                   </SecondaryButton>
                 )}
 
                 <SecondaryButton onClick={() => setMirrorImage(!mirrorImage)}>
-                  <i className="fas fa-exchange-alt"></i>
+                  <FiRepeat size={17} />
                   {mirrorImage ? "Tắt" : "Bật"} đảo ảnh
                 </SecondaryButton>
               </ControlPanel>
 
               <ManualEntrySection>
                 <h3>
-                  <i className="fas fa-keyboard"></i>
+                  <FiEdit3 size={18} />
                   Nhập mã vé thủ công
                 </h3>
                 <form onSubmit={handleManualEntry}>
@@ -1150,7 +1148,7 @@ const QRCodeScanner = () => {
                       type="submit"
                       disabled={loading || !manualTicketCode.trim()}
                     >
-                      <i className="fas fa-search"></i>
+                      <FiSearch size={17} />
                       Kiểm tra
                     </PrimaryButton>
                   </InputGroup>
@@ -1163,7 +1161,7 @@ const QRCodeScanner = () => {
             <CardHeader>
               <CardTitle>
                 <div className="icon">
-                  <i className="fas fa-ticket-alt"></i>
+                  <TicketIcon size={20} />
                 </div>
                 <h2>Thông tin vé</h2>
               </CardTitle>
@@ -1183,13 +1181,11 @@ const QRCodeScanner = () => {
                     </div>
                     <h3>{ticketResponse.ticket_info.movie_name}</h3>
                     <div className="check-in-time">
-                      <i
-                        className={
-                          ticketResponse.success
-                            ? "fas fa-check-circle"
-                            : "fas fa-times-circle"
-                        }
-                      ></i>
+                      {ticketResponse.success ? (
+                        <FiCheckCircle size={18} />
+                      ) : (
+                        <FiXCircle size={18} />
+                      )}
                       {ticketResponse.success
                         ? `Đã check-in lúc ${formatDateTime(
                             ticketResponse.check_in_time
@@ -1197,13 +1193,11 @@ const QRCodeScanner = () => {
                         : "Vé không hợp lệ hoặc đã được sử dụng"}
                     </div>
                     <StatusIcon $success={ticketResponse.success}>
-                      <i
-                        className={
-                          ticketResponse.success
-                            ? "fas fa-check"
-                            : "fas fa-times"
-                        }
-                      ></i>
+                      {ticketResponse.success ? (
+                        <FiCheck size={20} />
+                      ) : (
+                        <FiX size={20} />
+                      )}
                     </StatusIcon>
                   </TicketHeader>
 
@@ -1250,18 +1244,20 @@ const QRCodeScanner = () => {
 
                   <TicketActions>
                     <SecondaryButton onClick={resetScanner}>
-                      <i className="fas fa-redo"></i>
+                      <FiRefreshCw size={17} />
                       Quét vé mới
                     </SecondaryButton>
                     <PrimaryButton onClick={downloadTicketPDF}>
-                      <i className="fas fa-print"></i>
+                      <FiPrinter size={17} />
                       In thông tin
                     </PrimaryButton>
                   </TicketActions>
                 </TicketCard>
               ) : (
                 <TicketPlaceholder>
-                  <i className="fas fa-ticket-alt icon"></i>
+                  <div className="icon-wrapper">
+                    <TicketIcon size={38} />
+                  </div>
                   <h3>Chưa có thông tin vé</h3>
                   <p>
                     Quét mã QR hoặc nhập mã vé để xem thông tin và xác thực vé

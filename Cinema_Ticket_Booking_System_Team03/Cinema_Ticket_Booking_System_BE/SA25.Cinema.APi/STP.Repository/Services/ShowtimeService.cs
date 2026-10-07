@@ -941,7 +941,7 @@
             {
                 var today = DateTime.Today;
                 return await _context.Showtimes
-                    .Where(s => s.Movie_ID == movieId && s.Show_Date >= today && s.Status == "Scheduled")
+                    .Where(s => s.Movie_ID == movieId && s.Show_Date >= today && (s.Status == "Scheduled" || s.Status == "Active"))
                     .Select(s => s.Show_Date.Date)
                     .Distinct()
                     .OrderBy(d => d)
@@ -954,7 +954,7 @@
                 var today = DateTime.Today;
                 var query = _context.Showtimes
                     .Include(s => s.CinemaRoom)
-                    .Where(s => s.Movie_ID == movieId && s.Show_Date.Date == date.Date && s.Status == "Scheduled");
+                    .Where(s => s.Movie_ID == movieId && s.Show_Date.Date == date.Date && (s.Status == "Scheduled" || s.Status == "Active"));
 
                 if (date.Date == today)
                     query = query.Where(s => s.Start_Time > now);
@@ -994,7 +994,7 @@
 
                 var query = _context.Showtimes
                     .Include(s => s.CinemaRoom)
-                    .Where(s => s.Movie_ID == request.MovieId && s.Status == "Scheduled");
+                    .Where(s => s.Movie_ID == request.MovieId && (s.Status == "Scheduled" || s.Status == "Active"));
 
                 if (request.Date.HasValue)
                 {
@@ -1057,7 +1057,7 @@
                 var query = _context.Showtimes
                     .Include(s => s.Movie)
                     .Include(s => s.CinemaRoom)
-                    .Where(s => s.Cinema_Room_ID == roomId && s.Show_Date.Date == date.Date && s.Status == "Scheduled");
+                    .Where(s => s.Cinema_Room_ID == roomId && s.Show_Date.Date == date.Date && (s.Status == "Scheduled" || s.Status == "Active"));
 
                 if (date.Date == today)
                     query = query.Where(s => s.Start_Time > now);

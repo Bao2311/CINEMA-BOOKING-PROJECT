@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -14,6 +14,8 @@ using iTextSharp.text.pdf.qrcode;
 using System.Net.NetworkInformation;
 using ZXing;
 using ZXing.QrCode;
+using System.IO;
+using System.Net.Http;
 
 namespace STP.Repository.Services
 {
@@ -292,22 +294,26 @@ namespace STP.Repository.Services
         }
 
         /// <summary>
-        /// Tạo PDF vé từ template có sẵn
+        /// Tạo vé điện tử PDF định dạng Cinema VIP Pass hiện đại
         /// </summary>
-        public async Task<byte[]> GenerateTicketFromTemplateAsync(int ticketId)
+        public async Task<byte[]> GenerateModernTicketPdfAsync(int ticketId)
         {
             try
             {
-                _logger.LogInformation($"Generating PDF from template for ticket ID: {ticketId}");
+                System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                _logger.LogInformation($"Generating Modern VIP PDF ticket for ticket ID: {ticketId}");
 
-                // Lấy thông tin vé từ database
                 var ticket = await _context.Tickets
                     .Include(t => t.TicketBooking)
-                    .Include(t => t.TicketBooking.Showtime)
-                    .Include(t => t.TicketBooking.Showtime.Movie)
-                    .Include(t => t.TicketBooking.Showtime.CinemaRoom)
+                        .ThenInclude(tb => tb.User)
+                    .Include(t => t.TicketBooking)
+                        .ThenInclude(tb => tb.Showtime)
+                            .ThenInclude(s => s.Movie)
+                    .Include(t => t.TicketBooking)
+                        .ThenInclude(tb => tb.Showtime)
+                            .ThenInclude(s => s.CinemaRoom)
                     .Include(t => t.Seat)
-                    .Include(t => t.Seat.SeatLayout)
+                        .ThenInclude(s => s.SeatLayout)
                     .FirstOrDefaultAsync(t => t.Ticket_ID == ticketId);
 
                 if (ticket == null)
@@ -316,103 +322,463 @@ namespace STP.Repository.Services
                     return null;
                 }
 
-                // Đường dẫn đến file template
-                string templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "movie_ticket_clean.pdf");
-
-                if (!File.Exists(templatePath))
-                {
-                    _logger.LogError($"Template file not found at: {templatePath}");
-                    // Sử dụng phương thức tạo PDF từ đầu nếu không tìm thấy template
-                    return await GenerateTicketPdfAsync(ticketId);
-                }
-
                 // Chuẩn bị thông tin vé
-                string theaterName = "STP CINEMA";
-                string cinemaRoom = ticket.TicketBooking.Showtime.CinemaRoom.Room_Name;
-                string movieTitle = ticket.TicketBooking.Showtime.Movie.Movie_Name;
+                string ticketCode = ticket.Ticket_Code ?? $"TKT{ticket.Ticket_ID:D6}";
+                string movieName = ticket.TicketBooking?.Showtime?.Movie?.Movie_Name ?? "Phim Chiếu Rạp";
+                string posterUrl = ticket.TicketBooking?.Showtime?.Movie?.Poster_URL;
+                int duration = ticket.TicketBooking?.Showtime?.Movie?.Duration ?? 120;
+                string rating = ticket.TicketBooking?.Showtime?.Movie?.Rating ?? "P";
+                string language = ticket.TicketBooking?.Showtime?.Movie?.Language ?? "Phụ đề";
+                string roomName = ticket.TicketBooking?.Showtime?.CinemaRoom?.Room_Name ?? "Phòng 1";
+                string roomType = ticket.TicketBooking?.Showtime?.CinemaRoom?.Room_Type ?? "Standard";
+                DateTime showDate = ticket.TicketBooking?.Showtime?.Show_Date ?? DateTime.Today;
+                TimeSpan startTime = ticket.TicketBooking?.Showtime?.Start_Time ?? TimeSpan.Zero;
+                string seatLabel = (ticket.Seat?.SeatLayout != null)
+                    ? $"{ticket.Seat.SeatLayout.Row_Label}{ticket.Seat.SeatLayout.Column_Number}"
+                    : "A1";
+                string seatType = ticket.Seat?.SeatLayout?.Seat_Type ?? "VIP";
+                decimal price = ticket.Final_Price > 0 ? ticket.Final_Price : ticket.Base_Price;
+                string customerName = ticket.TicketBooking?.User?.Full_Name ?? "Khách Hàng";
+                int bookingId = ticket.TicketBooking?.Booking_ID ?? 0;
 
-                // Format ngày giờ
-                DateTime showDate = ticket.TicketBooking.Showtime.Show_Date;
-                TimeSpan startTime = ticket.TicketBooking.Showtime.Start_Time;
-                string formattedDate = $"{showDate:dd/MM/yyyy} - {startTime.ToString(@"hh\:mm")}";
-
-                // Thông tin ghế
-                string seatInfo = $"{ticket.Seat.SeatLayout.Row_Label}{ticket.Seat.SeatLayout.Column_Number}";
-
-                // Ticket code for QR code generation
-                string ticketCode = ticket.Ticket_Code;
-
-                using (MemoryStream outputStream = new MemoryStream())
+                using (MemoryStream ms = new MemoryStream())
                 {
-                    // Mở file template
-                    PdfReader pdfReader = new PdfReader(templatePath);
+                    // Kích thước vé: Boarding Pass chuẩn ngang (760 x 330)
+                    float width = 760f;
+                    float height = 330f;
+                    iTextSharp.text.Rectangle pageSize = new iTextSharp.text.Rectangle(width, height);
+                    Document doc = new Document(pageSize, 0, 0, 0, 0);
+                    PdfWriter writer = PdfWriter.GetInstance(doc, ms);
+                    doc.Open();
 
-                    // Tạo PdfStamper để ghi nội dung mới vào template
-                    PdfStamper pdfStamper = new PdfStamper(pdfReader, outputStream);
+                    PdfContentByte cb = writer.DirectContent;
 
-                    // Lấy nội dung PDF
-                    PdfContentByte contentByte = pdfStamper.GetOverContent(1);
+                    // Tải font Arial hỗ trợ đầy đủ tiếng Việt Unicode có dấu
+                    string fontPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arial.ttf");
+                    string boldFontPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arialbd.ttf");
+                    if (!File.Exists(fontPath)) fontPath = "c:/windows/fonts/arial.ttf";
+                    if (!File.Exists(boldFontPath)) boldFontPath = fontPath;
 
-                    // Thiết lập font chữ hỗ trợ tiếng Việt
-                    BaseFont baseFont = BaseFont.CreateFont("c:/windows/fonts/arial.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-                    Font regularFont = new Font(baseFont, 20, Font.NORMAL, BaseColor.BLACK);
+                    BaseFont bfRegular = BaseFont.CreateFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                    BaseFont bfBold = BaseFont.CreateFont(boldFontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
 
-                    // Thêm nội dung vào các vị trí - dựa trên mẫu vé từ hình ảnh
-                    contentByte.BeginText();
+                    // --- 1. Background (Khung nền ngoài canvas: #0B0F19) ---
+                    cb.SaveState();
+                    cb.SetColorFill(new BaseColor(11, 15, 25)); // #0B0F19
+                    cb.Rectangle(0, 0, width, height);
+                    cb.Fill();
+                    cb.RestoreState();
 
-                    contentByte.SetFontAndSize(baseFont, 30);
-                    contentByte.SetTextMatrix(170, 320); // Cinema room - bên phải "CINEMA"
-                    contentByte.ShowText(cinemaRoom);
+                    // --- 2. Khung thẻ vé chính (x=15, y=15, w=730, h=300, radius=12) ---
+                    float cardX = 15f;
+                    float cardY = 15f;
+                    float cardW = 730f;
+                    float cardH = 300f;
+                    float stubX = 520f; // Vị trí đường đứt khúc xé cuống vé
 
-                    // Điều chỉnh kích thước font cho tên phim nếu quá dài
-                    float movieFontSize = 30;
-                    //if (movieTitle.Length > 15) movieFontSize = 12;
-                    //if (movieTitle.Length > 25) movieFontSize = 10;
+                    cb.SaveState();
+                    // Nền thẻ: #151D30 (Deep Slate Blue)
+                    cb.SetColorFill(new BaseColor(21, 29, 48));
+                    cb.SetColorStroke(new BaseColor(40, 53, 84));
+                    cb.SetLineWidth(1.5f);
+                    cb.RoundRectangle(cardX, cardY, cardW, cardH, 12f);
+                    cb.FillStroke();
+                    cb.RestoreState();
 
-                    contentByte.SetFontAndSize(baseFont, movieFontSize);
-                    contentByte.SetTextMatrix(170, 378); // Movie title - bên phải "MOVIE TITLE"
-                    contentByte.ShowText(movieTitle);
+                    // --- 3. Đường răng cưa rãnh xé cuống vé tại stubX ---
+                    cb.SaveState();
+                    // Đường nét đứt dọc
+                    cb.SetColorStroke(new BaseColor(62, 79, 116));
+                    cb.SetLineWidth(1.2f);
+                    cb.SetLineDash(4f, 4f, 0f);
+                    cb.MoveTo(stubX, cardY + 18f);
+                    cb.LineTo(stubX, cardY + cardH - 18f);
+                    cb.Stroke();
 
-                    contentByte.SetFontAndSize(baseFont, 30);
-                    contentByte.SetTextMatrix(170, 210); // Date and time - bên phải "DATE"
-                    contentByte.ShowText(formattedDate);
+                    // Vết khuyết trên (semicircle)
+                    cb.SetColorFill(new BaseColor(11, 15, 25));
+                    cb.SetColorStroke(new BaseColor(40, 53, 84));
+                    cb.SetLineWidth(1.5f);
+                    cb.Circle(stubX, cardY + cardH, 12f);
+                    cb.FillStroke();
 
-                    contentByte.SetTextMatrix(170, 270); // Seat - bên phải "SEAT"
-                    contentByte.ShowText(seatInfo);
+                    // Vết khuyết dưới (semicircle)
+                    cb.Circle(stubX, cardY, 12f);
+                    cb.FillStroke();
+                    cb.RestoreState();
 
-                    contentByte.EndText();
+                    // --- 4. PHẦN TRÁI: Header Branding ---
+                    // Pill Đỏ Logo: "CINEMAPLUS"
+                    float pillX = cardX + 20f;
+                    float pillY = cardY + cardH - 38f;
+                    cb.SaveState();
+                    cb.SetColorFill(new BaseColor(220, 38, 38)); // #DC2626
+                    cb.RoundRectangle(pillX, pillY, 105f, 22f, 6f);
+                    cb.Fill();
+                    cb.RestoreState();
 
-                    // Tạo và thêm QR code
-                    byte[] qrCodeImage = GenerateQRCode(ticketCode);
-                    if (qrCodeImage != null)
+                    cb.BeginText();
+                    cb.SetFontAndSize(bfBold, 11f);
+                    cb.SetColorFill(BaseColor.WHITE);
+                    cb.SetTextMatrix(pillX + 10f, pillY + 6f);
+                    cb.ShowText("CINEMAPLUS");
+
+                    // Subtitle E-Ticket
+                    cb.SetFontAndSize(bfBold, 9f);
+                    cb.SetColorFill(new BaseColor(148, 163, 184)); // #94A3B8
+                    cb.SetTextMatrix(pillX + 115f, pillY + 6f);
+                    cb.ShowText("•  VÉ XEM PHIM ĐIỆN TỬ  (E-TICKET)");
+
+                    // Mã đơn hàng ở góc phải phần thân chính
+                    cb.SetFontAndSize(bfBold, 9f);
+                    cb.SetColorFill(new BaseColor(148, 163, 184));
+                    string bookingStr = $"ĐƠN HÀNG: #{bookingId}";
+                    cb.SetTextMatrix(stubX - 25f - bfBold.GetWidthPoint(bookingStr, 9f), pillY + 6f);
+                    cb.ShowText(bookingStr);
+                    cb.EndText();
+
+                    // Đường kẻ phân cách Header
+                    cb.SaveState();
+                    cb.SetColorStroke(new BaseColor(35, 47, 75));
+                    cb.SetLineWidth(1f);
+                    cb.MoveTo(cardX + 20f, pillY - 8f);
+                    cb.LineTo(stubX - 20f, pillY - 8f);
+                    cb.Stroke();
+                    cb.RestoreState();
+
+                    // --- 5. POSTER PHIM (Trái: x = 35, y = 80, w = 110, h = 160) ---
+                    float posterX = cardX + 20f;
+                    float posterY = cardY + 70f;
+                    float posterW = 110f;
+                    float posterH = 160f;
+
+                    bool posterDrawn = false;
+                    if (!string.IsNullOrEmpty(posterUrl))
                     {
-                        iTextSharp.text.Image qrCode = iTextSharp.text.Image.GetInstance(qrCodeImage);
-                        qrCode.ScaleToFit(268, 268);
-                        qrCode.SetAbsolutePosition(438, 297); // Vị trí phần bên phải vé (cột ADMIT ONE)
-                        contentByte.AddImage(qrCode);
-
-                        // Thêm ticket code bên dưới QR code
-                        contentByte.BeginText();
-                        contentByte.SetFontAndSize(baseFont, 15);
-                        contentByte.SetTextMatrix(480, 280);
-                        contentByte.ShowText("TICKET CODE: " + ticketCode);
-                        contentByte.EndText();
+                        try
+                        {
+                            using (var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (m, c, ch, e) => true })
+                            using (var httpClient = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(3) })
+                            {
+                                httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
+                                byte[] imgData = await httpClient.GetByteArrayAsync(posterUrl);
+                                if (imgData != null && imgData.Length > 0)
+                                {
+                                    iTextSharp.text.Image posterImg = iTextSharp.text.Image.GetInstance(imgData);
+                                    posterImg.ScaleAbsolute(posterW, posterH);
+                                    posterImg.SetAbsolutePosition(posterX, posterY);
+                                    cb.AddImage(posterImg);
+                                    posterDrawn = true;
+                                }
+                            }
+                        }
+                        catch (Exception exPoster)
+                        {
+                            _logger.LogWarning($"Could not load poster image from {posterUrl}: {exPoster.Message}");
+                        }
                     }
 
-                    // Đóng stamper và reader
-                    pdfStamper.Close();
-                    pdfReader.Close();
+                    if (!posterDrawn)
+                    {
+                        // Khung dự phòng khi không tải được ảnh
+                        cb.SaveState();
+                        cb.SetColorFill(new BaseColor(30, 41, 65));
+                        cb.SetColorStroke(new BaseColor(51, 65, 95));
+                        cb.SetLineWidth(1f);
+                        cb.RoundRectangle(posterX, posterY, posterW, posterH, 6f);
+                        cb.FillStroke();
+                        cb.RestoreState();
 
-                    // Trả về mảng byte của PDF
-                    return outputStream.ToArray();
+                        cb.BeginText();
+                        cb.SetFontAndSize(bfBold, 16f);
+                        cb.SetColorFill(new BaseColor(148, 163, 184));
+                        cb.SetTextMatrix(posterX + 15f, posterY + 80f);
+                        cb.ShowText("CINEMA+");
+                        cb.EndText();
+                    }
+
+                    // Viền khung poster
+                    cb.SaveState();
+                    cb.SetColorStroke(new BaseColor(60, 75, 105));
+                    cb.SetLineWidth(1f);
+                    cb.Rectangle(posterX, posterY, posterW, posterH);
+                    cb.Stroke();
+                    cb.RestoreState();
+
+                    // --- 6. TÊN PHIM & METADATA (Bên phải poster, x = 175) ---
+                    float infoX = posterX + posterW + 18f;
+
+                    // Tên phim (Tự động co kích cỡ font theo độ dài)
+                    cb.BeginText();
+                    float titleFontSize = 17f;
+                    if (movieName.Length > 20) titleFontSize = 14f;
+                    if (movieName.Length > 28) titleFontSize = 12f;
+                    if (movieName.Length > 36) titleFontSize = 11f;
+                    cb.SetFontAndSize(bfBold, titleFontSize);
+                    cb.SetColorFill(BaseColor.WHITE);
+                    cb.SetTextMatrix(infoX, cardY + cardH - 72f);
+                    cb.ShowText(movieName.ToUpper());
+
+                    // Metadata Chips
+                    float badgeY = cardY + cardH - 96f;
+                    cb.EndText();
+
+                    // Chip 1: Độ tuổi (Vàng cam #F59E0B)
+                    string ratingText = string.IsNullOrEmpty(rating) ? "P" : rating;
+                    float rWidth = bfBold.GetWidthPoint(ratingText, 8.5f) + 12f;
+                    cb.SaveState();
+                    cb.SetColorFill(new BaseColor(245, 158, 11, 40));
+                    cb.SetColorStroke(new BaseColor(245, 158, 11));
+                    cb.SetLineWidth(1f);
+                    cb.RoundRectangle(infoX, badgeY, rWidth, 16f, 4f);
+                    cb.FillStroke();
+                    cb.RestoreState();
+
+                    cb.BeginText();
+                    cb.SetFontAndSize(bfBold, 8.5f);
+                    cb.SetColorFill(new BaseColor(245, 158, 11));
+                    cb.SetTextMatrix(infoX + 6f, badgeY + 4f);
+                    cb.ShowText(ratingText);
+
+                    // Chip 2: Định dạng / Ngôn ngữ (Xanh dương)
+                    float fX = infoX + rWidth + 8f;
+                    string fmtText = $"2D • {language ?? "Lồng tiếng"}";
+                    float fWidth = bfBold.GetWidthPoint(fmtText, 8.5f) + 12f;
+                    cb.EndText();
+
+                    cb.SaveState();
+                    cb.SetColorFill(new BaseColor(30, 58, 138, 40));
+                    cb.SetColorStroke(new BaseColor(59, 130, 246));
+                    cb.SetLineWidth(1f);
+                    cb.RoundRectangle(fX, badgeY, fWidth, 16f, 4f);
+                    cb.FillStroke();
+                    cb.RestoreState();
+
+                    cb.BeginText();
+                    cb.SetFontAndSize(bfBold, 8.5f);
+                    cb.SetColorFill(new BaseColor(96, 165, 250));
+                    cb.SetTextMatrix(fX + 6f, badgeY + 4f);
+                    cb.ShowText(fmtText);
+
+                    // Chip 3: Thời lượng phim
+                    float dX = fX + fWidth + 8f;
+                    string durText = $"{duration} phút";
+                    cb.SetFontAndSize(bfRegular, 8.5f);
+                    cb.SetColorFill(new BaseColor(148, 163, 184));
+                    cb.SetTextMatrix(dX, badgeY + 4f);
+                    cb.ShowText($"⏱ {durText}");
+                    cb.EndText();
+
+                    // --- 7. 4 KHỐI THÔNG TIN SUẤT CHIẾU (2 dòng x 2 cột) ---
+                    float gridY = cardY + 80f;
+                    float col1X = infoX;
+                    float col2X = infoX + 175f;
+
+                    // DÒNG 1: NGÀY CHIẾU & GIỜ CHIẾU
+                    cb.BeginText();
+                    cb.SetFontAndSize(bfRegular, 8f);
+                    cb.SetColorFill(new BaseColor(148, 163, 184));
+                    cb.SetTextMatrix(col1X, gridY + 85f);
+                    cb.ShowText("NGÀY CHIẾU / DATE");
+
+                    cb.SetFontAndSize(bfBold, 11.5f);
+                    cb.SetColorFill(BaseColor.WHITE);
+                    cb.SetTextMatrix(col1X, gridY + 68f);
+                    cb.ShowText(showDate.ToString("dd/MM/yyyy"));
+
+                    cb.SetFontAndSize(bfRegular, 8f);
+                    cb.SetColorFill(new BaseColor(148, 163, 184));
+                    cb.SetTextMatrix(col2X, gridY + 85f);
+                    cb.ShowText("GIỜ CHIẾU / TIME");
+
+                    TimeSpan endTime = startTime.Add(TimeSpan.FromMinutes(duration > 0 ? duration : 120));
+                    string timeStr = $"{startTime:hh\\:mm} ~ {endTime:hh\\:mm}";
+                    cb.SetFontAndSize(bfBold, 11.5f);
+                    cb.SetColorFill(new BaseColor(248, 113, 113));
+                    cb.SetTextMatrix(col2X, gridY + 68f);
+                    cb.ShowText(timeStr);
+
+                    // DÒNG 2: PHÒNG CHIẾU & GHẾ NGỒI
+                    cb.SetFontAndSize(bfRegular, 8f);
+                    cb.SetColorFill(new BaseColor(148, 163, 184));
+                    cb.SetTextMatrix(col1X, gridY + 40f);
+                    cb.ShowText("PHÒNG CHIẾU / AUDITORIUM");
+
+                    cb.SetFontAndSize(bfBold, 11.5f);
+                    cb.SetColorFill(BaseColor.WHITE);
+                    cb.SetTextMatrix(col1X, gridY + 23f);
+                    cb.ShowText($"{roomName} ({roomType})");
+
+                    cb.SetFontAndSize(bfRegular, 8f);
+                    cb.SetColorFill(new BaseColor(148, 163, 184));
+                    cb.SetTextMatrix(col2X, gridY + 40f);
+                    cb.ShowText("GHẾ NGỒI / SEAT");
+                    cb.EndText();
+
+                    // Pill đỏ nổi bật số ghế
+                    float seatBoxW = 75f;
+                    float seatBoxH = 26f;
+                    cb.SaveState();
+                    cb.SetColorFill(new BaseColor(220, 38, 38));
+                    cb.RoundRectangle(col2X, gridY + 14f, seatBoxW, seatBoxH, 6f);
+                    cb.Fill();
+                    cb.RestoreState();
+
+                    cb.BeginText();
+                    cb.SetFontAndSize(bfBold, 13f);
+                    cb.SetColorFill(BaseColor.WHITE);
+                    float seatTextW = bfBold.GetWidthPoint(seatLabel, 13f);
+                    cb.SetTextMatrix(col2X + (seatBoxW - seatTextW) / 2f, gridY + 21f);
+                    cb.ShowText(seatLabel);
+
+                    cb.SetFontAndSize(bfRegular, 8.5f);
+                    cb.SetColorFill(new BaseColor(148, 163, 184));
+                    cb.SetTextMatrix(col2X + seatBoxW + 8f, gridY + 21f);
+                    cb.ShowText($"({seatType})");
+                    cb.EndText();
+
+                    // --- 8. FOOTER: Khách hàng, Giá vé, Địa chỉ rạp ---
+                    cb.SaveState();
+                    cb.SetColorStroke(new BaseColor(35, 47, 75));
+                    cb.SetLineWidth(1f);
+                    cb.MoveTo(cardX + 20f, cardY + 54f);
+                    cb.LineTo(stubX - 20f, cardY + 54f);
+                    cb.Stroke();
+                    cb.RestoreState();
+
+                    cb.BeginText();
+                    // Khách hàng
+                    cb.SetFontAndSize(bfRegular, 7.5f);
+                    cb.SetColorFill(new BaseColor(100, 116, 139));
+                    cb.SetTextMatrix(cardX + 20f, cardY + 38f);
+                    cb.ShowText("KHÁCH HÀNG / GUEST");
+
+                    cb.SetFontAndSize(bfBold, 9.5f);
+                    cb.SetColorFill(new BaseColor(226, 232, 240));
+                    cb.SetTextMatrix(cardX + 20f, cardY + 25f);
+                    cb.ShowText(string.IsNullOrEmpty(customerName) ? "Khách Hàng" : customerName);
+
+                    // Giá vé
+                    cb.SetFontAndSize(bfRegular, 7.5f);
+                    cb.SetColorFill(new BaseColor(100, 116, 139));
+                    cb.SetTextMatrix(cardX + 160f, cardY + 38f);
+                    cb.ShowText("GIÁ VÉ / PRICE");
+
+                    cb.SetFontAndSize(bfBold, 10f);
+                    cb.SetColorFill(new BaseColor(251, 191, 36));
+                    cb.SetTextMatrix(cardX + 160f, cardY + 25f);
+                    cb.ShowText($"{price:N0} VNĐ");
+
+                    // Địa chỉ rạp
+                    cb.SetFontAndSize(bfRegular, 7.5f);
+                    cb.SetColorFill(new BaseColor(100, 116, 139));
+                    cb.SetTextMatrix(cardX + 270f, cardY + 38f);
+                    cb.ShowText("ĐỊA ĐIỂM RẠP / VENUE");
+
+                    cb.SetFontAndSize(bfBold, 8.5f);
+                    cb.SetColorFill(new BaseColor(203, 213, 225));
+                    cb.SetTextMatrix(cardX + 270f, cardY + 26f);
+                    cb.ShowText("STP Cinema Center");
+
+                    cb.SetFontAndSize(bfRegular, 7.5f);
+                    cb.SetColorFill(new BaseColor(148, 163, 184));
+                    cb.SetTextMatrix(cardX + 270f, cardY + 15f);
+                    cb.ShowText("Tầng 3, 45 Nguyễn Thị Minh Khai, Q.1, TP.HCM");
+                    cb.EndText();
+
+                    // =========================================================================
+                    // --- 9. PHẦN PHẢI: CUỐNG VÉ & QR CODE CHECK-IN (x = 520 to 745) ---
+                    // =========================================================================
+                    float rightCenterX = (stubX + cardX + cardW) / 2f; // ~ 632.5
+
+                    // Tiêu đề cuống vé
+                    cb.BeginText();
+                    cb.SetFontAndSize(bfBold, 11f);
+                    cb.SetColorFill(BaseColor.WHITE);
+                    string stubTitle = "CỔNG SOÁT VÉ";
+                    float stWidth = bfBold.GetWidthPoint(stubTitle, 11f);
+                    cb.SetTextMatrix(rightCenterX - stWidth / 2f, cardY + cardH - 35f);
+                    cb.ShowText(stubTitle);
+
+                    cb.SetFontAndSize(bfRegular, 8f);
+                    cb.SetColorFill(new BaseColor(148, 163, 184));
+                    string stubSub = "CHECK-IN GATE PASS";
+                    float ssWidth = bfRegular.GetWidthPoint(stubSub, 8f);
+                    cb.SetTextMatrix(rightCenterX - ssWidth / 2f, cardY + cardH - 48f);
+                    cb.ShowText(stubSub);
+                    cb.EndText();
+
+                    // Container thẻ trắng chứa QR Code để máy quét đọc dễ dàng
+                    float qrCardW = 148f;
+                    float qrCardH = 148f;
+                    float qrCardX = rightCenterX - qrCardW / 2f;
+                    float qrCardY = cardY + 98f;
+
+                    cb.SaveState();
+                    cb.SetColorFill(BaseColor.WHITE);
+                    cb.RoundRectangle(qrCardX, qrCardY, qrCardW, qrCardH, 8f);
+                    cb.Fill();
+                    cb.RestoreState();
+
+                    // Sinh và gắn QR Code (kích thước 132 x 132 bên trong thẻ trắng)
+                    byte[] qrBytes = GenerateQRCode(ticketCode);
+                    if (qrBytes != null && qrBytes.Length > 0)
+                    {
+                        iTextSharp.text.Image qrImage = iTextSharp.text.Image.GetInstance(qrBytes);
+                        qrImage.ScaleAbsolute(132f, 132f);
+                        qrImage.SetAbsolutePosition(qrCardX + 8f, qrCardY + 8f);
+                        cb.AddImage(qrImage);
+                    }
+
+                    // TICKET CODE (Chữ vàng nổi bật dưới QR)
+                    cb.BeginText();
+                    cb.SetFontAndSize(bfBold, 12f);
+                    cb.SetColorFill(new BaseColor(245, 158, 11)); // Amber/Gold #F59E0B
+                    string codeText = $"MÃ VÉ: {ticketCode}";
+                    float codeW = bfBold.GetWidthPoint(codeText, 12f);
+                    cb.SetTextMatrix(rightCenterX - codeW / 2f, qrCardY - 18f);
+                    cb.ShowText(codeText);
+
+                    // Tóm tắt nhanh số ghế & phòng
+                    cb.SetFontAndSize(bfBold, 9f);
+                    cb.SetColorFill(new BaseColor(226, 232, 240));
+                    string seatQuick = $"GHẾ: {seatLabel}  •  {roomName}";
+                    float sqW = bfBold.GetWidthPoint(seatQuick, 9f);
+                    cb.SetTextMatrix(rightCenterX - sqW / 2f, qrCardY - 33f);
+                    cb.ShowText(seatQuick);
+
+                    // Hướng dẫn & Lưu ý
+                    cb.SetFontAndSize(bfRegular, 7f);
+                    cb.SetColorFill(new BaseColor(100, 116, 139));
+                    string note1 = "Quét mã QR tại cổng soát vé.";
+                    string note2 = "Vé đã mua không hỗ trợ hoàn tiền.";
+                    float n1W = bfRegular.GetWidthPoint(note1, 7f);
+                    float n2W = bfRegular.GetWidthPoint(note2, 7f);
+                    cb.SetTextMatrix(rightCenterX - n1W / 2f, cardY + 28f);
+                    cb.ShowText(note1);
+                    cb.SetTextMatrix(rightCenterX - n2W / 2f, cardY + 18f);
+                    cb.ShowText(note2);
+                    cb.EndText();
+
+                    doc.Close();
+                    byte[] resultBytes = ms.ToArray();
+                    _logger.LogInformation($"Modern VIP PDF ticket generated successfully for ticket {ticketId}, size: {resultBytes.Length} bytes");
+                    return resultBytes;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error generating PDF from template for ticket {ticketId}: {ex.Message}");
-                // Sử dụng phương thức tạo PDF từ đầu nếu gặp lỗi
-                return await GenerateTicketFromTemplateAsync(ticketId);
+                _logger.LogError(ex, $"Error generating modern ticket PDF for ticket {ticketId}: {ex.Message}");
+                throw;
             }
+        }
+
+        /// <summary>
+        /// Tạo PDF vé xem phim hiện đại từ template VIP Boarding Pass
+        /// </summary>
+        public async Task<byte[]> GenerateTicketFromTemplateAsync(int ticketId)
+        {
+            return await GenerateModernTicketPdfAsync(ticketId);
         }
 
 
@@ -442,9 +808,9 @@ namespace STP.Repository.Services
                     Format = ZXing.BarcodeFormat.QR_CODE,
                     Options = new ZXing.QrCode.QrCodeEncodingOptions
                     {
-                        Height = 200,
-                        Width = 200,
-                        Margin = 0,
+                        Height = 300,
+                        Width = 300,
+                        Margin = 1,
                         ErrorCorrection = ZXing.QrCode.Internal.ErrorCorrectionLevel.H
                     }
                 };
@@ -530,11 +896,11 @@ namespace STP.Repository.Services
                 Dictionary<string, string> bookingInfo = new Dictionary<string, string>()
                     {
                         { "BookingId", booking.Booking_ID.ToString() },
-                        { "MovieName", booking.Showtime.Movie.Movie_Name },
-                        { "CinemaRoom", booking.Showtime.CinemaRoom.Room_Name },
-                        { "ShowDate", booking.Showtime.Show_Date.ToString("dd/MM/yyyy") },
-                        { "ShowTime", (DateTime.Today + booking.Showtime.Start_Time).ToString("HH:mm") },
-                        { "Seats", string.Join(", ", tickets.Select(t => $"{t.Seat.SeatLayout.Row_Label}{t.Seat.SeatLayout.Column_Number}")) }
+                        { "MovieName", booking.Showtime?.Movie?.Movie_Name ?? "Phim" },
+                        { "CinemaRoom", booking.Showtime?.CinemaRoom?.Room_Name ?? "Phòng chiếu" },
+                        { "ShowDate", booking.Showtime?.Show_Date.ToString("dd/MM/yyyy") ?? DateTime.Now.ToString("dd/MM/yyyy") },
+                        { "ShowTime", booking.Showtime != null ? (DateTime.Today + booking.Showtime.Start_Time).ToString("HH:mm") : "00:00" },
+                        { "Seats", string.Join(", ", tickets.Select(t => $"{t.Seat?.SeatLayout?.Row_Label}{t.Seat?.SeatLayout?.Column_Number}")) }
                     };
 
                 // Tạo các file PDF cho vé sử dụng template
@@ -594,296 +960,15 @@ namespace STP.Repository.Services
                 return false;
             }
         }
+        /// <summary>
+        /// Tạo PDF vé xem phim hiện đại
+        /// </summary>
         public async Task<byte[]> GenerateTicketPdfAsync(int ticketId)
         {
-            try
-            {
-                _logger.LogInformation($"Generating PDF for ticket ID: {ticketId}");
-
-                // Lấy thông tin vé từ database
-                var ticket = await _context.Tickets
-                    .Include(t => t.TicketBooking)
-                    .Include(t => t.TicketBooking.Showtime)
-                    .Include(t => t.TicketBooking.Showtime.Movie)
-                    .Include(t => t.TicketBooking.Showtime.CinemaRoom)
-                    .Include(t => t.TicketBooking.User)
-                    .Include(t => t.Seat)
-                    .Include(t => t.Seat.SeatLayout)
-                    .FirstOrDefaultAsync(t => t.Ticket_ID == ticketId);
-
-                if (ticket == null)
-                {
-                    _logger.LogWarning($"Ticket with ID {ticketId} not found");
-                    return null;
-                }
-
-                // Tạo một document PDF mới
-                MemoryStream ms = new MemoryStream();
-                try
-                {
-                    // Thiết lập kích thước trang vé (dạng thẻ dọc)
-                    Rectangle pageSize = new Rectangle(350, 600);
-                    Document document = new Document(pageSize, 10, 10, 10, 10);
-                    PdfWriter writer = PdfWriter.GetInstance(document, ms);
-                    document.Open();
-
-                    // Thiết lập font chữ hỗ trợ tiếng Việt
-                    BaseFont baseFont = BaseFont.CreateFont("c:/windows/fonts/arial.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-                    Font regularFont = new Font(baseFont, 9, Font.NORMAL, BaseColor.BLACK);
-                    Font boldFont = new Font(baseFont, 9, Font.BOLD, BaseColor.BLACK);
-                    Font headerFont = new Font(baseFont, 12, Font.BOLD, BaseColor.BLACK);
-                    Font titleFont = new Font(baseFont, 14, Font.BOLD, BaseColor.BLACK);
-                    Font smallFont = new Font(baseFont, 8, Font.NORMAL, BaseColor.BLACK);
-                    Font movieTitleFont = new Font(baseFont, 16, Font.BOLD, BaseColor.BLACK);
-
-                    PdfContentByte canvas = writer.DirectContent;
-
-                    // Vẽ background màu hồng nhạt
-                    canvas.SaveState();
-                    canvas.SetColorFill(new BaseColor(255, 235, 238)); // Light pink
-                    canvas.Rectangle(0, 0, pageSize.Width, pageSize.Height);
-                    canvas.Fill();
-                    canvas.RestoreState();
-
-                    // Header - logo và tên rạp
-                    PdfPTable headerTable = new PdfPTable(2);
-                    headerTable.WidthPercentage = 100;
-                    headerTable.SetWidths(new float[] { 1f, 3f });
-                    headerTable.DefaultCell.Border = Rectangle.NO_BORDER;
-                    headerTable.DefaultCell.BackgroundColor = new BaseColor(244, 143, 177); // Pink
-                    headerTable.DefaultCell.Padding = 5;
-
-                    // Logo rạp (placeholder)
-                    PdfPCell logoCell = new PdfPCell();
-                    logoCell.Border = Rectangle.NO_BORDER;
-                    logoCell.BackgroundColor = new BaseColor(244, 143, 177);
-                    logoCell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    logoCell.VerticalAlignment = Element.ALIGN_MIDDLE;
-
-                    try
-                    {
-                        // Vẽ logo đơn giản
-                        PdfTemplate template = canvas.CreateTemplate(40, 40);
-                        template.SetColorFill(BaseColor.WHITE);
-                        template.Circle(20, 20, 15);
-                        template.Fill();
-
-                        template.SetColorStroke(BaseColor.WHITE);
-                        template.SetLineWidth(2);
-                        template.MoveTo(15, 15);
-                        template.LineTo(25, 25);
-                        template.LineTo(15, 25);
-                        template.LineTo(25, 15);
-                        template.Stroke();
-
-                        iTextSharp.text.Image logoImage = iTextSharp.text.Image.GetInstance(template);
-                        logoCell.AddElement(logoImage);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning($"Could not create logo: {ex.Message}");
-                        logoCell.AddElement(new Phrase("STP", new Font(baseFont, 20, Font.BOLD, BaseColor.WHITE)));
-                    }
-
-                    headerTable.AddCell(logoCell);
-
-                    // Tên rạp
-                    PdfPCell cinemaCell = new PdfPCell(new Phrase("STP Cinema", new Font(baseFont, 16, Font.BOLD, BaseColor.WHITE)));
-                    cinemaCell.Border = Rectangle.NO_BORDER;
-                    cinemaCell.BackgroundColor = new BaseColor(244, 143, 177);
-                    cinemaCell.HorizontalAlignment = Element.ALIGN_LEFT;
-                    cinemaCell.VerticalAlignment = Element.ALIGN_MIDDLE;
-                    headerTable.AddCell(cinemaCell);
-
-                    document.Add(headerTable);
-
-                    // Địa chỉ rạp và ngày giờ
-                    PdfPTable addressTable = new PdfPTable(1);
-                    addressTable.WidthPercentage = 100;
-                    addressTable.DefaultCell.Border = Rectangle.NO_BORDER;
-
-                    PdfPCell addressCell = new PdfPCell(new Phrase("Tầng 3, TTTM STP Center\n45 Nguyễn Thị Minh Khai, Quận 1, TP HCM", smallFont));
-                    addressCell.Border = Rectangle.NO_BORDER;
-                    addressCell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    addressCell.PaddingTop = 5;
-                    addressTable.AddCell(addressCell);
-
-                    PdfPCell dateCell = new PdfPCell(new Phrase($"{DateTime.Now:dd/MM/yyyy HH:mm}", boldFont));
-                    dateCell.Border = Rectangle.NO_BORDER;
-                    dateCell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    dateCell.PaddingBottom = 5;
-                    addressTable.AddCell(dateCell);
-
-                    document.Add(addressTable);
-
-                    // Thêm poster phim nếu có
-                    try
-                    {
-                        if (!string.IsNullOrEmpty(ticket.TicketBooking.Showtime.Movie.Poster_URL))
-                        {
-                            // Tải ảnh từ URL
-                            System.Net.WebClient webClient = new System.Net.WebClient();
-                            byte[] imageBytes = webClient.DownloadData(ticket.TicketBooking.Showtime.Movie.Poster_URL);
-
-                            if (imageBytes != null && imageBytes.Length > 0)
-                            {
-                                iTextSharp.text.Image posterImage = iTextSharp.text.Image.GetInstance(imageBytes);
-                                posterImage.ScaleToFit(200, 150);
-                                posterImage.Alignment = Element.ALIGN_CENTER;
-                                document.Add(posterImage);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning($"Could not add movie poster: {ex.Message}");
-                        // Tiếp tục tạo PDF mà không có poster
-                    }
-
-                    // Thông tin phim
-                    PdfPTable movieTable = new PdfPTable(1);
-                    movieTable.WidthPercentage = 100;
-                    movieTable.DefaultCell.Border = Rectangle.NO_BORDER;
-                    movieTable.SpacingBefore = 10;
-
-                    // Tên phim
-                    PdfPCell movieTitleCell = new PdfPCell(new Phrase(ticket.TicketBooking.Showtime.Movie.Movie_Name, movieTitleFont));
-                    movieTitleCell.Border = Rectangle.NO_BORDER;
-                    movieTitleCell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    movieTitleCell.PaddingBottom = 5;
-                    movieTable.AddCell(movieTitleCell);
-
-                    // Loại phim và ngôn ngữ
-                    string language = ticket.TicketBooking.Showtime.Movie.Language ?? "Lồng tiếng";
-                    PdfPCell movieTypeCell = new PdfPCell(new Phrase($"2D {language}", regularFont));
-                    movieTypeCell.Border = Rectangle.NO_BORDER;
-                    movieTypeCell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    movieTable.AddCell(movieTypeCell);
-
-                    document.Add(movieTable);
-
-                    // Thời gian chiếu
-                    PdfPTable timeTable = new PdfPTable(1);
-                    timeTable.WidthPercentage = 100;
-                    timeTable.DefaultCell.Border = Rectangle.NO_BORDER;
-                    timeTable.SpacingBefore = 10;
-
-                    DateTime showDate = ticket.TicketBooking.Showtime.Show_Date;
-                    TimeSpan startTime = ticket.TicketBooking.Showtime.Start_Time;
-
-                    // Sửa lỗi: Chuyển TimeSpan thành DateTime để định dạng
-                    DateTime baseDate = DateTime.Today;
-                    DateTime startDateTime = baseDate.Add(startTime);
-                    DateTime endDateTime = baseDate.Add(startTime).AddMinutes(ticket.TicketBooking.Showtime.Movie.Duration);
-
-                    string showTimeText = $"{startDateTime:HH:mm} - {endDateTime:HH:mm}";
-                    PdfPCell timeCell = new PdfPCell(new Phrase(showTimeText, boldFont));
-                    timeCell.Border = Rectangle.NO_BORDER;
-                    timeCell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    timeTable.AddCell(timeCell);
-
-                    string dateText = $"{showDate:ddd, dd/MM/yyyy}";
-                    PdfPCell dateTextCell = new PdfPCell(new Phrase(dateText, boldFont));
-                    dateTextCell.Border = Rectangle.NO_BORDER;
-                    dateTextCell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    timeTable.AddCell(dateTextCell);
-
-                    document.Add(timeTable);
-
-                    // Đường kẻ
-                    LineSeparator line = new LineSeparator(1, 100, BaseColor.BLACK, Element.ALIGN_CENTER, -5);
-                    document.Add(new Paragraph(" "));
-                    document.Add(line);
-
-                    // Thông tin ghế và phòng
-                    PdfPTable seatTable = new PdfPTable(3);
-                    seatTable.WidthPercentage = 100;
-                    seatTable.SetWidths(new float[] { 1f, 1f, 1f });
-                    seatTable.DefaultCell.Border = Rectangle.NO_BORDER;
-                    seatTable.SpacingBefore = 10;
-
-                    // Phòng chiếu
-                    PdfPCell roomLabelCell = new PdfPCell(new Phrase("Phòng chiếu", boldFont));
-                    roomLabelCell.Border = Rectangle.NO_BORDER;
-                    roomLabelCell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    seatTable.AddCell(roomLabelCell);
-
-                    // Số vé
-                    PdfPCell ticketLabelCell = new PdfPCell(new Phrase("Số vé", boldFont));
-                    ticketLabelCell.Border = Rectangle.NO_BORDER;
-                    ticketLabelCell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    seatTable.AddCell(ticketLabelCell);
-
-                    // Số ghế
-                    PdfPCell seatLabelCell = new PdfPCell(new Phrase("Số ghế", boldFont));
-                    seatLabelCell.Border = Rectangle.NO_BORDER;
-                    seatLabelCell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    seatTable.AddCell(seatLabelCell);
-
-                    // Giá trị phòng chiếu
-                    PdfPCell roomValueCell = new PdfPCell(new Phrase(ticket.TicketBooking.Showtime.CinemaRoom.Room_Name, regularFont));
-                    roomValueCell.Border = Rectangle.NO_BORDER;
-                    roomValueCell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    seatTable.AddCell(roomValueCell);
-
-                    // Giá trị số vé
-                    PdfPCell ticketValueCell = new PdfPCell(new Phrase("01", regularFont));
-                    ticketValueCell.Border = Rectangle.NO_BORDER;
-                    ticketValueCell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    seatTable.AddCell(ticketValueCell);
-
-                    // Giá trị số ghế
-                    PdfPCell seatValueCell = new PdfPCell(new Phrase($"{ticket.Seat.SeatLayout.Row_Label}{ticket.Seat.SeatLayout.Column_Number}", regularFont));
-                    seatValueCell.Border = Rectangle.NO_BORDER;
-                    seatValueCell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    seatTable.AddCell(seatValueCell);
-
-                    document.Add(seatTable);
-
-                    // Thức ăn kèm
-                    PdfPTable foodTable = new PdfPTable(1);
-                    foodTable.WidthPercentage = 100;
-                    foodTable.DefaultCell.Border = Rectangle.NO_BORDER;
-                    foodTable.SpacingBefore = 5;
-
-                    PdfPCell foodLabelCell = new PdfPCell(new Phrase("Thức ăn kèm", boldFont));
-                    foodLabelCell.Border = Rectangle.NO_BORDER;
-                    foodLabelCell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    foodTable.AddCell(foodLabelCell);
-
-                    PdfPCell foodValueCell = new PdfPCell(new Phrase("1 x Coke 32oz", regularFont));
-                    foodValueCell.Border = Rectangle.NO_BORDER;
-                    foodValueCell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    foodTable.AddCell(foodValueCell);
-
-                    document.Add(foodTable);
-
-                    // [Phần code còn lại giữ nguyên]
-
-                    // Đóng tài liệu
-                    document.Close();
-                    writer.Close();
-
-                    byte[] pdfBytes = ms.ToArray();
-                    _logger.LogInformation($"PDF generated successfully for ticket ID: {ticketId}, size: {pdfBytes.Length} bytes");
-                    return pdfBytes;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, $"Error while creating PDF document for ticket {ticketId}: {ex.Message}");
-                    throw;
-                }
-                finally
-                {
-                    ms.Dispose();
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error generating PDF for ticket {ticketId}: {ex.Message}");
-                throw;
-            }
+            return await GenerateModernTicketPdfAsync(ticketId);
         }
+
+
 
         /// <summary>
         /// Tạo PDF dự phòng khi có lỗi

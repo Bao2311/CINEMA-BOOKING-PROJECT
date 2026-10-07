@@ -155,7 +155,13 @@ namespace STP.Repository.Data
             modelBuilder.Entity<Promotion>().ToTable("Promotions");
             modelBuilder.Entity<TicketBooking>().ToTable("Ticket_Bookings");
             modelBuilder.Entity<Ticket>().ToTable("Tickets");
-            modelBuilder.Entity<Payment>().ToTable("Payments");
+            modelBuilder.Entity<Payment>(entity =>
+            {
+                entity.ToTable("Payments");
+                entity.Property(e => e.Refund_Reason).IsRequired(false);
+                entity.Property(e => e.Processor_Response).IsRequired(false);
+                entity.Property(e => e.Refund_Amount).HasDefaultValue(0);
+            });
             modelBuilder.Entity<Score>().ToTable("Scores");
             modelBuilder.Entity<BookingHistory>().ToTable("Booking_History");
             modelBuilder.Entity<PromotionUsage>().ToTable("Promotion_Usage");

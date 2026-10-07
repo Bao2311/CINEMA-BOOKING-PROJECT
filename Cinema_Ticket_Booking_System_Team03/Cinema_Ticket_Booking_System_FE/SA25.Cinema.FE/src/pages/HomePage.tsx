@@ -80,7 +80,7 @@ const getMovieMedia = (movie: Movie) => {
   if (name.includes('avatar')) {
     return {
       backdrop: 'https://image.tmdb.org/t/p/original/o075VitstqIgOi6zjqAmBAnZwFi.jpg',
-      poster: 'https://image.tmdb.org/t/p/w600_and_h900_bestv2/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg'
+      poster: movie.poster_URL || 'https://image.tmdb.org/t/p/w600_and_h900_bestv2/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg'
     };
   }
 
