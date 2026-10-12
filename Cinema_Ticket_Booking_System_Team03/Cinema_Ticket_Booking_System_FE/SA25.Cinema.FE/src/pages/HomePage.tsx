@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Play, Ticket, Star, Clock, ChevronLeft, ChevronRight,
   X, Search, Filter, ChevronDown, Flame, Zap, Sparkles,
-  Calendar, Eye
+  Calendar, Eye, Server, RefreshCw, ExternalLink, LogIn
 } from 'lucide-react';
 import MovieCard from '../components/Movies/MovieCard';
 import axios from 'axios';
@@ -284,8 +284,12 @@ const HomePage: React.FC = () => {
   const isNowShowing = (s?: string) => s === 'Now Showing' || s === 'NowShowing';
   const isComingSoon = (s?: string) => s === 'Coming Soon' || s === 'ComingSoon';
 
-  // Fetch movies from API
+  // Fetch movies from API with auto-retry if backend is sleeping
   useEffect(() => {
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let retryCount = 0;
+    const maxRetries = 12;
+
     const fetchMovies = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -293,7 +297,7 @@ const HomePage: React.FC = () => {
         if (token) {
           headers.Authorization = `Bearer ${token}`;
         }
-        const res = await axios.get(`${API_URL}/Movie`, { headers });
+        const res = await axios.get(`${API_URL}/Movie`, { headers, timeout: 25000 });
         let movies: Movie[] = [];
         if (Array.isArray(res.data)) {
           movies = res.data;
@@ -306,14 +310,33 @@ const HomePage: React.FC = () => {
             .sort((a, b) => parseFloat(b.rating || '0') - parseFloat(a.rating || '0'))
             .slice(0, 5);
           setHeroMovies(hero);
+          setIsLoading(false);
+          return;
         }
       } catch (err) {
-        console.error('Error fetching movies:', err);
-      } finally {
+        console.warn('Backend server may be in cold-start mode:', err);
+      }
+
+      // Retry fetching if server is waking up
+      if (retryCount < maxRetries) {
+        retryCount++;
+        retryTimer = setTimeout(fetchMovies, 5000);
+      } else {
         setIsLoading(false);
       }
     };
+
     fetchMovies();
+
+    const handleAwake = () => {
+      fetchMovies();
+    };
+    window.addEventListener('cinema-server-awake', handleAwake);
+
+    return () => {
+      if (retryTimer) clearTimeout(retryTimer);
+      window.removeEventListener('cinema-server-awake', handleAwake);
+    };
   }, []);
 
   // Hero carousel auto-rotation
@@ -413,7 +436,64 @@ const HomePage: React.FC = () => {
               ))}
             </div>
           </>
-        ) : null}
+        ) : (
+          /* Recruiter Cold-Start Notice Hero */
+          <div className="relative min-h-[580px] lg:h-[680px] flex items-center justify-center bg-gradient-to-br from-[#161D2F] via-[#0B0F19] to-[#181124] px-4 sm:px-6 lg:px-8 overflow-hidden">
+            {/* Background decorative glows */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-900/20 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute w-[500px] h-[500px] bg-red-600/10 rounded-full blur-3xl -top-32 -left-32 pointer-events-none" />
+            <div className="absolute w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-3xl -bottom-32 -right-32 pointer-events-none" />
+
+            <div className="relative z-10 max-w-4xl mx-auto text-center space-y-5 pt-8">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs sm:text-sm font-semibold shadow-lg">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+                <span>Môi Trường Cloud Free-Tier • Máy chủ đang Cold Start (~30-50s)</span>
+              </div>
+
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight">
+                Chào mừng <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-rose-400 to-amber-400">Nhà tuyển dụng</span> đến CinemaPlus
+              </h1>
+
+              <p className="text-gray-300 text-xs sm:text-base max-w-2xl mx-auto leading-relaxed">
+                Dự án Full-stack Cinema Booking System (<strong className="text-white">ASP.NET Core 9 + React + Neon PostgreSQL</strong>). 
+                Do deploy trên nền tảng miễn phí <strong>Render Free Tier</strong>, backend sẽ tự động tạm ngủ sau 15 phút không có request.
+                Hệ thống đang tự động đánh thức máy chủ và tải 17 bộ phim ngay khi sẵn sàng!
+              </p>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-server-status-modal'))}
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-red-600/30 hover:scale-105 active:scale-95 transition flex items-center gap-2 cursor-pointer"
+                >
+                  <Server className="w-4 h-4" />
+                  <span>⚡ Xem chi tiết & Đánh thức máy chủ</span>
+                </button>
+                <button
+                  onClick={() => navigate('/login')}
+                  className="px-6 py-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs sm:text-sm border border-white/20 hover:scale-105 active:scale-95 transition flex items-center gap-2 cursor-pointer"
+                >
+                  <LogIn className="w-4 h-4 text-emerald-400" />
+                  <span>👤 Đăng nhập tài khoản Demo</span>
+                </button>
+                <a
+                  href="https://cinema-booking-api-gur7.onrender.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs sm:text-sm border border-white/10 transition flex items-center gap-1.5"
+                >
+                  <span>Swagger API Live</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+
+              <div className="pt-3 flex items-center justify-center gap-2 text-xs text-amber-300/80">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>Đang tự động thăm dò và tải dữ liệu phim khi máy chủ thức dậy...</span>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ───── FILTER & DISCOVERY BAR ───── */}
@@ -525,6 +605,25 @@ const HomePage: React.FC = () => {
             {filteredMovies.map((movie) => (
               <MovieCard key={movie.movie_ID} movie={movie} />
             ))}
+          </div>
+        ) : allMovies.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center bg-white/[0.02] border border-white/10 rounded-3xl p-8 max-w-2xl mx-auto my-8">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mb-4 text-amber-400">
+              <Server className="h-8 w-8 animate-pulse" />
+            </div>
+            <h3 className="text-xl font-bold text-white">Máy chủ Backend đang thức dậy (Cold Start)...</h3>
+            <p className="text-gray-400 text-sm mt-2 max-w-md leading-relaxed">
+              Backend Render Free Tier đang nạp lại Docker container (~30-50s). Danh sách 17 phim sẽ tự động hiển thị ngay khi máy chủ phản hồi.
+            </p>
+            <div className="flex items-center gap-3 mt-5">
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('open-server-status-modal'))}
+                className="px-5 py-2.5 text-xs font-bold bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white rounded-xl shadow-lg transition flex items-center gap-2 cursor-pointer"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Mở bảng đánh thức & Tài khoản Demo</span>
+              </button>
+            </div>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-24 text-center">

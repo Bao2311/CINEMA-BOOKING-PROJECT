@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import {
   Search, Filter, Clock, Star, Film,
-  X, Zap, SlidersHorizontal, ArrowUpDown, ChevronDown
+  X, Zap, SlidersHorizontal, ArrowUpDown, ChevronDown,
+  Server, RefreshCw
 } from 'lucide-react';
 import MovieCard from '../components/Movies/MovieCard';
 import { Movie } from '../types';
@@ -29,29 +30,52 @@ const MoviesPage: React.FC = () => {
   const [minRating, setMinRating] = useState<number>(0);
 
   useEffect(() => {
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let retryCount = 0;
+    const maxRetries = 10;
+
     const fetchMovies = async () => {
       try {
         const token = localStorage.getItem('token');
         const response = await axios.get(`${API_URL}/Movie`, {
           headers: { Authorization: `Bearer ${token}` },
+          timeout: 25000,
         });
 
         if (response.data && Array.isArray(response.data.$values)) {
           setMovies(response.data.$values);
+          setError(null);
+          setIsLoading(false);
+          return;
         } else if (Array.isArray(response.data)) {
           setMovies(response.data);
-        } else {
-          setError('Không thể tải danh sách phim.');
+          setError(null);
+          setIsLoading(false);
+          return;
         }
       } catch (err) {
-        console.error('Error fetching movies:', err);
-        setError('Có lỗi xảy ra khi tải dữ liệu phim.');
-      } finally {
+        console.warn('Backend server may be in cold-start mode:', err);
+      }
+
+      if (retryCount < maxRetries) {
+        retryCount++;
+        retryTimer = setTimeout(fetchMovies, 5000);
+      } else {
         setIsLoading(false);
       }
     };
 
     fetchMovies();
+
+    const handleAwake = () => {
+      fetchMovies();
+    };
+    window.addEventListener('cinema-server-awake', handleAwake);
+
+    return () => {
+      if (retryTimer) clearTimeout(retryTimer);
+      window.removeEventListener('cinema-server-awake', handleAwake);
+    };
   }, []);
 
   // Sync search param
@@ -254,6 +278,23 @@ const MoviesPage: React.FC = () => {
             {filteredMovies.map((movie) => (
               <MovieCard key={movie.movie_ID} movie={movie} />
             ))}
+          </div>
+        ) : movies.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-[#161D2F] border border-amber-500/30 rounded-2xl text-center p-8 max-w-xl mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mb-4 text-amber-400">
+              <Server className="h-8 w-8 animate-pulse" />
+            </div>
+            <h3 className="text-xl font-bold text-white">Máy chủ Backend đang thức dậy (Cold Start)...</h3>
+            <p className="text-gray-400 text-sm mt-2 max-w-sm leading-relaxed">
+              Môi trường Render Free Tier đang khởi động container (~30-50s). Danh sách phim sẽ tự động hiển thị khi máy chủ hoàn tất.
+            </p>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-server-status-modal'))}
+              className="mt-5 px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 text-white text-xs font-bold rounded-xl shadow-lg transition flex items-center gap-2 cursor-pointer"
+            >
+              <Zap className="w-4 h-4" />
+              <span>Xem thông báo máy chủ & Đánh thức</span>
+            </button>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 bg-[#161D2F] border border-white/10 rounded-2xl text-center">

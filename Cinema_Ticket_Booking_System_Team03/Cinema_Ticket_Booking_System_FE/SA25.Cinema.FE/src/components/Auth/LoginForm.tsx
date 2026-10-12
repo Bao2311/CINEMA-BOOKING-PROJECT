@@ -164,6 +164,14 @@ const LoginForm: React.FC = () => {
         </p>
       </div>
 
+      {/* Cloud Free Tier Wake-up Hint for Recruiters */}
+      <div className="mb-4 bg-amber-500/10 border border-amber-500/25 rounded-xl p-3 text-xs text-amber-300 flex items-start gap-2.5">
+        <span className="text-sm">⚡</span>
+        <div className="leading-relaxed">
+          <strong className="text-white">Lưu ý Recruiter / Người đánh giá:</strong> Backend deploy trên Render Free Tier tự động ngủ sau 15p. Thao tác đăng nhập này sẽ gửi request trực tiếp đánh thức máy chủ (~30-50s). Vui lòng đợi trong giây lát nếu lần đầu có độ trễ.
+        </div>
+      </div>
+
       {/* Quick Test Accounts Tooltip */}
       <div className="mb-6 bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-gray-300">
         <div className="font-semibold text-amber-400 mb-2 flex items-center justify-between">

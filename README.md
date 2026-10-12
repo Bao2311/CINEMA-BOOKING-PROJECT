@@ -16,7 +16,10 @@
 ⚡ **Backend API (Swagger Docs Live):** [https://cinema-booking-api-gur7.onrender.com](https://cinema-booking-api-gur7.onrender.com)  
 🐘 **Database Cloud:** [Neon Serverless PostgreSQL](https://neon.tech)  
 🐳 **Backend Host:** Docker Web Service on [Render](https://render.com)  
-🚀 **Frontend Host:** SPA on [Vercel](https://vercel.com)  
+🚀 **Frontend Host:** SPA on [Vercel](https://cinema-booking-project-nine.vercel.app/)  
+
+> 💡 **Lưu ý dành cho Nhà tuyển dụng (Cloud Free-Tier Cold Start):**  
+> Backend API được triển khai trên gói miễn phí của **Render**. Theo cơ chế của Render, máy chủ sẽ tạm ngủ (**Spin-down**) sau **15 phút** không có request. Khi vừa truy cập, container cần **30 - 50 giây để khởi động lại (Cold Start)**. Website đã tích hợp sẵn bảng thông báo, widget trạng thái thời gian thực và nút 1-Click đăng nhập Customer Demo để đánh thức máy chủ.
 
 [📖 Hướng dẫn cài đặt](#-cài-đặt-và-chạy-project) · [📚 API Documentation](#-api-documentation) · [🐛 Báo lỗi](https://github.com/Bao2311/CINEMA-BOOKING-PROJECT/issues)
 

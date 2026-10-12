@@ -5,6 +5,7 @@ import NavbarLoginStaff from './Navbar-Login-Staff';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import AiBookingAssistant from '../AiAssistant/AiBookingAssistant';
+import ServerStatusAlert from '../Common/ServerStatusAlert';
 
 interface LayoutProps {
   children?: React.ReactNode;
@@ -34,6 +35,8 @@ const Layout: React.FC<LayoutProps> = ({ children, showNavbar = true }) => {
       <main className={`flex-grow ${showNavbar && !isHomePage ? 'pt-20' : ''}`}>
         {children}
       </main>
+      {/* Recruiter & Developer Server Status Indicator & Wake-up Modal */}
+      <ServerStatusAlert />
       {!isAdminOrStaff && <AiBookingAssistant />}
       <Footer />
     </div>
