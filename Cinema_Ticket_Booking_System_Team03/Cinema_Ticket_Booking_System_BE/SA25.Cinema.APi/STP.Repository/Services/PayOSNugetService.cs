@@ -662,6 +662,7 @@ namespace STP.Repository.Services
                             Transaction_Date = DateTime.Now,
                             Payment_Status = "Pending",
                             Processor_Response = processorResponse ?? string.Empty,
+                            Refund_Amount = 0,
                             Refund_Reason = string.Empty
                         };
 

@@ -766,7 +766,7 @@ namespace STP.Repository.Data
 
             try
             {
-                // 1. Đảm bảo các cột nullable trên bảng Payments
+                // 1. Đảm bảo các cột nullable và default trên bảng Payments
                 await context.Database.ExecuteSqlRawAsync(@"
                     DO $$
                     BEGIN
@@ -776,6 +776,16 @@ namespace STP.Repository.Data
                     DO $$
                     BEGIN
                         ALTER TABLE ""Payments"" ALTER COLUMN ""Processor_Response"" DROP NOT NULL;
+                    EXCEPTION WHEN OTHERS THEN NULL;
+                    END $$;
+                    DO $$
+                    BEGIN
+                        ALTER TABLE ""Payments"" ALTER COLUMN ""Refund_Amount"" SET DEFAULT 0;
+                    EXCEPTION WHEN OTHERS THEN NULL;
+                    END $$;
+                    DO $$
+                    BEGIN
+                        ALTER TABLE ""Payments"" ALTER COLUMN ""Refund_Amount"" DROP NOT NULL;
                     EXCEPTION WHEN OTHERS THEN NULL;
                     END $$;
                 ");
