@@ -43,31 +43,15 @@ export const ServerStatusAlert: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  // Test accounts data
+  // Test accounts data (Customer Demo public; Admin & Staff protected for interviews)
   const DEMO_ACCOUNTS = [
     {
-      role: 'Khách hàng (Customer)',
+      role: 'Khách hàng (Customer Demo)',
       email: 'customer@cinema.com',
       password: 'User@123',
-      description: 'Trải nghiệm đặt vé, chọn ghế rạp, xem vé điện tử & lịch sử giao dịch',
+      description: 'Trải nghiệm toàn diện: Đặt vé, chọn ghế rạp, xem vé QR điện tử & lịch sử giao dịch',
       badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
       icon: UserCheck
-    },
-    {
-      role: 'Quản trị viên (Admin)',
-      email: 'admin@cinema.com',
-      password: 'Admin@123',
-      description: 'Quản lý toàn bộ hệ thống, phim, rạp chiếu, suất chiếu & báo cáo doanh thu',
-      badgeColor: 'bg-red-500/10 text-red-400 border-red-500/30',
-      icon: Shield
-    },
-    {
-      role: 'Nhân viên (Staff)',
-      email: 'staff@cinema.com',
-      password: 'Staff@123',
-      description: 'Bán vé tại quầy và quét mã QR vé check-in khách vào phòng chiếu',
-      badgeColor: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-      icon: Cpu
     }
   ];
 
@@ -487,23 +471,14 @@ export const ServerStatusAlert: React.FC = () => {
                     );
                   })}
                 </div>
-              </div>
 
-              {/* SWAGGER & REPO LINK */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 text-xs text-gray-400 border-t border-white/10">
-                <span className="flex items-center gap-1.5">
-                  <Database className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Backend Swagger API Docs:</span>
-                </span>
-                <a
-                  href="https://cinema-booking-api-gur7.onrender.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-red-400 hover:text-red-300 flex items-center gap-1 underline underline-offset-2 transition"
-                >
-                  <span>https://cinema-booking-api-gur7.onrender.com</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+                {/* SECURITY & DATA INTEGRITY NOTICE */}
+                <div className="p-3.5 rounded-xl bg-white/[0.02] border border-dashed border-white/10 text-xs text-gray-300 flex items-start gap-2.5">
+                  <Shield className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="leading-relaxed">
+                    <strong className="text-white">Bảo vệ tính toàn vẹn dữ liệu (Data Integrity):</strong> Phân quyền <strong>Quản trị viên (Admin)</strong> và <strong>Nhân viên (Staff)</strong> được bảo mật để tránh trường hợp dữ liệu phim, phòng chiếu và suất chiếu trên database Cloud bị sửa đổi/xóa ngoài ý muốn. Ứng viên sẽ trực tiếp trình bày chi tiết Dashboard Admin và nghiệp vụ Staff trong buổi phỏng vấn kỹ thuật.
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -474,17 +474,8 @@ const HomePage: React.FC = () => {
                   className="px-6 py-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs sm:text-sm border border-white/20 hover:scale-105 active:scale-95 transition flex items-center gap-2 cursor-pointer"
                 >
                   <LogIn className="w-4 h-4 text-emerald-400" />
-                  <span>👤 Đăng nhập tài khoản Demo</span>
+                  <span>👤 Đăng nhập Customer Demo</span>
                 </button>
-                <a
-                  href="https://cinema-booking-api-gur7.onrender.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-5 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs sm:text-sm border border-white/10 transition flex items-center gap-1.5"
-                >
-                  <span>Swagger API Live</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
               </div>
 
               <div className="pt-3 flex items-center justify-center gap-2 text-xs text-amber-300/80">

@@ -13,7 +13,6 @@
 
 **Hệ thống đặt vé xem phim trực tuyến full-stack** được thực hiện bởi **Lê Quốc Bảo** — Dự án thực tập (Internship) tại **FPT Software**, sinh viên **Đại học FPT**.
 
-⚡ **Backend API (Swagger Docs Live):** [https://cinema-booking-api-gur7.onrender.com](https://cinema-booking-api-gur7.onrender.com)  
 🐘 **Database Cloud:** [Neon Serverless PostgreSQL](https://neon.tech)  
 🐳 **Backend Host:** Docker Web Service on [Render](https://render.com)  
 🚀 **Frontend Host:** SPA on [Vercel](https://cinema-booking-project-nine.vercel.app/)  

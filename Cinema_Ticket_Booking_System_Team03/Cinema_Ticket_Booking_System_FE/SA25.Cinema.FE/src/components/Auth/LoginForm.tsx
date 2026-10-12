@@ -181,36 +181,6 @@ const LoginForm: React.FC = () => {
           <button
             type="button"
             onClick={() => {
-              setFormData({ email: "admin@cinema.com", password: "Admin@123" });
-              setTouched({ email: true, password: true });
-              setErrors({});
-            }}
-            className="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-red-500/20 hover:border-red-500/40 border border-transparent transition text-left cursor-pointer"
-          >
-            <div>
-              <span className="font-semibold text-white">Admin:</span>{" "}
-              <span className="text-gray-400">admin@cinema.com / Admin@123</span>
-            </div>
-            <span className="text-[10px] uppercase font-bold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">Chọn</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setFormData({ email: "staff@cinema.com", password: "Staff@123" });
-              setTouched({ email: true, password: true });
-              setErrors({});
-            }}
-            className="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-blue-500/20 hover:border-blue-500/40 border border-transparent transition text-left cursor-pointer"
-          >
-            <div>
-              <span className="font-semibold text-white">Staff:</span>{" "}
-              <span className="text-gray-400">staff@cinema.com / Staff@123</span>
-            </div>
-            <span className="text-[10px] uppercase font-bold text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">Chọn</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
               setFormData({ email: "customer@cinema.com", password: "User@123" });
               setTouched({ email: true, password: true });
               setErrors({});
@@ -218,12 +188,15 @@ const LoginForm: React.FC = () => {
             className="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-emerald-500/20 hover:border-emerald-500/40 border border-transparent transition text-left cursor-pointer"
           >
             <div>
-              <span className="font-semibold text-white">Customer:</span>{" "}
+              <span className="font-semibold text-white">Customer Demo:</span>{" "}
               <span className="text-gray-400">customer@cinema.com / User@123</span>
             </div>
             <span className="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Chọn</span>
           </button>
         </div>
+        <p className="mt-2 text-[10px] text-gray-400 border-t border-white/5 pt-1.5">
+          🔒 Phân quyền <strong>Admin & Staff</strong> được bảo mật để đảm bảo dữ liệu phòng chiếu không bị thay đổi. Ứng viên sẽ trực tiếp trình bày khi phỏng vấn.
+        </p>
       </div>
 
       {error && (
