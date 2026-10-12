@@ -358,7 +358,8 @@ const CinemaRoomPage: React.FC = () => {
     } catch (error: any) {
       console.error('Error creating booking:', error);
       const errorMessage = error.response?.data?.message || 'Không thể tạo đặt vé. Vui lòng thử lại sau.';
-      toast.error(errorMessage);
+      const errorDetail = error.response?.data?.detail ? ` (${error.response.data.detail})` : '';
+      toast.error(errorMessage + errorDetail);
       return false;
     } finally {
       setIsLoading(false);

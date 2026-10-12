@@ -282,7 +282,8 @@ namespace STP.Repository.Services
                     _logger.LogError($"Database error when creating booking: {ex.Message}");
                     _logger.LogError($"Inner exception: {ex.InnerException?.Message}");
 
-                    if (ex.InnerException?.Message.Contains("FK_Ticket_Bookings_Creators") == true)
+                    if (ex.InnerException?.Message.Contains("FK_Ticket_Bookings_Creators") == true ||
+                        ex.InnerException?.Message.Contains("FK_Ticket_Bookings_Users_Created_By") == true)
                     {
                         _logger.LogError($"Foreign key constraint violation. Created_By: {booking.Created_By}, User_ID: {booking.User_ID}");
                     }
@@ -336,7 +337,7 @@ namespace STP.Repository.Services
                         Payment_Status = "Initiated",
                         Processor_Response = "Payment method selected",
                         Refund_Amount = 0,
-                        Refund_Reason = null
+                        Refund_Reason = string.Empty
                     };
 
                     _context.Payments.Add(initialPayment);
@@ -354,8 +355,16 @@ namespace STP.Repository.Services
                 };
 
                 _context.BookingHistories.Add(history);
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                try
+                {
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+                catch (DbUpdateException ex)
+                {
+                    _logger.LogError(ex, $"Database error when saving tickets/payment/history for booking {booking.Booking_ID}: {ex.Message}. Inner: {ex.InnerException?.Message}");
+                    throw;
+                }
 
                 // Lấy số điểm hiện tại của người dùng - chỉ áp dụng cho đặt online
                 int currentPoints = 0;
@@ -628,7 +637,7 @@ namespace STP.Repository.Services
                         Payment_Reference = Guid.NewGuid().ToString(),
                         Processor_Response = "Payment completed successfully",
                         Refund_Amount = 0,
-                        Refund_Reason = null
+                        Refund_Reason = string.Empty
                     };
 
                     _context.Payments.Add(payment);

@@ -74,7 +74,14 @@ namespace STP.APIService.Controllers
                 // Tạo token giả lập để bảo vệ callback
                 var mockToken = GenerateMockToken(bookingId, userId.Value);
 
-                var frontendUrl = "http://localhost:5173";
+                var origin = Request.Headers["Origin"].ToString();
+                var referer = Request.Headers["Referer"].ToString();
+                string frontendUrl = !string.IsNullOrWhiteSpace(origin)
+                    ? origin.TrimEnd('/')
+                    : (!string.IsNullOrWhiteSpace(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri)
+                        ? refererUri.GetLeftPart(UriPartial.Authority).TrimEnd('/')
+                        : (Environment.GetEnvironmentVariable("FRONTEND_URL")?.TrimEnd('/') ?? "https://cinema-booking-project-nine.vercel.app"));
+
                 var paymentUrl = $"{frontendUrl}/mock-payment?bookingId={bookingId}&amount={booking.Total_Amount}&token={mockToken}";
 
                 _logger.LogInformation($"[MockPayment] Tạo URL thanh toán giả lập cho booking {bookingId}, amount={booking.Total_Amount}");

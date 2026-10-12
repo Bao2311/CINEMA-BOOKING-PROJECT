@@ -158,8 +158,8 @@ namespace STP.Repository.Data
             modelBuilder.Entity<Payment>(entity =>
             {
                 entity.ToTable("Payments");
-                entity.Property(e => e.Refund_Reason).IsRequired(false);
-                entity.Property(e => e.Processor_Response).IsRequired(false);
+                entity.Property(e => e.Refund_Reason).IsRequired(false).HasDefaultValue("");
+                entity.Property(e => e.Processor_Response).IsRequired(false).HasDefaultValue("");
                 entity.Property(e => e.Refund_Amount).HasDefaultValue(0);
             });
             modelBuilder.Entity<Score>().ToTable("Scores");

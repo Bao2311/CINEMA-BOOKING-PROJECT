@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Net.payOS;
@@ -661,7 +661,8 @@ namespace STP.Repository.Services
                             Payment_Reference = paymentResponse.OrderCode,
                             Transaction_Date = DateTime.Now,
                             Payment_Status = "Pending",
-                            Processor_Response = processorResponse
+                            Processor_Response = processorResponse ?? string.Empty,
+                            Refund_Reason = string.Empty
                         };
 
                         _context.Payments.Add(payment);

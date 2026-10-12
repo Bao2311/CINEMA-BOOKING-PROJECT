@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { format, addDays, isSameDay } from 'date-fns';
+import {
+  format, addDays, isSameDay, startOfMonth, endOfMonth,
+  eachDayOfInterval, addMonths, subMonths, isBefore, startOfDay, isToday
+} from 'date-fns';
 import { vi } from 'date-fns/locale';
 import {
-  Calendar, Clock, MapPin, Users, Star, Film,
-  ChevronLeft, Play, Ticket, Sparkles, X, Tv, ArrowLeft, Tag
+  Calendar as CalendarIcon, Clock, MapPin, Users, Star, Film,
+  ChevronLeft, ChevronRight, Play, Ticket, Sparkles, X, Tv, ArrowLeft, Tag, Layers
 } from 'lucide-react';
 import { Modal } from 'antd';
 import { toast } from 'react-toastify';
@@ -30,8 +33,13 @@ const MovieDetailPage: React.FC = () => {
   const [pendingBookingId, setPendingBookingId] = useState<number | null>(null);
   const [selectedShowtimeInfo, setSelectedShowtimeInfo] = useState<{ showtimeId: number; movieId: number } | null>(null);
 
-  // Generate 14 days
-  const dateList = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i));
+  // Chế độ xem: 'strip' (10 ngày tới) hoặc 'calendar' (cuốn lịch tháng)
+  const [viewMode, setViewMode] = useState<'strip' | 'calendar'>('strip');
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const dateScrollRef = useRef<HTMLDivElement>(null);
+
+  // Hiển thị 10 ngày tới theo yêu cầu người dùng
+  const dateList = Array.from({ length: 10 }, (_, i) => addDays(new Date(), i));
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -100,6 +108,26 @@ const MovieDetailPage: React.FC = () => {
     acc[roomKey].push(curr);
     return acc;
   }, {} as Record<string, any[]>);
+
+  // Tập hợp các ngày có suất chiếu hợp lệ cho phim này
+  const availableShowtimeDates = useMemo(() => {
+    const set = new Set<string>();
+    showtimes.forEach((st) => {
+      if (st.show_Date && st.status !== 'Hidden' && st.status !== 'Cancelled') {
+        const d = new Date(st.show_Date);
+        set.add(format(d, 'yyyy-MM-dd'));
+      }
+    });
+    return set;
+  }, [showtimes]);
+
+  // Cuộn thanh ngày sang trái hoặc phải
+  const handleScrollStrip = (direction: 'left' | 'right') => {
+    if (dateScrollRef.current) {
+      const scrollAmount = direction === 'left' ? -240 : 240;
+      dateScrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   const handleBooking = (showtimeId: number) => {
     const role = localStorage.getItem('role');
@@ -295,35 +323,206 @@ const MovieDetailPage: React.FC = () => {
 
             {/* ───── SHOWTIMES SELECTOR ───── */}
             <div className="bg-[#161D2F] border border-white/10 rounded-2xl p-6 shadow-xl">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                  <Ticket className="h-5 w-5 text-red-500" /> Lịch chiếu & Đặt vé
-                </h3>
-              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Ticket className="h-5 w-5 text-red-500" /> Lịch chiếu & Đặt vé
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Đang xem lịch ngày:{' '}
+                    <span className="text-amber-400 font-semibold">
+                      {isToday(selectedDate) ? 'Hôm nay - ' : ''}
+                      {format(selectedDate, 'EEEE, dd/MM/yyyy', { locale: vi })}
+                    </span>
+                  </p>
+                </div>
 
-              {/* Date Scroll Strip */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide mb-6 border-b border-white/10">
-                {dateList.map((date, index) => {
-                  const isSelected = isSameDay(date, selectedDate);
-                  return (
+                {/* View Mode Switcher: 10 ngày tới vs Cuốn lịch */}
+                <div className="flex items-center gap-2">
+                  <div className="bg-white/5 border border-white/10 p-1 rounded-xl flex items-center text-xs">
                     <button
-                      key={index}
-                      onClick={() => setSelectedDate(date)}
-                      className={`flex-shrink-0 flex flex-col items-center justify-center w-16 h-20 rounded-2xl border transition-all ${
-                        isSelected
-                          ? 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-500/30 scale-105'
-                          : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
+                      onClick={() => setViewMode('strip')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${
+                        viewMode === 'strip'
+                          ? 'bg-red-600 text-white shadow-md'
+                          : 'text-gray-400 hover:text-white'
                       }`}
                     >
-                      <span className="text-xs font-medium">
-                        {index === 0 ? 'Hôm nay' : format(date, 'EEE', { locale: vi })}
-                      </span>
-                      <span className="text-lg font-black mt-1">{format(date, 'dd')}</span>
-                      <span className="text-[10px] opacity-70">{format(date, 'MM')}</span>
+                      <Layers className="h-3.5 w-3.5" />
+                      10 ngày tới
                     </button>
-                  );
-                })}
+                    <button
+                      onClick={() => setViewMode('calendar')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${
+                        viewMode === 'calendar'
+                          ? 'bg-red-600 text-white shadow-md'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <CalendarIcon className="h-3.5 w-3.5" />
+                      Cuốn lịch
+                    </button>
+                  </div>
+
+                  {viewMode === 'strip' && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleScrollStrip('left')}
+                        aria-label="Cuộn sang trái"
+                        className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 hover:text-white transition-all"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleScrollStrip('right')}
+                        aria-label="Cuộn sang phải"
+                        className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 hover:text-white transition-all"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* 1. DẠNG THANH 10 NGÀY TỚI */}
+              {viewMode === 'strip' && (
+                <div
+                  ref={dateScrollRef}
+                  className="flex items-center gap-2.5 overflow-x-auto pb-4 scroll-smooth scrollbar-hide mb-6 border-b border-white/10"
+                >
+                  {dateList.map((date, index) => {
+                    const isSelected = isSameDay(date, selectedDate);
+                    const dateKey = format(date, 'yyyy-MM-dd');
+                    const hasShowtimes = availableShowtimeDates.has(dateKey);
+
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedDate(date)}
+                        className={`flex-shrink-0 relative flex flex-col items-center justify-center w-20 h-22 py-2 rounded-2xl border transition-all ${
+                          isSelected
+                            ? 'bg-gradient-to-b from-red-600 to-red-700 border-red-500 text-white shadow-lg shadow-red-500/30 scale-105 z-10'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="text-[11px] font-medium">
+                          {index === 0 ? 'Hôm nay' : format(date, 'EEE', { locale: vi })}
+                        </span>
+                        <span className="text-xl font-black my-0.5">{format(date, 'dd')}</span>
+                        <span className="text-[10px] opacity-75">Tháng {format(date, 'MM')}</span>
+
+                        {/* Dot indicator if has showtimes */}
+                        {hasShowtimes && (
+                          <span
+                            className={`mt-1 h-1.5 w-1.5 rounded-full ${
+                              isSelected ? 'bg-amber-300' : 'bg-red-500'
+                            }`}
+                            title="Có suất chiếu"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* 2. DẠNG CUỐN LỊCH (CALENDAR MONTH VIEW) */}
+              {viewMode === 'calendar' && (
+                <div className="bg-black/30 border border-white/10 rounded-2xl p-4 sm:p-5 mb-6">
+                  {/* Calendar Month Header */}
+                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+                    <button
+                      onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all flex items-center gap-1 text-xs"
+                    >
+                      <ChevronLeft className="h-4 w-4" /> Tháng trước
+                    </button>
+                    <span className="text-base font-bold text-white capitalize">
+                      {format(currentMonth, 'MMMM yyyy', { locale: vi })}
+                    </span>
+                    <button
+                      onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all flex items-center gap-1 text-xs"
+                    >
+                      Tháng sau <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Day of Week Header */}
+                  <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                    {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((dayName, idx) => (
+                      <span key={idx} className="text-xs font-semibold text-gray-400 py-1">
+                        {dayName}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Calendar Days Grid */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {/* Empty placeholder cells for previous month padding */}
+                    {Array.from({ length: (startOfMonth(currentMonth).getDay() + 6) % 7 }).map((_, i) => (
+                      <div key={`empty-${i}`} className="h-11 sm:h-12" />
+                    ))}
+
+                    {/* Month Days */}
+                    {eachDayOfInterval({
+                      start: startOfMonth(currentMonth),
+                      end: endOfMonth(currentMonth),
+                    }).map((day, idx) => {
+                      const isPast = isBefore(day, startOfDay(new Date()));
+                      const isSelected = isSameDay(day, selectedDate);
+                      const isTodayDate = isToday(day);
+                      const dateKey = format(day, 'yyyy-MM-dd');
+                      const hasShowtimes = availableShowtimeDates.has(dateKey);
+
+                      return (
+                        <button
+                          key={idx}
+                          disabled={isPast}
+                          onClick={() => setSelectedDate(day)}
+                          className={`h-11 sm:h-12 rounded-xl flex flex-col items-center justify-center transition-all relative ${
+                            isSelected
+                              ? 'bg-red-600 text-white font-bold shadow-md shadow-red-500/30'
+                              : isPast
+                              ? 'text-gray-600 opacity-30 cursor-not-allowed'
+                              : hasShowtimes
+                              ? 'bg-white/10 text-white hover:bg-red-500/20 hover:border-red-500/50 border border-transparent'
+                              : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                          }`}
+                        >
+                          <span className={`text-sm ${isTodayDate && !isSelected ? 'text-amber-400 font-bold' : ''}`}>
+                            {format(day, 'd')}
+                          </span>
+                          {hasShowtimes && (
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full mt-0.5 ${
+                                isSelected ? 'bg-amber-300' : 'bg-red-500'
+                              }`}
+                            />
+                          )}
+                          {isTodayDate && !isSelected && (
+                            <span className="text-[9px] text-amber-400 font-medium scale-90 leading-none">
+                              Hôm nay
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-gray-400 mt-4 pt-3 border-t border-white/10">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-red-500 inline-block" />
+                      <span>Có suất chiếu</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-amber-400 inline-block" />
+                      <span>Hôm nay</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Showtimes List */}
               {Object.keys(showtimesByRoom).length > 0 ? (

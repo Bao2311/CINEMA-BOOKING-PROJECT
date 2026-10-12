@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -104,20 +104,27 @@ namespace STP.APIService.Controllers
             }
             catch (DbUpdateException ex)
             {
-                _logger.LogError(ex, "Lỗi cập nhật cơ sở dữ liệu khi tạo đặt vé");
+                _logger.LogError(ex, "Lỗi cập nhật cơ sở dữ liệu khi tạo đặt vé: {Message}. Inner: {Inner}", ex.Message, ex.InnerException?.Message);
 
-                // Xử lý riêng cho lỗi ràng buộc khóa ngoại
-                if (ex.InnerException?.Message.Contains("FK_Ticket_Bookings_Creators") == true)
+                // Xử lý riêng cho lỗi ràng buộc khóa ngoại (hỗ trợ cả SQL Server và PostgreSQL)
+                if (ex.InnerException?.Message.Contains("FK_Ticket_Bookings_Creators") == true ||
+                    ex.InnerException?.Message.Contains("FK_Ticket_Bookings_Users_Created_By") == true)
                 {
-                    return BadRequest(new { message = $"Không thể tạo đặt vé vì người dùng không có quyền tạo đặt vé hoặc không tồn tại trong hệ thống" });
+                    return BadRequest(new { message = "Không thể tạo đặt vé vì người dùng không có quyền tạo đặt vé hoặc không tồn tại trong hệ thống" });
                 }
 
-                return StatusCode(500, new { message = "Lỗi cơ sở dữ liệu khi tạo đặt vé" });
+                return StatusCode(500, new { 
+                    message = "Lỗi cơ sở dữ liệu khi tạo đặt vé",
+                    detail = ex.InnerException?.Message ?? ex.Message
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi không xác định khi tạo đặt vé");
-                return StatusCode(500, new { message = "Có lỗi xảy ra khi tạo đơn đặt vé" });
+                _logger.LogError(ex, "Lỗi không xác định khi tạo đặt vé: {Message}", ex.Message);
+                return StatusCode(500, new { 
+                    message = "Có lỗi xảy ra khi tạo đơn đặt vé",
+                    detail = ex.Message
+                });
             }
         }
 

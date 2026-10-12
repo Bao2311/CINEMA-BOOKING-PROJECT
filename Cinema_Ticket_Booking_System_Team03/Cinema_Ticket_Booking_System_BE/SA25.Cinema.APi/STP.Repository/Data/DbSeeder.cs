@@ -754,5 +754,49 @@ namespace STP.Repository.Data
                 }
             }
         }
+
+        /// <summary>
+        /// Tự động kiểm tra và đồng bộ cấu trúc cơ sở dữ liệu trên Neon PostgreSQL:
+        /// - Bỏ ràng buộc NOT NULL trên Refund_Reason và Processor_Response của Payments
+        /// - Đồng bộ chuỗi sequence Identity cho các bảng để tránh lỗi Duplicate Key
+        /// </summary>
+        public static async Task EnsurePostgreSqlFixesAsync(CinemaDbContext context)
+        {
+            if (!context.Database.IsNpgsql()) return;
+
+            try
+            {
+                // 1. Đảm bảo các cột nullable trên bảng Payments
+                await context.Database.ExecuteSqlRawAsync(@"
+                    DO $$
+                    BEGIN
+                        ALTER TABLE ""Payments"" ALTER COLUMN ""Refund_Reason"" DROP NOT NULL;
+                    EXCEPTION WHEN OTHERS THEN NULL;
+                    END $$;
+                    DO $$
+                    BEGIN
+                        ALTER TABLE ""Payments"" ALTER COLUMN ""Processor_Response"" DROP NOT NULL;
+                    EXCEPTION WHEN OTHERS THEN NULL;
+                    END $$;
+                ");
+
+                // 2. Đồng bộ sequence ID để tránh lỗi trùng khóa chính (duplicate key)
+                await context.Database.ExecuteSqlRawAsync(@"
+                    DO $$
+                    BEGIN
+                        PERFORM setval(pg_get_serial_sequence('""Ticket_Bookings""', 'Booking_ID'), coalesce(max(""Booking_ID""), 1)) FROM ""Ticket_Bookings"";
+                        PERFORM setval(pg_get_serial_sequence('""Tickets""', 'Ticket_ID'), coalesce(max(""Ticket_ID""), 1)) FROM ""Tickets"";
+                        PERFORM setval(pg_get_serial_sequence('""Payments""', 'Payment_ID'), coalesce(max(""Payment_ID""), 1)) FROM ""Payments"";
+                        PERFORM setval(pg_get_serial_sequence('""Booking_History""', 'Booking_History_ID'), coalesce(max(""Booking_History_ID""), 1)) FROM ""Booking_History"";
+                        PERFORM setval(pg_get_serial_sequence('""Seats""', 'Seat_ID'), coalesce(max(""Seat_ID""), 1)) FROM ""Seats"";
+                    EXCEPTION WHEN OTHERS THEN NULL;
+                    END $$;
+                ");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[PostgreSqlFixes] Non-critical warning during PostgreSQL startup sync: {ex.Message}");
+            }
+        }
     }
 }

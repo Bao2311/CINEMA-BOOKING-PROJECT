@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { format, addDays, isSameDay } from 'date-fns';
+import { format, addDays, isSameDay, isToday } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import {
   Calendar as CalendarIcon, Clock, Star, Film,
@@ -23,9 +23,17 @@ const ShowtimesPage: React.FC = () => {
   const [pendingBookingId, setPendingBookingId] = useState<number | null>(null);
   const [selectedShowtimeInfo, setSelectedShowtimeInfo] = useState<{ showtimeId: number; movieId: number } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const dateScrollRef = useRef<HTMLDivElement>(null);
 
-  // 14 days list
-  const dateList = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i));
+  // Hiển thị 10 ngày tới
+  const dateList = Array.from({ length: 10 }, (_, i) => addDays(new Date(), i));
+
+  const handleScrollStrip = (direction: 'left' | 'right') => {
+    if (dateScrollRef.current) {
+      const scrollAmount = direction === 'left' ? -240 : 240;
+      dateScrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -163,7 +171,28 @@ const ShowtimesPage: React.FC = () => {
 
         {/* Date Selector Strip */}
         <div className="bg-[#161D2F] border border-white/10 rounded-2xl p-4 mb-8 shadow-xl">
-          <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <span className="text-xs text-gray-400">
+              Đang chọn: <span className="text-amber-400 font-semibold">{isToday(selectedDate) ? 'Hôm nay - ' : ''}{format(selectedDate, 'EEEE, dd/MM/yyyy', { locale: vi })}</span>
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => handleScrollStrip('left')}
+                aria-label="Cuộn sang trái"
+                className="p-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 hover:text-white transition-all"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => handleScrollStrip('right')}
+                aria-label="Cuộn sang phải"
+                className="p-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 hover:text-white transition-all"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+          <div ref={dateScrollRef} className="flex items-center gap-2.5 overflow-x-auto pb-2 scroll-smooth scrollbar-hide">
             {dateList.map((date, index) => {
               const isSelected = isSameDay(date, selectedDate);
               return (

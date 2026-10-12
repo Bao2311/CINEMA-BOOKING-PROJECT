@@ -214,18 +214,19 @@ namespace STP.APIService
             // Cấu hình routing cho controllers
             app.MapControllers();
 
-            // Tự động seed dữ liệu ban đầu nếu database trống
+            // Tự động seed dữ liệu ban đầu nếu database trống & fix PostgreSQL constraints nếu đang chạy trên Neon
             using (var scope = app.Services.CreateScope())
             {
                 try
                 {
                     var dbContext = scope.ServiceProvider.GetRequiredService<CinemaDbContext>();
+                    DbSeeder.EnsurePostgreSqlFixesAsync(dbContext).GetAwaiter().GetResult();
                     DbSeeder.SeedAsync(dbContext).GetAwaiter().GetResult();
                 }
                 catch (Exception ex)
                 {
                     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-                    logger.LogError(ex, "Lỗi xảy ra trong quá trình seed database.");
+                    logger.LogError(ex, "Lỗi xảy ra trong quá trình seed database hoặc cấu hình PostgreSQL.");
                 }
             }
 
