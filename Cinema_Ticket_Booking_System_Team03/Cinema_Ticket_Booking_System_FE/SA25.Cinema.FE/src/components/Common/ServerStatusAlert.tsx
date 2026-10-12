@@ -479,6 +479,14 @@ export const ServerStatusAlert: React.FC = () => {
                     <strong className="text-white">Bảo vệ tính toàn vẹn dữ liệu (Data Integrity):</strong> Phân quyền <strong>Quản trị viên (Admin)</strong> và <strong>Nhân viên (Staff)</strong> được bảo mật để tránh trường hợp dữ liệu phim, phòng chiếu và suất chiếu trên database Cloud bị sửa đổi/xóa ngoài ý muốn. Ứng viên sẽ trực tiếp trình bày chi tiết Dashboard Admin và nghiệp vụ Staff trong buổi phỏng vấn kỹ thuật.
                   </div>
                 </div>
+
+                {/* MOCK PAYMENT SANDBOX NOTICE */}
+                <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/25 text-xs text-blue-200 flex items-start gap-2.5">
+                  <span className="text-base shrink-0 mt-0.5">💳</span>
+                  <div className="leading-relaxed">
+                    <strong className="text-white">Thanh toán Giả lập (Mock Payment / Sandbox):</strong> Toàn bộ quy trình thanh toán vé xem phim trên website là môi trường mô phỏng thử nghiệm (Mock Payment). Quý nhà tuyển dụng có thể thoải mái chọn ghế và bấm xác nhận thanh toán để trải nghiệm toàn bộ luồng xuất vé QR & gửi email mà <strong className="text-emerald-400 font-semibold">hoàn toàn không bị trừ tiền thật</strong>.
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -294,6 +294,26 @@ const MockPaymentPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Top Banner: Mock Payment Notice */}
+      <div style={{
+        maxWidth: 960,
+        margin: '16px auto 0',
+        padding: '12px 18px',
+        background: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(16,185,129,0.1))',
+        border: '1px solid rgba(59,130,246,0.3)',
+        borderRadius: 14,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        color: '#E5E7EB',
+        fontSize: 13
+      }}>
+        <span style={{ fontSize: 20 }}>🧪</span>
+        <div>
+          <strong style={{ color: '#fff' }}>Cổng thanh toán Giả lập (Mock Payment / Sandbox):</strong> Đây là môi trường thử nghiệm dành cho Nhà tuyển dụng & Khách hàng demo. Bấm xác nhận thanh toán để trải nghiệm xuất vé điện tử QR & gửi email mà <span style={{ color: '#10B981', fontWeight: 700 }}>hoàn toàn không bị trừ tiền thật</span>.
+        </div>
+      </div>
+
       {/* Main content */}
       <div style={styles.container}>
         {/* Left: Booking Summary */}

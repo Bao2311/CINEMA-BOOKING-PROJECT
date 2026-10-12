@@ -20,6 +20,12 @@
 > 💡 **Lưu ý dành cho Nhà tuyển dụng (Cloud Free-Tier Cold Start):**  
 > Backend API được triển khai trên gói miễn phí của **Render**. Theo cơ chế của Render, máy chủ sẽ tạm ngủ (**Spin-down**) sau **15 phút** không có request. Khi vừa truy cập, container cần **30 - 50 giây để khởi động lại (Cold Start)**. Website đã tích hợp sẵn bảng thông báo, widget trạng thái thời gian thực và nút 1-Click đăng nhập Customer Demo để đánh thức máy chủ.
 
+> 💳 **Cơ chế Thanh toán Thử nghiệm (Mock Payment / Sandbox):**  
+> Dự án tích hợp hệ thống **Thanh toán giả lập (Mock Payment)** và cổng **PayOS Sandbox**. Khi trải nghiệm quy trình đặt vé và thanh toán trực tuyến:
+> - **Hoàn toàn KHÔNG trừ tiền thật**: Mọi giao dịch chỉ mang tính chất mô phỏng quy trình (Mock Payment).
+> - **Hỗ trợ đa dạng phương thức test**: Quét mã VietQR mô phỏng, chuyển khoản ngân hàng test, thẻ ngân hàng test (Visa/Mastercard) và ví MoMo test.
+> - **Xử lý trọn vẹn nghiệp vụ sau thanh toán**: Sau khi bấm xác nhận thanh toán giả lập, hệ thống vẫn kích hoạt toàn bộ nghiệp vụ Backend: cập nhật trạng thái đơn đặt vé thành công, xuất vé điện tử kèm mã QR check-in, cộng điểm thưởng thành viên và gửi email vé xem phim tự động.
+
 [📖 Hướng dẫn cài đặt](#-cài-đặt-và-chạy-project) · [📚 API Documentation](#-api-documentation) · [🐛 Báo lỗi](https://github.com/Bao2311/CINEMA-BOOKING-PROJECT/issues)
 
 </div>
@@ -47,7 +53,7 @@
 **Cinema Ticket Booking System** là ứng dụng web full-stack cho phép người dùng đặt vé xem phim trực tuyến. Hệ thống bao gồm:
 
 - 🎫 **Đặt vé trực tuyến** với chọn ghế ngồi theo sơ đồ rạp
-- 💳 **Thanh toán** qua PayOS (sandbox)
+- 💳 **Thanh toán giả lập (Mock Payment / PayOS Sandbox)**: Mô phỏng đầy đủ quy trình thanh toán (VietQR, chuyển khoản test), không trừ tiền thật, tự động kích hoạt vé và gửi email xác nhận
 - 📧 **Xác nhận email** tự động kèm vé điện tử và mã QR
 - 👤 **Quản lý tài khoản** người dùng, lịch sử đặt vé, tích điểm thành viên
 - 🔐 **Phân quyền** Admin / Staff / Customer
@@ -63,7 +69,7 @@
 | 🔍 Xem phim | Duyệt danh sách phim đang chiếu, sắp chiếu |
 | 🎬 Chi tiết phim | Xem thông tin, trailer, suất chiếu |
 | 💺 Chọn ghế | Sơ đồ ghế tương tác theo phòng chiếu |
-| 🛒 Đặt vé | Thanh toán trực tuyến qua PayOS |
+| 🛒 Đặt vé | Thanh toán giả lập trực tuyến (Mock Payment / PayOS Sandbox - không trừ tiền thật) |
 | 📱 Lịch sử đặt vé | Xem, hủy vé đã đặt |
 | 🔔 Thông báo | Nhận thông báo về khuyến mãi, vé đã đặt |
 | 👤 Hồ sơ cá nhân | Cập nhật thông tin, đổi mật khẩu |
