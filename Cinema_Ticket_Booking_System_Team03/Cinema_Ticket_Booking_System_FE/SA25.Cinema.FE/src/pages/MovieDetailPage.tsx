@@ -7,6 +7,7 @@ import {
 } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import {
+  Calendar,
   Calendar as CalendarIcon, Clock, MapPin, Users, Star, Film,
   ChevronLeft, ChevronRight, Play, Ticket, Sparkles, X, Tv, ArrowLeft, Tag, Layers
 } from 'lucide-react';

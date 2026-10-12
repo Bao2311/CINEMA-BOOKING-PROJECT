@@ -4,6 +4,7 @@ import axios from 'axios';
 import { format, addDays, isSameDay, isToday } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import {
+  Calendar,
   Calendar as CalendarIcon, Clock, Star, Film,
   ChevronLeft, ChevronRight, Ticket, Tv, Search
 } from 'lucide-react';
