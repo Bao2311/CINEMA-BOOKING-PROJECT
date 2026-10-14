@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -63,6 +63,7 @@ namespace STP.Repository.Services
 
                 using (var client = new SmtpClient(_configuration["EmailSettings:SmtpServer"], int.Parse(_configuration["EmailSettings:SmtpPort"])))
                 {
+                    client.Timeout = 5000; // 5 giây timeout để không bao giờ treo thread
                     client.EnableSsl = bool.Parse(_configuration["EmailSettings:EnableSsl"]);
                     client.Credentials = new NetworkCredential(
                         _configuration["EmailSettings:SmtpUsername"],

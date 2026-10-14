@@ -84,7 +84,7 @@ namespace STP.APIService.Controllers
                     // Fallback to local MockPayment
                     _logger.LogWarning($"[PayOS] PayOS get URL failed: {result.Message}. Falling back to MockPayment.");
                     var mockToken = GenerateMockToken(bookingId, int.Parse(userId));
-                    var frontendUrl = "http://localhost:5173";
+                    var frontendUrl = GetFrontendUrl();
                     var paymentUrl = $"{frontendUrl}/mock-payment?bookingId={bookingId}&amount={booking.Total_Amount}&token={mockToken}";
 
                     return Ok(new
@@ -239,7 +239,7 @@ namespace STP.APIService.Controllers
                     // Fallback to local MockPayment
                     _logger.LogWarning($"[PayOS] PayOS link creation failed: {paymentResponse.Message}. Falling back to MockPayment.");
                     var mockToken = GenerateMockToken(request.BookingId, int.Parse(userId));
-                    var frontendUrl = "http://localhost:5173";
+                    var frontendUrl = GetFrontendUrl();
                     var paymentUrl = $"{frontendUrl}/mock-payment?bookingId={request.BookingId}&amount={booking.Total_Amount}&token={mockToken}";
 
                     return Ok(new
@@ -794,6 +794,17 @@ namespace STP.APIService.Controllers
             // Chuyển hướng đến trang profile với tham số hủy
             string cancelUrl = _configuration["PayOS:CancelUrl"] ?? "http://localhost:5173/profile";
             return Redirect($"{cancelUrl}?code=000&id={orderCode}&cancel=true&status=CANCELLED&orderCode={orderCode}");
+        }
+
+        private string GetFrontendUrl()
+        {
+            var origin = Request.Headers["Origin"].ToString();
+            var referer = Request.Headers["Referer"].ToString();
+            return !string.IsNullOrWhiteSpace(origin)
+                ? origin.TrimEnd('/')
+                : (!string.IsNullOrWhiteSpace(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri)
+                    ? refererUri.GetLeftPart(UriPartial.Authority).TrimEnd('/')
+                    : (Environment.GetEnvironmentVariable("FRONTEND_URL")?.TrimEnd('/') ?? "https://cinema-booking-project-nine.vercel.app"));
         }
 
         private static string GenerateMockToken(int bookingId, int userId)

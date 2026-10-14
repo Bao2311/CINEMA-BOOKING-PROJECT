@@ -771,10 +771,11 @@ namespace STP.Repository.Services
                             {
                                 _logger.LogInformation($"Đang gửi email vé cho booking {bookingId} tới email: {user.Email}");
 
-                                // Gọi phương thức gửi email từ TicketService
-                                bool emailSent = await _ticketService.SendTicketFromTemplateByEmailAsync(bookingId, user.Email);
+                                // Gọi phương thức gửi email từ TicketService với timeout 4 giây để không làm nghẽn/treo luồng thanh toán
+                                var emailTask = _ticketService.SendTicketFromTemplateByEmailAsync(bookingId, user.Email);
+                                var completedTask = await Task.WhenAny(emailTask, Task.Delay(4000));
 
-                                if (emailSent)
+                                if (completedTask == emailTask && await emailTask)
                                 {
                                     _logger.LogInformation($"Đã gửi email vé thành công cho booking {bookingId}");
 
@@ -792,7 +793,7 @@ namespace STP.Repository.Services
                                 }
                                 else
                                 {
-                                    _logger.LogWarning($"Không thể gửi email vé cho booking {bookingId}");
+                                    _logger.LogWarning($"Gửi email vé cho booking {bookingId} bị quá thời gian (timeout) hoặc không thành công nhưng thanh toán đã hoàn tất an toàn.");
                                 }
                             }
                             else

@@ -64,6 +64,14 @@ const MockPaymentPage: React.FC = () => {
 
         if (res.data.success) {
           setBookingInfo(res.data);
+          // Nếu đơn hàng này đã được xác nhận thanh toán rồi (Confirmed)
+          if (res.data.status === 'Confirmed') {
+            setStep('success');
+            setTimeout(() => {
+              navigate(`/profile/bookings?status=success&bookingId=${bookingId}`);
+            }, 2500);
+            return;
+          }
         } else {
           setError(res.data.message || 'Không thể tải thông tin đặt vé');
         }
@@ -111,29 +119,69 @@ const MockPaymentPage: React.FC = () => {
     setIsProcessing(true);
     setStep('processing');
 
-    // Giả lập quá trình xử lý 2.5 giây
-    await new Promise(r => setTimeout(r, 2500));
+    // Chờ ngắn 600ms để hiệu ứng animation hiển thị mượt mà
+    await new Promise(r => setTimeout(r, 600));
 
     try {
       const authToken = localStorage.getItem('token');
       const res = await axios.post(
         `${API_BASE}/mock-payment/confirm`,
         { bookingId: parseInt(bookingId), token },
-        { headers: { Authorization: `Bearer ${authToken}` } }
+        { 
+          headers: { Authorization: `Bearer ${authToken}` },
+          timeout: 15000 
+        }
       );
 
       if (res.data.success) {
         setStep('success');
         setTimeout(() => {
           navigate(`/profile/bookings?status=success&bookingId=${bookingId}`);
-        }, 3000);
+        }, 2500);
       } else {
+        // Nếu thông báo báo rằng đơn đã Confirmed -> thành công luôn
+        if (res.data.message?.toLowerCase().includes('confirmed')) {
+          setStep('success');
+          setTimeout(() => {
+            navigate(`/profile/bookings?status=success&bookingId=${bookingId}`);
+          }, 2500);
+          return;
+        }
         setStep('failed');
         toast.error(res.data.message);
       }
     } catch (e: any) {
+      const errMsg = e.response?.data?.message || '';
+
+      // Nếu server trả về 400 nhưng đơn hàng đã là Confirmed
+      if (errMsg.toLowerCase().includes('confirmed')) {
+        setStep('success');
+        setTimeout(() => {
+          navigate(`/profile/bookings?status=success&bookingId=${bookingId}`);
+        }, 2500);
+        return;
+      }
+
+      // Thử kiểm tra lại trạng thái thực tế của booking nếu request bị timeout hoặc lỗi mạng
+      try {
+        const authToken = localStorage.getItem('token');
+        const checkRes = await axios.get(`${API_BASE}/mock-payment/booking-info/${bookingId}`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+          timeout: 5000
+        });
+        if (checkRes.data?.success && checkRes.data?.status === 'Confirmed') {
+          setStep('success');
+          setTimeout(() => {
+            navigate(`/profile/bookings?status=success&bookingId=${bookingId}`);
+          }, 2500);
+          return;
+        }
+      } catch {
+        // bỏ qua nếu check lỗi
+      }
+
       setStep('failed');
-      toast.error(e.response?.data?.message || 'Thanh toán thất bại. Vui lòng thử lại.');
+      toast.error(errMsg || 'Thanh toán thất bại. Vui lòng thử lại.');
     } finally {
       setIsProcessing(false);
     }

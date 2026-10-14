@@ -64,6 +64,21 @@ namespace STP.APIService.Controllers
                 if (booking.User_ID != userId && !isStaffOrAdmin)
                     return Unauthorized(new { success = false, message = "Bạn không có quyền thanh toán đơn đặt vé này" });
 
+                var frontendUrl = GetFrontendUrl();
+
+                if (booking.Status == "Confirmed")
+                {
+                    return Ok(new
+                    {
+                        success = true,
+                        alreadyPaid = true,
+                        message = "Đơn đặt vé đã được thanh toán",
+                        paymentUrl = $"{frontendUrl}/profile/bookings?status=success&bookingId={bookingId}",
+                        bookingId = bookingId,
+                        amount = booking.Total_Amount
+                    });
+                }
+
                 if (DateTime.Now > booking.Payment_Deadline)
                 {
                     // Tự động gia hạn cho môi trường demo/mock để không bị chặn
@@ -73,14 +88,6 @@ namespace STP.APIService.Controllers
 
                 // Tạo token giả lập để bảo vệ callback
                 var mockToken = GenerateMockToken(bookingId, userId.Value);
-
-                var origin = Request.Headers["Origin"].ToString();
-                var referer = Request.Headers["Referer"].ToString();
-                string frontendUrl = !string.IsNullOrWhiteSpace(origin)
-                    ? origin.TrimEnd('/')
-                    : (!string.IsNullOrWhiteSpace(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri)
-                        ? refererUri.GetLeftPart(UriPartial.Authority).TrimEnd('/')
-                        : (Environment.GetEnvironmentVariable("FRONTEND_URL")?.TrimEnd('/') ?? "https://cinema-booking-project-nine.vercel.app"));
 
                 var paymentUrl = $"{frontendUrl}/mock-payment?bookingId={bookingId}&amount={booking.Total_Amount}&token={mockToken}";
 
@@ -121,9 +128,15 @@ namespace STP.APIService.Controllers
                 if (userId == null)
                     return Unauthorized(new { success = false, message = "Không thể xác định người dùng" });
 
-                // Xác thực token giả lập
-                if (!ValidateMockToken(request.Token, request.BookingId, userId.Value))
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                bool isStaffOrAdmin = userRole == "Staff" || userRole == "Admin";
+
+                // Xác thực token giả lập: Cho phép nếu token hợp lệ hoặc Staff/Admin
+                if (!ValidateMockToken(request.Token, request.BookingId, userId.Value) && !isStaffOrAdmin)
+                {
+                    _logger.LogWarning($"[MockPayment] Token không khớp cho booking {request.BookingId}");
                     return Unauthorized(new { success = false, message = "Token không hợp lệ" });
+                }
 
                 var booking = await _context.TicketBookings
                     .FirstOrDefaultAsync(b => b.Booking_ID == request.BookingId);
@@ -131,7 +144,29 @@ namespace STP.APIService.Controllers
                 if (booking == null)
                     return NotFound(new { success = false, message = "Không tìm thấy đơn đặt vé" });
 
-                if (booking.Status != "Pending")
+                var frontendUrl = GetFrontendUrl();
+
+                // NẾU ĐƠN ĐÃ ĐƯỢC XÁC NHẬN RỒI -> THÀNH CÔNG NGAY (Idempotent, không báo lỗi 400)
+                if (booking.Status == "Confirmed")
+                {
+                    _logger.LogInformation($"[MockPayment] Booking {request.BookingId} đã ở trạng thái Confirmed từ trước");
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "Thanh toán thành công!",
+                        bookingId = request.BookingId,
+                        redirectUrl = $"{frontendUrl}/profile/bookings?status=success&bookingId={request.BookingId}"
+                    });
+                }
+
+                // Gia hạn nếu hết hạn trong môi trường Mock
+                if (booking.Status == "Pending" && DateTime.Now > booking.Payment_Deadline)
+                {
+                    booking.Payment_Deadline = DateTime.Now.AddMinutes(15);
+                    await _context.SaveChangesAsync();
+                }
+
+                if (booking.Status != "Pending" && booking.Status != "Cancelled")
                     return BadRequest(new { success = false, message = $"Đơn đặt vé đang ở trạng thái '{booking.Status}'" });
 
                 _logger.LogInformation($"[MockPayment] Xác nhận thanh toán thành công cho booking {request.BookingId}");
@@ -139,19 +174,18 @@ namespace STP.APIService.Controllers
                 // Gọi service cập nhật booking y như PayOS làm
                 await _bookingService.UpdateBookingPayment(request.BookingId, userId.Value);
 
-                var returnUrl = "http://localhost:5173/profile/bookings";
                 return Ok(new
                 {
                     success = true,
                     message = "Thanh toán thành công!",
                     bookingId = request.BookingId,
-                    redirectUrl = $"{returnUrl}?status=success&bookingId={request.BookingId}"
+                    redirectUrl = $"{frontendUrl}/profile/bookings?status=success&bookingId={request.BookingId}"
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"[MockPayment] Lỗi khi xác nhận thanh toán booking {request.BookingId}");
-                return StatusCode(500, new { success = false, message = "Lỗi server khi xác nhận thanh toán" });
+                return StatusCode(500, new { success = false, message = "Lỗi server khi xác nhận thanh toán: " + ex.Message });
             }
         }
 
@@ -220,11 +254,12 @@ namespace STP.APIService.Controllers
 
                     _logger.LogInformation($"[MockPayment] Đã hủy booking {request.BookingId}");
 
+                    var frontendUrl = GetFrontendUrl();
                     return Ok(new
                     {
                         success = true,
                         message = "Đã hủy đặt vé",
-                        redirectUrl = "http://localhost:5173/profile/bookings?status=cancelled"
+                        redirectUrl = $"{frontendUrl}/profile/bookings?status=cancelled"
                     });
                 }
                 catch
@@ -293,6 +328,17 @@ namespace STP.APIService.Controllers
         }
 
         // ── Helpers ──────────────────────────────────────────────────────────────
+
+        private string GetFrontendUrl()
+        {
+            var origin = Request.Headers["Origin"].ToString();
+            var referer = Request.Headers["Referer"].ToString();
+            return !string.IsNullOrWhiteSpace(origin)
+                ? origin.TrimEnd('/')
+                : (!string.IsNullOrWhiteSpace(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri)
+                    ? refererUri.GetLeftPart(UriPartial.Authority).TrimEnd('/')
+                    : (Environment.GetEnvironmentVariable("FRONTEND_URL")?.TrimEnd('/') ?? "https://cinema-booking-project-nine.vercel.app"));
+        }
 
         private int? GetUserId()
         {
